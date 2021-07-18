@@ -1,0 +1,18 @@
+{
+    "verbose": false,
+    "inspect": true,
+    "exec": "node --nolazy --inspect=0.0.0.0:9229 /app/dist/api/api.js",
+    "watch": [
+        "/app/dist/**/*.js"
+    ],
+    "ext": "js,json",
+    "delay": 500,
+    "ignore": [
+        "*.d.ts",
+        "*.map"
+    ],
+    "execMap": {},
+    "events": {
+        "restart": "echo \"--- RESTART ---\""
+    }
+}

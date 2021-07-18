@@ -1,0 +1,5 @@
+#
+# Shared configuration resource definitions for sharing across live environments
+#
+resources:
+- secrets.yml

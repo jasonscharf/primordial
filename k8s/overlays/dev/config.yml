@@ -1,0 +1,10 @@
+#
+# Note: Never put actual credentials here! These are all for local development.
+#
+apiVersion: v1
+kind: Secret
+metadata:
+  name: config
+
+stringData:
+  PRIMO_TESTVAR: "false"

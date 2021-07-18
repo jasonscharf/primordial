@@ -1,0 +1,49 @@
+parameters:
+  - name: environment
+    type: string
+    default: dev
+
+jobs:
+  - deployment: deploy
+    displayName: Deploy to AKS
+    environment: $(environment)
+    pool:
+      vmImage: "Ubuntu-latest"
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          #
+          # Download the artifact with the stamped version and configuration values
+          #
+            - task: DownloadBuildArtifacts@0
+              inputs:
+                buildType: "current"
+                downloadType: "single"
+                artifactName: $(artifactName)
+                downloadPath: "$(System.ArtifactsDirectory)"
+
+            - script: "ls -R -lah $(System.ArtifactsDirectory)"
+              displayName: "Show artifact files"
+
+            - script: "kubectl kustomize $(Build.ArtifactStagingDirectory)/$(artifactName)/k8s/overlays/${{ parameters.environment }} > $(Build.ArtifactStagingDirectory)/$(artifactName)/manifest.yml"
+
+            - task: KubernetesManifest@0
+              inputs:
+                action: "deploy"
+                kubernetesServiceConnection: $(kubernetesServiceConnection)
+                manifests: "$(Build.ArtifactStagingDirectory)/$(artifactName)/$(manifestPath)"
+                namespace: ${{ parameters.environment }}
+                useClusterAdmin: true
+                
+            #- task: Kubernetes@1
+            #  inputs:
+            #    connectionType: 'Kubernetes Service Connection'
+            #    command: 'apply'
+            #    kubernetesServiceEndpoint: 'wcmcsandbox1-default'
+            #    namespace: ${{ parameters.environment }}
+            #    arguments: '-f $(Build.ArtifactStagingDirectory)/$(artifactName)/$(manifestPath)'
+            #    secretType: 'dockerRegistry'
+            #    containerRegistryType: 'Azure Container Registry'

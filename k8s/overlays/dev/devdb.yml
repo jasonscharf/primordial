@@ -1,0 +1,59 @@
+#
+# Development DB service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  labels:
+    group: db
+
+spec:
+  type: NodePort
+  selector:
+    io.kompose.service: db
+
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+
+---
+#
+# Development DB deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  labels:
+    io.kompose.service: db
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: db
+
+  template:
+    metadata:
+      labels:
+        io.kompose.service: db
+
+    spec:
+      containers:
+        - image: postgres:10.3
+          name: db
+          resources: {}
+          env:
+            - name: POSTGRES_DB
+              value: "primo"
+            - name: POSTGRES_USER
+              value: "dev"
+            - name: POSTGRES_PASSWORD
+              value: "dev"
+
+          ports:
+            - containerPort: 5432
+              protocol: TCP

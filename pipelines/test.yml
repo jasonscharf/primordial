@@ -1,0 +1,94 @@
+trigger:
+  - none
+
+pool:
+  vmImage: "ubuntu-latest"
+
+#
+# Variables that must be populated by the pipeline definition:
+# - azureSub
+# - environment
+# - kubernetesServiceConnection
+
+variables:
+  azureSub: "DEFAULT_AZURE_SUB"
+  environment: "staging"
+  kubernetesServiceConnection: "wcmcsandbox1-default"
+  manifestPath: "manifest.yml"
+  registryName: primordialimages
+  resourceGroup: dev
+  artifactName: drop
+  testVarFromADO: DEFAULT
+  user: wcmc-wcmc-716167c2-b5f2-4055-bcb1-11c9a101de82
+
+  # Note: Overriden by the apply task later on
+  tag: "latest"
+
+stages:
+  #
+  # Build
+  #
+  - stage: build
+    displayName: "Build"
+    variables:
+      testVar: $(testVarFromADO)
+
+    jobs:
+      - job: build
+        steps:
+          - script: "echo environment: $(environment)"
+          - script: "echo testVarFromADO: $(testVarFromADO)"
+
+          - task: Kubernetes@1
+            displayName: "list services in default"
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: 'wcmcsandbox1-default'
+              namespace: 'default'
+              command: 'auth'
+              arguments: 'can-i list services'
+              secretType: 'dockerRegistry'
+              containerRegistryType: 'Azure Container Registry'
+              azureSubscriptionEndpointForSecrets: 'WCMC(716167c2-b5f2-4055-bcb1-11c9a101de82)'
+              azureContainerRegistry: 'primordialimages.azurecr.io'
+
+          - task: Kubernetes@1
+            displayName: "list services in dev"
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: 'wcmcsandbox1-default'
+              namespace: 'dev'
+              command: 'auth'
+              arguments: 'can-i list services'
+              secretType: 'dockerRegistry'
+              containerRegistryType: 'Azure Container Registry'
+              azureSubscriptionEndpointForSecrets: 'WCMC(716167c2-b5f2-4055-bcb1-11c9a101de82)'
+              azureContainerRegistry: 'primordialimages.azurecr.io'
+          - task: Kubernetes@1
+            inputs:
+              connectionType: "Kubernetes Service Connection"
+              kubernetesServiceEndpoint: "wcmcsandbox1-default"
+              command: "cluster-info"
+              arguments: ""
+              secretType: "dockerRegistry"
+              containerRegistryType: "Azure Container Registry"
+
+          - task: Kubernetes@1
+            inputs:
+              connectionType: "Kubernetes Service Connection"
+              kubernetesServiceEndpoint: "wcmcsandbox1-default"
+              namespace: dev
+              command: "auth"
+              arguments: "can-i list pods"
+              secretType: "dockerRegistry"
+              containerRegistryType: "Azure Container Registry"
+
+          - task: Kubernetes@1
+            inputs:
+              connectionType: "Kubernetes Service Connection"
+              kubernetesServiceEndpoint: "wcmcsandbox1-default"
+              namespace: dev
+              command: "get"
+              arguments: "pods"
+              secretType: "dockerRegistry"
+              containerRegistryType: "Azure Container Registry"

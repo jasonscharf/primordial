@@ -1,0 +1,12 @@
+**/*.local.*
+**/node_modules/**
+**/dist/**
+**/artifacts/**
+
+*.pyc
+env
+
+k8s/manifest.yml
+
+src/api/routes.ts
+src/swagger.json

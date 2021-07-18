@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+spec:
+
+  # NOTE: Not currently used (not referenced in Kustomize).
+  # Staging does not utilize resource quotas at this point, as it is separate from prod.
+  hard:
+    requests.cpu: "1"
+    requests.memory: "1Gi"
+    limits.cpu: "4"
+    limits.memory: "4Gi"

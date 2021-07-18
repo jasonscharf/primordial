@@ -1,0 +1,82 @@
+trigger:
+  - none
+
+pool:
+  vmImage: "ubuntu-latest"
+
+
+variables:
+  kubernetesServiceConnection: "wcmcsandbox1-default"
+  manifestPath: "manifest.yml"
+  registryName: primordialimages
+  resourceGroup: dev
+  artifactName: drop
+
+  # Note: Overriden by the apply task later on
+  tag: "latest"
+
+stages:
+  #
+  # Build
+  #
+  - stage: build
+    displayName: "Build"
+    jobs:
+      - job: build
+        steps:
+
+          # Pre-build diagnostic info
+          - script: echo "Environment is $(environment)"
+            displayName: "Display Kubernetes namespace"
+
+          # Install
+          - script: yarn install
+
+          # Compile
+          - script: yarn release:compile
+            displayName: "Compile code"
+
+          # Version
+          # Note: This task sets the variable "tag" inside of version.sh
+          - script: yarn version:apply
+            displayName: "Apply version to code and k8s config"
+
+          # Configure
+          #- script: yarn kube:config:release
+          #  displayName: "Generate Kubernetes config"
+
+          # Generate and publish artifact
+          - script: cp -r k8s/ $(Build.ArtifactStagingDirectory)
+            displayName: "Copy Kubernetes configurations to artifact"
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publish Artifact"
+            inputs:
+              PathtoPublish: "$(Build.ArtifactStagingDirectory)"
+              ArtifactName: $(artifactName)
+              publishLocation: "Container"
+
+          # Build versioned container images
+          - script: yarn release:build-images
+            displayName: "Build images"
+
+          # TODO: Tests go here
+
+          # Push to Azure Container Registry
+          - task: Docker@2
+            inputs:
+              containerRegistry: $(registryName)
+              repository: "primo_server"
+              command: "push"
+              tags: $(tag)
+
+  #
+  # Deploy to AKS environment
+  # 
+  - stage: staging
+    displayName: "Staging"
+    condition: succeeded()
+    jobs:
+      - template: 'deploy.template.yml'
+        parameters:
+          environment: staging

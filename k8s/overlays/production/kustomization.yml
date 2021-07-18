@@ -1,0 +1,13 @@
+bases:
+  - ../../base
+  - ../shared
+
+resources:
+  - namespace.yml
+  - certificate.yml
+  - cluster-issuer.yml
+
+patchesStrategicMerge:
+  - api.yml
+  - ingress.yml
+  - secrets.yml

@@ -1,0 +1,29 @@
+#
+# Ingress
+#
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt
+
+spec:
+  tls:
+    - secretName: tls-secret
+      hosts:
+        - "staging.primordial.mothership.io"
+
+  rules:
+    - host: staging.primordial.mothership.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080

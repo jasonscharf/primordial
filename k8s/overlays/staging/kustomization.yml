@@ -1,0 +1,16 @@
+bases:
+  - ../../base
+  - ../shared
+
+resources:
+  - namespace.yml
+  - certificate.yml
+  - cluster-issuer.yml
+
+  # Resource quota not being used.
+  #- resource-quota.yml
+
+patchesStrategicMerge:
+  - api.yml
+  - ingress.yml
+  - secrets.yml

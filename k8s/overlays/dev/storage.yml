@@ -1,0 +1,56 @@
+#
+# Development storage deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage
+  labels:
+    io.kompose.service: storage
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: storage
+
+  template:
+    metadata:
+      labels:
+        io.kompose.service: storage
+
+    spec:
+      containers:
+      - image: mcr.microsoft.com/azure-storage/azurite
+        name: storage
+        resources: {}
+        env: 
+          - name: POSTGRES_DB
+            value: "primo"
+          - name: POSTGRES_USER
+            value: "dev"
+          - name: POSTGRES_PASSWORD
+            value: "dev"
+
+        ports:
+          - containerPort: 10000
+            protocol: TCP
+
+---
+
+#
+# Development storage service (for local blob storage)
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage
+  labels: 
+    group: db
+
+spec:
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 10000
+      targetPort: 10000

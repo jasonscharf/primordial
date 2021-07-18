@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1alpha2
+kind: Certificate
+metadata:
+  name: tls-secret
+
+spec:
+  secretName: tls-secret
+  dnsNames:
+    - "staging.primordial.mothership.io"
+
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer

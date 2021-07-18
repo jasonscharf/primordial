@@ -1,0 +1,51 @@
+#
+# Backend deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    io.kompose.service: api
+
+spec:
+  replicas: 8
+  selector:
+    matchLabels:
+      io.kompose.service: api
+
+  template:
+    spec:
+      containers:
+        - name: api
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+
+          env:
+            - name: PRIMO_ENV
+              value: "production"
+
+            - name: PRIMO_AUTH_AD_B2C_TENANT_ID
+              value: ""
+
+            - name: PRIMO_AUTH_AD_B2C_TENANT_NAME
+              value: "primordial.onmicrosoft.com"
+
+            - name: PRIMO_AUTH_AD_B2C_DOMAIN_HOST
+              value: "primordial.b2clogin.com"
+
+            - name: PRIMO_AUTH_AD_B2C_CALLBACK
+              value: https://primordial.mothership.io/api/auth/callback
+
+            - name: PRIMO_PUBLIC_ADDRESS
+              value: https://primordial.mothership.io/
+
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "azure-key-vault"

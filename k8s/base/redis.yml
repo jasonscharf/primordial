@@ -1,0 +1,97 @@
+#
+# Redis service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+
+spec:
+  type: NodePort
+  selector:
+    io.kompose.service: redis
+
+  ports:
+    - name: redis
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+
+---
+#
+# Redis deployment + volume claim
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: redis
+  name: redis
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: redis
+
+  strategy:
+    type: Recreate
+
+  template:
+    metadata:
+      labels:
+        io.kompose.service: redis
+
+    spec:
+      containers:
+        - command:
+            - redis-server
+            - --save 900 1
+            - --save 300 10
+            - --save 60 10000
+            - -appendonly no
+          image: redis:6.0.8-alpine
+          name: redis
+          resources:
+            limits:
+              cpu: 150m
+              memory: 128Mi
+            requests:
+              cpu: 25m
+              memory: 64Mi
+
+          ports:
+            - containerPort: 6379
+              protocol: TCP
+
+          volumeMounts:
+            - mountPath: /data
+              name: redis
+
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+        - name: redis
+          persistentVolumeClaim:
+            claimName: redis
+
+status: {}
+
+---
+#
+# Redis volume claim
+#
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis
+  labels:
+    io.kompose.service: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+
+status: {}

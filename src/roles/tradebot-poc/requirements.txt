@@ -1,0 +1,14 @@
+click
+numpy
+pandas
+rich
+yfinance
+plotly
+matplotlib
+plotly
+asyncio
+trendln
+python-binance
+art
+TA-lib
+ruamel.yaml

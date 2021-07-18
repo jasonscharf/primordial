@@ -1,0 +1,17 @@
+parameters:
+  - name: environment
+    type: string
+    default: dev
+
+jobs:
+  - deployment: deploy
+    displayName: Deploy to AKS
+    pool:
+      vmImage: "Ubuntu-latest"
+
+    environment: $(environment)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - script: echo 'ENVIRONMENT IS ${environment}'

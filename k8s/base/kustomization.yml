@@ -1,0 +1,9 @@
+#
+# Base config for Kustomize
+#
+resources:
+- api.yml
+- worker.yml
+- ingress.yml
+- redis.yml
+- web.yml

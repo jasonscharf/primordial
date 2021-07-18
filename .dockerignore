@@ -1,0 +1,10 @@
+.git
+.vscode
+*.local.*
+
+./k8s/manifest.yml
+
+coverage
+env
+node_modules
+pipelines

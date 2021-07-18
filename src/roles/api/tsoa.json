@@ -1,0 +1,16 @@
+{
+    "entryFile": "./src/roles/api/api.ts",
+    "noImplicitAdditionalProperties": "silently-remove-extras",
+    "controllerPathGlobs": [
+        "./src/roles/api/controllers/*"
+    ],
+    "spec": {
+        "basePath": "/api",
+        "outputDirectory": "./src/",
+        "specVersion": 3
+    },
+    "routes": {
+        "middleware": "koa",
+        "routesDir": "./src/roles/api"
+    }
+}

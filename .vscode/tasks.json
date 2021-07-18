@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "npm",
+			"script": "dev:build",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [],
+			"label": "npm: dev:build",
+			"detail": "yarn dev:clean && yarn codegen && yarn dev:compile && yarn release:assets"
+		}
+	]
+}

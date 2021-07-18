@@ -1,0 +1,35 @@
+currencies:
+  - symbol: BTC
+    name: Bitcoin
+    type: crypto
+    sign: ₿
+    du: 8
+
+  - symbol: BUSD
+    name: Binance USD
+    type: crypto
+    sign: $
+    du: 2
+
+  - symbol: USDT
+    name: Tether
+    type: crypto
+    sign: ₮
+    du: 2
+
+  - symbol: NANO
+    name: Nano
+    type: crypto
+    du: 30
+
+  - symbol: ADA
+    name: Cardano
+    type: crypto
+    sign: ₳
+    du: 6
+
+  - symbol: ETH
+    name: Ethereum
+    type: crypto
+    sign: Ξ
+    du: 6
