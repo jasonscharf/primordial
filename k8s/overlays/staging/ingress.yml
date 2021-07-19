@@ -14,9 +14,36 @@ spec:
   tls:
     - secretName: tls-secret
       hosts:
+
+        # "Production" is staging for now
+        - "primo.mothership.io"
+
+        - "staging.primo.mothership.io"
         - "staging.primordial.mothership.io"
 
   rules:
+    - host: primo.mothership.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080
+
+    - host: staging.primo.mothership.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8080
+
     - host: staging.primordial.mothership.io
       http:
         paths:

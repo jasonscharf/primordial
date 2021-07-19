@@ -1,0 +1,56 @@
+#
+# This compose file is intended to overlay the base compose file (and perhaps dev) with
+# configuration for running and debugging tests.
+#
+version: "3.4"
+
+services:
+
+  # Node-based web frontend
+  tests:
+    build:
+      context: ./
+      target: tests
+      dockerfile: ./dockerfile
+
+    stdin_open: true
+    tty: true
+    depends_on:
+      - api
+      - db
+      - redis
+      - mq
+
+    ports:
+      - "9232:9229"
+
+      
+    volumes:
+      # Mount coverage folder to get coverage out
+      - ./coverage:/build/coverage/:cached
+      - ./dist:/build/dist/:delegated
+      - ./nodemon.test.json:/build/nodemon.test.json:delegated
+      
+    environment:
+      PRIMO_ENV: dev
+      PRIMO_DB_HOSTNAME: db
+      PRIMO_DB_USERNAME: dev
+      PRIMO_DB_PASSWORD: dev
+
+  # Local Instance of postgres
+  db:
+
+    # DEBUG: Uncomment to log all queries
+    #command: ["postgres", "-c", "log_statement=all"]
+
+    image: postgres:10.3
+    hostname: db
+    environment:
+      POSTGRES_DB: opal
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+    ports:
+      - "5452:5432"
+
+  storage:
+    image: mcr.microsoft.com/azure-storage/azurite

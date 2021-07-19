@@ -38,7 +38,7 @@ spec:
 
     spec:
       containers:
-        - image: primordialimages.azurecr.io/primordial-api:latest
+        - image: primordialimages.azurecr.io/primo-api:latest
           name: api
           imagePullPolicy: Never
           resources: {}

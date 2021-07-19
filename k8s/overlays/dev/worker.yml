@@ -38,7 +38,7 @@ spec:
 
     spec:
       containers:
-        - image: primordialimages.azurecr.io/primordial-worker:latest
+        - image: primordialimages.azurecr.io/primo-worker:latest
           name: worker
           imagePullPolicy: Never
           resources: {}

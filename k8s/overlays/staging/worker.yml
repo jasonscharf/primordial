@@ -4,20 +4,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api
+  name: worker
   labels:
-    io.kompose.service: api
+    io.kompose.service: worker
 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: api
+      io.kompose.service: worker
 
   template:
     spec:
       containers:
-        - name: api
+        - name: worker
           securityContext:
             capabilities:
               drop:

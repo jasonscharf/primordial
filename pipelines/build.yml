@@ -6,10 +6,10 @@ pool:
 
 
 variables:
-  kubernetesServiceConnection: "wcmcsandbox1-default"
+  kubernetesServiceConnection: "development"
   manifestPath: "manifest.yml"
   registryName: primordialimages
-  resourceGroup: dev
+  resourceGroup: primo-development
   artifactName: drop
 
   # Note: Overriden by the apply task later on
@@ -60,15 +60,24 @@ stages:
           - script: yarn release:build-images
             displayName: "Build images"
 
-          # TODO: Tests go here
+          # Run tests
+          - script: yarn test
+            displayName: "Run tests"
+
+          # Publish test results
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '$(System.DefaultWorkingDirectory)/coverage/test-results.xml'
 
           # Push to Azure Container Registry
-          - task: Docker@2
+          - task: DockerCompose@0
             inputs:
-              containerRegistry: $(registryName)
-              repository: "primo_server"
-              command: "push"
-              tags: $(tag)
+              containerregistrytype: 'Azure Container Registry'
+              azureSubscription: 'Visual Studio Premium with MSDN(eb3dc777-ca8e-4309-ba9a-867fc0fc3e3d)'
+              azureContainerRegistry: '{"loginServer":"primordialimages.azurecr.io", "id" : "/subscriptions/eb3dc777-ca8e-4309-ba9a-867fc0fc3e3d/resourceGroups/primo-global/providers/Microsoft.ContainerRegistry/registries/primordialimages"}'
+              dockerComposeFile: '**/docker-compose.yml'
+              action: 'Push services'
 
   #
   # Deploy to AKS environment

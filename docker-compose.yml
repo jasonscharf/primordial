@@ -22,13 +22,13 @@ services:
 
 
   # RabbitMQ for durable message passing
-  queue:
+  mq:
     hostname: queue
     image: rabbitmq:3.8.19
     restart: always
     volumes:
-      - queue_log:/var/log/rabbitmq/mnesia
-      - queue_data:/var/lib/rabbitmq/mnesia
+      - mq_log:/var/log/rabbitmq/mnesia
+      - mq_data:/var/lib/rabbitmq/mnesia
     environment:
       RABBITMQ_DEFAULT_USER: primo
       RABBITMQ_DEFAULT_PASSWORD: primo
@@ -62,7 +62,7 @@ services:
       dockerfile: ./dockerfile
     depends_on:
       - redis
-      - queue
+      - mq
       - db
 
 
@@ -75,7 +75,7 @@ services:
       dockerfile: ./dockerfile
     depends_on:
       - redis
-      - queue
+      - mq
       - db
     ports:
       - 8000
@@ -94,21 +94,21 @@ services:
       - 8080:80
 
 
-  # Python trading bot PoC
-  tradebot:
-    image: primordialimages.azurecr.io/primo-tradebot-poc:latest # TAGPLACEHOLDER
-    build:
-      context: ./
-      target: tradebot-poc
-      dockerfile: ./dockerfile
-    depends_on:
-      - redis
-      - queue
-      - db
+  ## Python trading bot PoC
+  #tradebot:
+  #  image: primordialimages.azurecr.io/primo-tradebot-poc:latest # TAGPLACEHOLDER
+  #  build:
+  #    context: ./
+  #    target: tradebot-poc
+  #    dockerfile: ./dockerfile
+  #  depends_on:
+  #    - redis
+  #    - mq
+  #    - db
 
 
 volumes:
   redis:
   db:
-  queue_data:
-  queue_log:
+  mq_data:
+  mq_log:

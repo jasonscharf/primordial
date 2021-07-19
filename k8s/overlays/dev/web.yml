@@ -21,7 +21,7 @@ spec:
 
     spec:
       containers:
-        - image: primordialimages.azurecr.io/primordial-web:latest
+        - image: primordialimages.azurecr.io/primo-web:latest
           name: web
           imagePullPolicy: Never
           resources: {}

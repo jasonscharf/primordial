@@ -19,8 +19,8 @@ spec:
 
     - name: health
       protocol: TCP
-      port: 3000
-      targetPort: 3000
+      port: 8001
+      targetPort: 8001
 ---
 #
 # API deployment
@@ -48,7 +48,8 @@ spec:
       serviceAccountName: ""
       volumes: []
       containers:
-        - image: primordialimages.azurecr.io/primordial-api:latest # TAGPLACEHOLDER
+        - image: primordialimages.azurecr.io/primo-api:latest # TAGPLACEHOLDER
+          imagePullPolicy: Always
           name: api
 
           resources: {}
@@ -65,7 +66,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /
-              port: 3000
+              port: 8001
             initialDelaySeconds: 5
             periodSeconds: 5
 
@@ -75,12 +76,11 @@ spec:
               protocol: TCP
 
             - name: health
-              containerPort: 3000
+              containerPort: 8001
               protocol: TCP
 
           # Note: Any secret values referenced here must also go in the staging/prod secret providers.
           env:
-
             - name: PRIMO_AUTH_AD_B2C_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -114,18 +114,33 @@ spec:
                 secretKeyRef:
                   name: config
                   key: PRIMO_DB_HOSTNAME
-                  optional: true
 
             - name: PRIMO_DB_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: config
                   key: PRIMO_DB_USERNAME
-                  optional: true
 
             - name: PRIMO_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: config
                   key: PRIMO_DB_PASSWORD
-                  optional: true
+
+            - name: PRIMO_MQ_HOSTNAME
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_MQ_HOSTNAME
+
+            - name: PRIMO_MQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_MQ_USERNAME
+
+            - name: PRIMO_MQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_MQ_PASSWORD

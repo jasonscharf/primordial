@@ -1,11 +1,8 @@
 bases:
   - ../../base
+  - ../shared
 
 resources:
-  # TODO: This should be under merges, but yields a "Error: failed to find an object with ~G_~V_Service|api to apply the patch".
-  #  Fix.
-  #- api.yml
-
   - namespace.yml
   - config.yml
   - storage.yml

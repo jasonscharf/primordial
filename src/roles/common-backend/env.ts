@@ -9,8 +9,11 @@ const defaults = {
     PRIMO_DB_HOSTNAME: "db",
     PRIMO_DB_USERNAME: "dev",
     PRIMO_DB_PASSWORD: "dev",
+    PRIMO_MQ_HOSTNAME: "mq",
+    PRIMO_MQ_USERNAME: "dev",
+    PRIMO_MQ_PASSWORD: "dev",
     PRIMO_SERVER_PORT: "8000",
-    PRIMO_SERVER_HEALTH_PORT: "8001",
+    PRIMO_ROLE_HEALTH_PORT: "8001",
     PRIMO_MULTIPART_FORM_UPLOAD_SIZE_LIMIT: "50mb",
 
     // /!\ DO NOT POPULATE HERE /!\
@@ -20,8 +23,6 @@ const defaults = {
 };
 
 
-// Note: Before making any changes here, think hard about how this might affect
-// external logic, i.e. what tests are run assuming "not prouduction".
 const funcs = {
     isDev: () => (env.PRIMO_MODE === "dev" || !env.isStagingOrProduction()),
     isStagingDev: () => env.PRIMO_MODE === "staging-dev",
@@ -36,16 +37,6 @@ const env = <typeof defaults & typeof funcs>Object.assign({}, defaults, funcs);
 Object
     .keys(defaults)
     .filter(key => typeof process.env[key] !== "undefined")
-    .forEach(key => {
-
-        // Note: Azure App Service prefixes variables with "APPSETTING_"...
-        const azureKeyName = "APPSETTING_" + key;
-        if (process.env.hasOwnProperty(azureKeyName)) {
-            (env as any)[key.replace("APPSETTING_", "")] = process.env[azureKeyName];
-        }
-        else {
-            (env as any)[key] = process.env[key];
-        }
-    });
+    .forEach(key => (env as any)[key] = process.env[key]);
 
 export = env;

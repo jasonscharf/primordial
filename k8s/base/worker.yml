@@ -19,8 +19,8 @@ spec:
 
     - name: health
       protocol: TCP
-      port: 3000
-      targetPort: 3000
+      port: 8001
+      targetPort: 8001
 ---
 #
 # API deployment
@@ -48,7 +48,8 @@ spec:
       serviceAccountName: ""
       volumes: []
       containers:
-        - image: primordialimages.azurecr.io/primordial-worker:latest # TAGPLACEHOLDER
+        - image: primordialimages.azurecr.io/primo-worker:latest # TAGPLACEHOLDER
+          imagePullPolicy: Always
           name: worker
 
           resources: {}
@@ -65,7 +66,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /
-              port: 3000
+              port: 8001
             initialDelaySeconds: 5
             periodSeconds: 5
 
@@ -75,32 +76,11 @@ spec:
               protocol: TCP
 
             - name: health
-              containerPort: 3000
+              containerPort: 8001
               protocol: TCP
 
           # Note: Any secret values referenced here must also go in the staging/prod secret providers.
           env:
-
-            - name: PRIMO_AUTH_AD_B2C_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: config
-                  key: PRIMO_AUTH_AD_B2C_CLIENT_ID
-                  optional: true
-
-            - name: PRIMO_AUTH_AD_B2C_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: config
-                  key: PRIMO_AUTH_AD_B2C_CLIENT_SECRET
-                  optional: true
-
-            - name: PRIMO_AUTH_AD_B2C_POLICY_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: config
-                  key: PRIMO_AUTH_AD_B2C_POLICY_NAME
-                  optional: true
 
             - name: PRIMO_AZURE_APP_INSIGHTS_ID
               valueFrom:

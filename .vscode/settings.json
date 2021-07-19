@@ -8,7 +8,9 @@
         "**/CVS": true,
         "**/.DS_Store": true,
         "**/__pycache__/**": true,
-        "**/env/**": true
+        "**/env/**": true,
+        "**/node_modules/**": true,
+        "**/dist/**": true,
     },
     "search.exclude": {
         "**/node_modules": true,

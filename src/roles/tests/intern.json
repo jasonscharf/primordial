@@ -1,0 +1,23 @@
+{
+    "coverage": false,
+    "suites": [
+        "./tests/index.tests.js"
+    ],
+    "environments": [
+        "node"
+    ],
+    "plugins": [
+        "./tests/setup.js"
+    ],
+    "reporters": [
+        {
+            "name": "runner"
+        },
+        {
+            "name": "junit",
+            "options": {
+                "filename": "../test-results.xml"
+            }
+        }
+    ]
+}

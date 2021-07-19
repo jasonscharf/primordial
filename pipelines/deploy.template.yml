@@ -15,9 +15,7 @@ jobs:
         deploy:
           steps:
 
-          #
-          # Download the artifact with the stamped version and configuration values
-          #
+            # Download the artifact with the stamped version and configuration values
             - task: DownloadBuildArtifacts@0
               inputs:
                 buildType: "current"
@@ -25,10 +23,9 @@ jobs:
                 artifactName: $(artifactName)
                 downloadPath: "$(System.ArtifactsDirectory)"
 
-            - script: "ls -R -lah $(System.ArtifactsDirectory)"
-              displayName: "Show artifact files"
-
+            # Generate the appropriate K8S config for the environment
             - script: "kubectl kustomize $(Build.ArtifactStagingDirectory)/$(artifactName)/k8s/overlays/${{ parameters.environment }} > $(Build.ArtifactStagingDirectory)/$(artifactName)/manifest.yml"
+              displayName: "Generate K8S config"
 
             - task: KubernetesManifest@0
               inputs:
@@ -37,13 +34,3 @@ jobs:
                 manifests: "$(Build.ArtifactStagingDirectory)/$(artifactName)/$(manifestPath)"
                 namespace: ${{ parameters.environment }}
                 useClusterAdmin: true
-                
-            #- task: Kubernetes@1
-            #  inputs:
-            #    connectionType: 'Kubernetes Service Connection'
-            #    command: 'apply'
-            #    kubernetesServiceEndpoint: 'wcmcsandbox1-default'
-            #    namespace: ${{ parameters.environment }}
-            #    arguments: '-f $(Build.ArtifactStagingDirectory)/$(artifactName)/$(manifestPath)'
-            #    secretType: 'dockerRegistry'
-            #    containerRegistryType: 'Azure Container Registry'

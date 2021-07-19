@@ -5,6 +5,7 @@
 
 *.pyc
 env
+drop
 
 k8s/manifest.yml
 

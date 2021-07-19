@@ -2,9 +2,13 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "outDir": "../dist",
-    "noEmitOnError": false
+    "noEmitOnError": false,
+    "typeRoots": [
+      "@types",
+      "../node_modules/@types"
+    ]
   },
   "exclude": [
-    "dist/"
+    "../dist/"
   ]
 }

@@ -107,7 +107,7 @@ export async function createServerApp() {
     return app;
 }
 
-console.log("--- Mapdown server entrypoint ---");
+console.log("--- API server entrypoint ---");
 
 // Server entrypoint
 log("Initializing backend...");
@@ -122,11 +122,10 @@ app.then(app => {
     return app;
 });
 
-// Note: A health check is required for Ingress.
+// Note: A health check is required for cluster health
 const healthCheck = new Koa();
-healthCheck.listen(env.PRIMO_SERVER_HEALTH_PORT);
+healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
+healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
 
-healthCheck.use((ctx, next) => {
-    ctx.status = http.constants.HTTP_STATUS_OK;
-    return;
-});
+
+process.on("SIGTERM", () => console.info("SIGTERM: API"));

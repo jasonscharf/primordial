@@ -6,6 +6,11 @@ metadata:
 spec:
   secretName: tls-secret
   dnsNames:
+
+    # "Production" is really just staging at this point
+    - "primo.mothership.io"
+
+    - "staging.primo.mothership.io"
     - "staging.primordial.mothership.io"
 
   issuerRef:

@@ -40,6 +40,16 @@ COPY ./dist/common-backend /app/common-backend
 
 
 #
+# Tests
+#
+FROM worker-base as tests
+COPY ./dist/tests /app/tests
+COPY ./src/roles/tests/intern.json /app/tests/
+RUN yarn install
+CMD ["yarn", "role:tests:run"]
+
+
+#
 # Backend worker
 #
 FROM node-base as worker
@@ -52,6 +62,7 @@ CMD ["node", "/app/worker/worker.js"]
 # Backend API server
 #
 FROM node-base as api
+RUN mkdir -p /mnt/secrets-store
 COPY --from=worker-base /app/ /app/
 COPY ./dist/api /app/api
 CMD ["node", "/app/api/api.js"]

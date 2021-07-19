@@ -18,10 +18,15 @@ spec:
     spec:
       containers:
         - name: api
-          volumeMounts:
-            - name: secrets-store-inline
-              mountPath: "/mnt/secrets-store"
-              readOnly: true
+          securityContext:
+            capabilities:
+              drop:
+              - NET_RAW
+
+          #volumeMounts:
+          # - name: secrets-store-inline
+          #   mountPath: "/mnt/secrets-store"
+          #   readOnly: true
 
           env:
             - name: PRIMO_ENV
