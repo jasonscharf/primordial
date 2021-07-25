@@ -1,9 +1,10 @@
 {
     "verbose": false,
     "inspect": true,
-    "exec": "node --nolazy --inspect=0.0.0.0:9229 /app/api/api.js",
+    "exec": "node --nolazy --inspect=0.0.0.0:9229 /app/worker/worker.js",
     "watch": [
-        "/app/**/*.js"
+        "/app/**/*.js",
+        "**/nodemon.json"
     ],
     "ext": "js,json",
     "delay": 500,

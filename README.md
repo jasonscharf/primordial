@@ -7,13 +7,7 @@ Yarn
 Kubernetes
 Minikube:
 
-## Minikube
-A local Minikube cluster and basic knowledge of how to operate Minikube is required.
-Installing:
-```
-curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-PLATFORM-amd64
-sudo install minikube-PLATFORM-amd64 /usr/local/bin/minikube
-```
+
 
 
 # Installing
@@ -24,11 +18,27 @@ yarn install
 
 
 # Building & Running
-The platform runs as a Kubernetes cluster in development.
-You can build and run the cluster via:
-
+To build containers and launch them via Docker Compose:
 
 ```
-yarn build
 yarn up
 ```
+
+This should be run anytime dependencies or copied assets (e.g. package.json) are changed.
+This command starts the cluster in running in Docker and exposing debug ports.
+
+
+# Notes
+
+## Minikube for troubleshooting K8S issues
+Minikube can be useful for debugging some Kubernetes issues.
+
+Here's how to install:
+
+```
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-PLATFORM-amd64
+sudo install minikube-PLATFORM-amd64 /usr/local/bin/minikube
+```
+
+See the commands in package.json prefixed with "kube:".
+s

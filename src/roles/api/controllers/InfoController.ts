@@ -12,6 +12,7 @@ export class InfoController extends ControllerBase {
     @Get()
     getInfo(@Request() req: Koa.Request): Promise<InfoResponse> {
         const user = this.currentSession?.user || null;
+
         const buildInfo: BuildInfo = {
             version: version.full,
             hash: version.hash.substr(0, 8),

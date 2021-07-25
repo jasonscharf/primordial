@@ -55,6 +55,7 @@ services:
 
   # Node-based worker role for miscellaneous task handling
   worker:
+    hostname: worker
     image: primordialimages.azurecr.io/primo-worker:latest # TAGPLACEHOLDER
     build:
       context: ./
@@ -68,6 +69,7 @@ services:
 
   # Node-based API server
   api:
+    hostname: api
     image: primordialimages.azurecr.io/primo-api:latest # TAGPLACEHOLDER
     build:
       context: ./
@@ -83,6 +85,7 @@ services:
 
   # Node-based web frontend
   web:
+    hostname: web
     image: primordialimages.azurecr.io/primo-web:latest # TAGPLACEHOLDER
     build:
       context: ./
@@ -91,7 +94,7 @@ services:
     depends_on:
       - api
     ports:
-      - 8080:80
+      - 80
 
 
   ## Python trading bot PoC

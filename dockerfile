@@ -1,33 +1,16 @@
-# Build-related manifests, copied to a layer for performance/caching reasons.
-#FROM alpine:3.11 as manifests
-#RUN apk add coreutils
-#WORKDIR /tmp
-#COPY ./ ./src
-#RUN mkdir manifests && \
-#    cd src && \
-    # Note: need to exclude `.vscode` directory because the `package.json` file
-    # it contains is not a dependency manifest:
-#    find . -name 'package.json' \! -path '*\.vscode*' | xargs cp --parents -t ../manifests/ 
-    #&& \
-    #cp yarn.lock ../manifests/ 
-    #&& \
-    #cp -r patches ../manifests/
-
-
 #
 # Base images for Node things
 #
 #FROM node:lts-alpine3.9 as node-base
 FROM node:16-alpine3.11 as node-base
 RUN mkdir -p /app
-#COPY --from=manifests /tmp/manifests/ /app/
-COPY ./package.json ./app
+COPY ./package.json ./app/
 COPY ./yarn.lock ./app/yarn.lock
 WORKDIR /app
-RUN apk add --no-cache --virtual .gyp \
-        python \
-        make \
-        g++
+#RUN apk add --no-cache --virtual .gyp \
+#        python \
+#        make \
+#        g++
 RUN yarn install --frozen-lockfile
 
 
@@ -52,20 +35,21 @@ CMD ["yarn", "role:tests:run"]
 #
 # Backend worker
 #
-FROM node-base as worker
+FROM worker-base as worker
 COPY --from=worker-base /app/ /app/
 COPY ./dist/worker /app/worker
-CMD ["node", "/app/worker/worker.js"]
+CMD ["node", "./worker/worker.js"]
 
 
 #
 # Backend API server
 #
-FROM node-base as api
+FROM worker-base as api
 RUN mkdir -p /mnt/secrets-store
+RUN yarn install
 COPY --from=worker-base /app/ /app/
 COPY ./dist/api /app/api
-CMD ["node", "/app/api/api.js"]
+CMD ["node", "./api/api.js"]
 
 
 #

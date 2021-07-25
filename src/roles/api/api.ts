@@ -115,9 +115,8 @@ const app = createServerApp();
 app.then(app => {
 
     const port = env.PRIMO_SERVER_PORT;
-    log(`Listening on port ${port}...`);
     app.listen(port);
-    log(`Server running on ${port}.`);
+    log(`API server running on ${port}.`);
 
     return app;
 });

@@ -58,10 +58,6 @@ spec:
               memory: "128Mi"
               cpu: "500m"
 
-          env:
-            - name: API_PROXY_URL
-              value: "http://api:8000/"
-
           ports:
             - containerPort: 8080
               protocol: TCP

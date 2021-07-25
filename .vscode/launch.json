@@ -5,6 +5,61 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch UI",
+            "url": "http://localhost:8000/",
+            "webRoot": "${workspaceFolder}",
+            "sourceMapPathOverrides": {
+                "/build/*": "${webRoot}/*"
+            }
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to API",
+            "stopOnEntry": true,
+            "restart": true,
+            "port": 9229,
+            "sourceMaps": true,
+            "remoteRoot": "/app",
+            "localRoot": "${workspaceRoot}/dist",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "debug": "sm"
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to worker",
+            "stopOnEntry": true,
+            "restart": true,
+            "port": 9230,
+            "sourceMaps": true,
+            "remoteRoot": "/app",
+            "localRoot": "${workspaceRoot}/dist",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "debug": "sm"
+        },
+        {
+            "name": "Attach to tests",
+            "type": "pwa-node",
+            "request": "attach",
+            "port": 9231,
+            "restart": true,
+            "sourceMaps": true,
+            "remoteRoot": "/app",
+            "localRoot": "${workspaceRoot}/dist/",
+            "skipFiles": [
+                "<node_internals>/**",
+                "**/node_modules/@theintern/**",
+                "**/node_modules/intern/**"
+            ]
+        },
+        {
             "name": "Debug forward test",
             "type": "python",
             "request": "launch",
