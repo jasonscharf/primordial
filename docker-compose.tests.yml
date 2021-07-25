@@ -8,6 +8,7 @@ services:
 
   # Node-based web frontend
   tests:
+    command: yarn role:tests:dev
     build:
       context: ./
       target: tests
@@ -15,42 +16,46 @@ services:
 
     stdin_open: true
     tty: true
-    depends_on:
-      - api
-      - db
-      - redis
-      - mq
-
     ports:
-      - "9232:9229"
+      - "9231:9229"
 
-      
     volumes:
       # Mount coverage folder to get coverage out
       - ./coverage:/build/coverage/:cached
       - ./dist:/build/dist/:delegated
-      - ./nodemon.test.json:/build/nodemon.test.json:delegated
-      
+      - ./dist/tests:/app/tests/:delegated
+      - ./src/roles:/app/src/roles:delegated
+      - ./src/roles/tests/intern.json:/app/tests/intern.json
+
     environment:
       PRIMO_ENV: dev
       PRIMO_DB_HOSTNAME: db
       PRIMO_DB_USERNAME: dev
       PRIMO_DB_PASSWORD: dev
 
-  # Local Instance of postgres
-  db:
+  api:
+    image: primordialimages.azurecr.io/primo-api:latest # TAGPLACEHOLDER
+    command: yarn role:api:dev
+    build:
+      context: ./
+      target: api
+      dockerfile: ./dockerfile
+    volumes:
+      - ./dist/common:/app/common/:delegated
+      - ./dist/common-backend:/app/common-backend/:delegated
+      - ./dist/api:/app/api/:delegated
+      - ./src/roles:/app/src/roles:delegated
 
-    # DEBUG: Uncomment to log all queries
-    #command: ["postgres", "-c", "log_statement=all"]
 
-    image: postgres:10.3
-    hostname: db
-    environment:
-      POSTGRES_DB: opal
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-    ports:
-      - "5452:5432"
-
-  storage:
-    image: mcr.microsoft.com/azure-storage/azurite
+  worker:
+    image: primordialimages.azurecr.io/primo-worker:latest # TAGPLACEHOLDER
+    command: yarn role:worker:dev
+    build:
+      context: ./
+      target: worker
+      dockerfile: ./dockerfile
+    volumes:
+      - ./dist/common:/app/common/:delegated
+      - ./dist/common-backend:/app/common-backend/:delegated
+      - ./dist/worker:/app/worker/:delegated
+      - ./src/roles:/app/src/roles:delegated

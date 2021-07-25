@@ -48,10 +48,10 @@
             "name": "Attach to tests",
             "type": "pwa-node",
             "request": "attach",
-            "port": 9233,
+            "port": 9231,
             "restart": true,
             "sourceMaps": true,
-            "remoteRoot": "/build/dist",
+            "remoteRoot": "/app",
             "localRoot": "${workspaceRoot}/dist/",
             "skipFiles": [
                 "<node_internals>/**",

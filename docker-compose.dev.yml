@@ -13,11 +13,6 @@ services:
       context: ./
       target: api
       dockerfile: ./dockerfile
-    depends_on:
-      - redis
-      - mq
-      - db
-      - worker
     ports:
       - 8000:8000
       - 9229:9229
@@ -35,10 +30,6 @@ services:
       context: ./
       target: worker
       dockerfile: ./dockerfile
-    depends_on:
-      - redis
-      - mq
-      - db
     ports:
       - "9230:9229"
     volumes:
@@ -46,3 +37,5 @@ services:
       - ./dist/common-backend:/app/common-backend/:delegated
       - ./dist/worker:/app/worker/:delegated
       - ./src/roles:/app/src/roles:delegated
+
+

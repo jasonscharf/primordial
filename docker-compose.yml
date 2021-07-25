@@ -94,7 +94,7 @@ services:
     depends_on:
       - api
     ports:
-      - 8080:80
+      - 80
 
 
   ## Python trading bot PoC
