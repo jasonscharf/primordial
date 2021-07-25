@@ -3,6 +3,8 @@
   "compilerOptions": {
     "outDir": "../dist",
     "noEmitOnError": false,
+    "importHelpers": true,
+    "sourceMap": true,
     "typeRoots": [
       "@types",
       "../node_modules/@types"
