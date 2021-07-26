@@ -6,6 +6,29 @@ version: "3.4"
 
 services:
 
+  # PostgreSQL/TimescaleDB for persistence and time-series optimization
+  db:
+    image: timescaledev/timescaledb:latest-pg11
+    hostname: db
+    volumes:
+      - db:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: primo
+      POSTGRES_USER: primo
+      POSTGRES_PASSWORD: primo
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8777:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=primo
+      - PGADMIN_DEFAULT_PASSWORD=primo
+    depends_on:
+      - db
+
+
   api:
     image: primordialimages.azurecr.io/primo-api:latest # TAGPLACEHOLDER
     command: yarn role:api:dev

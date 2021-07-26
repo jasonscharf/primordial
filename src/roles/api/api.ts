@@ -6,13 +6,7 @@ import { isNullOrUndefined } from "util";
 import env from "../common-backend/env";
 import { instrumentWebAppRequest } from "../common-backend/analytics";
 import * as routes from "./routes";
-
-
-
-// TODO: App Insights logger.
-const log = (...p: any[]) => console.log(...["[SERVER]", ...p]);
-
-
+import { db, dbm, log } from "../common-backend/includes";
 
 
 async function configureAppInsights(app: Koa) {
@@ -109,22 +103,27 @@ export async function createServerApp() {
 
 console.log("--- API server entrypoint ---");
 
-// Server entrypoint
-log("Initializing backend...");
-const app = createServerApp();
-app.then(app => {
-
-    const port = env.PRIMO_SERVER_PORT;
-    app.listen(port);
-    log(`API server running on ${port}.`);
-
-    return app;
-});
-
-// Note: A health check is required for cluster health
-const healthCheck = new Koa();
-healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
-healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
-
-
 process.on("SIGTERM", () => console.info("SIGTERM: API"));
+
+
+console.log(`Running migrations (if needed)...`);
+dbm.migrate()
+    .then(() => {
+
+        // Server entrypoint
+        log.info("Initializing backend...");
+        const app = createServerApp();
+        app.then(app => {
+
+            const port = env.PRIMO_SERVER_PORT;
+            app.listen(port);
+            log.info(`API server running on ${port}.`);
+
+            return app;
+        });
+
+        // Note: A health check is required for cluster health
+        const healthCheck = new Koa();
+        healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
+        healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
+    });

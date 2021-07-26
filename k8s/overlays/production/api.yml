@@ -47,6 +47,9 @@ spec:
             - name: PRIMO_PUBLIC_ADDRESS
               value: https://primordial.mothership.io/
 
+            - name: PRIMO_DB_NAME
+              value: "primo_production"
+
       volumes:
         - name: secrets-store-inline
           csi:

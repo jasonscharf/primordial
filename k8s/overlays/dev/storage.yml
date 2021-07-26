@@ -24,14 +24,6 @@ spec:
       - image: mcr.microsoft.com/azure-storage/azurite
         name: storage
         resources: {}
-        env: 
-          - name: POSTGRES_DB
-            value: "primo"
-          - name: POSTGRES_USER
-            value: "dev"
-          - name: POSTGRES_PASSWORD
-            value: "dev"
-
         ports:
           - containerPort: 10000
             protocol: TCP

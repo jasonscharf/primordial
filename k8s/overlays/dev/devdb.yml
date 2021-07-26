@@ -50,9 +50,9 @@ spec:
             - name: POSTGRES_DB
               value: "primo"
             - name: POSTGRES_USER
-              value: "dev"
+              value: "primo"
             - name: POSTGRES_PASSWORD
-              value: "dev"
+              value: "primo"
 
           ports:
             - containerPort: 5432

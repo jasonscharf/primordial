@@ -6,6 +6,22 @@ version: "3.4"
 
 services:
 
+  # PostgreSQL/TimescaleDB for persistence and time-series optimization
+  db:
+    image: timescaledev/timescaledb:latest-pg11
+    hostname: db
+    restart: always
+    ports:
+      - 5432:5432
+
+    volumes:
+      - db_tests:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: primo
+      POSTGRES_USER: primo
+      POSTGRES_PASSWORD: primo
+
+
   # Redis - for session handling and caching
   redis:
     image: redis:6.0.8-alpine
@@ -18,7 +34,6 @@ services:
       - '-appendonly no'
     volumes:
       - redis:/data
-
 
 
   # RabbitMQ for durable message passing
@@ -34,26 +49,13 @@ services:
       RABBITMQ_DEFAULT_PASSWORD: primo
 
 
-  # PostgreSQL for platform persistence
-  db:
-    image: postgres:10.3
-    hostname: db
-    restart: always
-    volumes:
-      - db:/var/lib/postgresql
-    environment:
-      POSTGRES_DB: primo
-      POSTGRES_USER: primo
-      POSTGRES_PASSWORD: primo
-
-
   # Azurite for local development of storage services
   storage:
     image: mcr.microsoft.com/azure-storage/azurite
     restart: always
 
 
-  # Node-based worker role for miscellaneous task handling
+  # Node-based worker role
   worker:
     hostname: worker
     image: primordialimages.azurecr.io/primo-worker:latest # TAGPLACEHOLDER
@@ -139,3 +141,4 @@ volumes:
   db:
   mq_data:
   mq_log:
+  db_tests:
