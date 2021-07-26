@@ -100,6 +100,7 @@ services:
 
 
   tests:
+    image: primordialimages.azurecr.io/primo-tests:latest # TAGPLACEHOLDER
     build:
       context: ./
       target: tests
