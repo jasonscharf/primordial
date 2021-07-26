@@ -37,5 +37,3 @@ services:
       - ./dist/common-backend:/app/common-backend/:delegated
       - ./dist/worker:/app/worker/:delegated
       - ./src/roles:/app/src/roles:delegated
-
-

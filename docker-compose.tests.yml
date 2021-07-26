@@ -6,8 +6,33 @@ version: "3.4"
 
 services:
 
-  # Node-based web frontend
+  # For CI / ad-hoc test running
   tests:
+    build:
+      context: ./
+      target: tests
+      dockerfile: ./dockerfile
+
+    stdin_open: true
+    tty: true
+
+    volumes:
+      # Mount coverage folder to get coverage out
+      - ./coverage:/build/coverage/:cached
+      - ./dist:/build/dist/:delegated
+      - ./dist/tests:/app/tests/:delegated
+      - ./src/roles:/app/src/roles:delegated
+      - ./src/roles/tests/intern.json:/app/tests/intern.json
+
+    environment:
+      PRIMO_ENV: dev
+      PRIMO_DB_HOSTNAME: db
+      PRIMO_DB_USERNAME: dev
+      PRIMO_DB_PASSWORD: dev
+
+
+  # For debugging in-container
+  tests_debugging:
     command: yarn role:tests:dev
     build:
       context: ./
@@ -32,6 +57,7 @@ services:
       PRIMO_DB_HOSTNAME: db
       PRIMO_DB_USERNAME: dev
       PRIMO_DB_PASSWORD: dev
+
 
   api:
     image: primordialimages.azurecr.io/primo-api:latest # TAGPLACEHOLDER

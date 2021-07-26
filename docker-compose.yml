@@ -97,6 +97,30 @@ services:
       - 80
 
 
+  tests:
+    build:
+      context: ./
+      target: tests
+      dockerfile: ./dockerfile
+
+    stdin_open: true
+    tty: true
+
+    volumes:
+      # Mount coverage folder to get coverage out
+      - ./coverage:/build/coverage/:cached
+      - ./dist:/build/dist/:delegated
+      - ./dist/tests:/app/tests/:delegated
+      - ./src/roles:/app/src/roles:delegated
+      - ./src/roles/tests/intern.json:/app/tests/intern.json
+
+    environment:
+      PRIMO_ENV: dev
+      PRIMO_DB_HOSTNAME: db
+      PRIMO_DB_USERNAME: dev
+      PRIMO_DB_PASSWORD: dev
+
+
   ## Python trading bot PoC
   #tradebot:
   #  image: primordialimages.azurecr.io/primo-tradebot-poc:latest # TAGPLACEHOLDER
