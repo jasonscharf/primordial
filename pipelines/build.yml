@@ -61,7 +61,7 @@ stages:
             displayName: "Build images"
 
           # Run tests
-          - script: yarn test
+          - script: yarn test:ci
             displayName: "Run tests"
 
           # Publish test results
