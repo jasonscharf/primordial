@@ -32,6 +32,11 @@ spec:
             - name: PRIMO_ENV
               value: "staging"
 
+            - name: PRIMO_DB_USE_SSL
+              value: "true"
+
+            - name: PRIMO_DB_NAME
+              value: "primo"
 
       volumes:
         - name: secrets-store-inline

@@ -61,17 +61,19 @@ stages:
             displayName: "Build images"
 
           # Run tests
-          - script: yarn test
+          - script: yarn test:ci
             displayName: "Run tests"
 
           # Publish test results
           - task: PublishTestResults@2
+            displayName: "Publish test results"
             inputs:
               testResultsFormat: 'JUnit'
               testResultsFiles: '$(System.DefaultWorkingDirectory)/coverage/test-results.xml'
 
           # Push to Azure Container Registry
           - task: DockerCompose@0
+            displayName: "Push images"
             inputs:
               containerregistrytype: 'Azure Container Registry'
               azureSubscription: 'Visual Studio Premium with MSDN(eb3dc777-ca8e-4309-ba9a-867fc0fc3e3d)'

@@ -9,7 +9,8 @@
     "delay": 500,
     "ignore": [
         "*.d.ts",
-        "*.map"
+        "*.map",
+        "**/node_modules/**"
     ],
     "execMap": {},
     "events": {

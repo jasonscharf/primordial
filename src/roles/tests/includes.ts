@@ -9,9 +9,8 @@ import Remote from "intern/lib/executors/Node";
 import Test from "intern/lib/Test";
 import Suite from "intern/lib/Suite";
 
+import env from "../common-backend/env";
 
-// TEMP
-let env = {}
 
-export { assert, describe, env, it, }
+export { assert, describe, it, env }
 export { Command, Context, Element, Remote, Suite, Test }
