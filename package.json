@@ -38,6 +38,7 @@
     "kube:restart": "yarn kube rollout restart deployment",
     "migration:make": "knex --migrations-directory 'src/roles/database/migrations/' migrate:make -x ts",
     "test": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up --remove-orphans --abort-on-container-exit --exit-code-from tests --build tests",
+    "test:ci": "docker-compose -p primo -f docker-compose.yml -f docker-compose.tests.yml up --remove-orphans --abort-on-container-exit --exit-code-from tests --build tests",
     "test:down": "docker-compose -p primo_tests -f docker-compose.dev.yml -f docker-compose.tests.yml down",
     "test:debug:start": "yarn build && docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up -d",
     "test:debug:stop": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml down",
