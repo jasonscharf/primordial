@@ -26,12 +26,9 @@ stages:
       - job: build
         steps:
 
-          # Pre-build diagnostic info
-          - script: echo "Environment is $(environment)"
-            displayName: "Display Kubernetes namespace"
-
           # Install
           - script: yarn install
+            displayName: "yarn install"
 
           # Compile
           - script: yarn release:compile
