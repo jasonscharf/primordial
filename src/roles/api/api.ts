@@ -2,6 +2,7 @@ import Koa from "koa";
 import KoaBodyParser from "koa-bodyparser";
 import KoaRouter from "koa-router";
 import * as http from "http2";
+import * as ws from "ws";
 import { isNullOrUndefined } from "util";
 import env from "../common-backend/env";
 import { instrumentWebAppRequest } from "../common-backend/analytics";
@@ -74,7 +75,7 @@ async function configureSessions(app: Koa) {
 /**
  * Creates the primary Koa app. See below for server entrypoint.
  */
-export async function createServerApp() {
+async function createServerApp() {
     const app = new Koa();
 
     // SECURITY: The ability to use multiple keys may allow us to revoke our own private session key
@@ -101,6 +102,21 @@ export async function createServerApp() {
     return app;
 }
 
+async function createSocketServer() {
+    const wss = new ws.Server({ port: 8010 });
+    log.info(`API socket server running on ${8010}`);
+
+    wss.on("connection", function (ws) {
+        console.log(`Socket connected`);
+        debugger;
+
+        ws.on("message", function (message) {
+            console.log("Received from client: %s", message);
+            ws.send("Server received from client: " + message);
+        });
+    });
+}
+
 console.log("--- API server entrypoint ---");
 
 process.on("SIGTERM", () => console.info("SIGTERM: API"));
@@ -108,6 +124,7 @@ process.on("SIGTERM", () => console.info("SIGTERM: API"));
 
 console.log(`Running migrations (if needed)...`);
 dbm.migrate()
+    .then(createSocketServer)
     .then(() => {
 
         // Server entrypoint
@@ -117,7 +134,7 @@ dbm.migrate()
 
             const port = env.PRIMO_SERVER_PORT;
             app.listen(port);
-            log.info(`API server running on ${port}.`);
+            log.info(`API HTTP server running on ${port}`);
 
             return app;
         });
