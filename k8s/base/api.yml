@@ -17,6 +17,11 @@ spec:
       port: 8000
       targetPort: 8000
 
+    - name: ws
+      protocol: TCP
+      port: 8010
+      targetPort: 8010
+
     - name: health
       protocol: TCP
       port: 8001
@@ -73,6 +78,10 @@ spec:
           ports:
             - name: web
               containerPort: 80
+              protocol: TCP
+
+            - name: sockets
+              containerPort: 8010
               protocol: TCP
 
             - name: health
