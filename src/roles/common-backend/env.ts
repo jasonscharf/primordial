@@ -25,6 +25,13 @@ const defaults = {
     SESSION_KEYS: "",
 };
 
+const allowedModes = [
+"dev",
+"staging",
+"staging-dev",
+"staging-production",
+"production",
+];
 
 const funcs = {
     isDev: () => (env.PRIMO_MODE === "dev" || !env.isStagingOrProduction()),
@@ -41,5 +48,9 @@ Object
     .keys(defaults)
     .filter(key => typeof process.env[key] !== "undefined")
     .forEach(key => (env as any)[key] = process.env[key]);
+
+if (allowedModes.indexOf(env.PRIMO_MODE) < 0) {
+    throw new Error(`Unknown mode '${env.PRIMO_MODE}'`)
+}
 
 export = env;

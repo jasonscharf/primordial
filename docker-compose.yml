@@ -118,7 +118,7 @@ services:
       - ./src/roles/tests/intern.json:/app/tests/intern.json
 
     environment:
-      PRIMO_ENV: dev
+      PRIMO_MODE: dev
       PRIMO_DB_HOSTNAME: db
       PRIMO_DB_USERNAME: dev
       PRIMO_DB_PASSWORD: dev

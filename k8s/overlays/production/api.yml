@@ -29,7 +29,7 @@ spec:
           #   readOnly: true
 
           env:
-            - name: PRIMO_ENV
+            - name: PRIMO_MODE
               value: "production"
 
             - name: PRIMO_AUTH_AD_B2C_TENANT_ID
