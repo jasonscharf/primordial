@@ -29,7 +29,7 @@ spec:
               readOnly: true
 
           env:
-            - name: PRIMO_ENV
+            - name: PRIMO_MODE
               value: "staging"
 
             - name: PRIMO_DB_USE_SSL
