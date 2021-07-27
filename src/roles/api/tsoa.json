@@ -10,6 +10,7 @@
         "specVersion": 3
     },
     "routes": {
+        "basePath": "/api",
         "middleware": "koa",
         "routesDir": "./src/roles/api"
     }

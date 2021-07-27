@@ -84,13 +84,12 @@ async function createServerApp() {
 
 
     // Just a debug hook.
-    /*
-    if (env.isDev()) {
-        app.use(async ctx => {
-            log(`DEBUG: Req: ${ctx.url}`);
-        });
-    }
-    */
+    //if (env.isDev()) {
+    //    app.use(async (ctx, next) => {
+    //        console.log(`DEBUG: Req: ${ctx.url}`);
+    //        await next();
+    //    });
+    //}
 
     await configureAppInsights(app);
     await configureBodyParsing(app);
