@@ -6,11 +6,12 @@ pool:
 
 
 variables:
+  artifactName: drop
+  isPullRequest: $[eq(variables['Build.Reason'], 'PullRequest')]
   kubernetesServiceConnection: "development"
   manifestPath: "manifest.yml"
   registryName: primordialimages
   resourceGroup: primo-development
-  artifactName: drop
 
   # Note: Overriden by the apply task later on
   tag: "latest"
@@ -47,10 +48,12 @@ stages:
 
           # Generate and publish artifact
           - script: cp -r k8s/ $(Build.ArtifactStagingDirectory)
+            condition: eq(variables.isPullRequest, false)
             displayName: "Copy Kubernetes configurations to artifact"
 
           - task: PublishBuildArtifacts@1
             displayName: "Publish Artifact"
+            condition: eq(variables.isPullRequest, false)
             inputs:
               PathtoPublish: "$(Build.ArtifactStagingDirectory)"
               ArtifactName: $(artifactName)
@@ -74,6 +77,7 @@ stages:
           # Push to Azure Container Registry
           - task: DockerCompose@0
             displayName: "Push images"
+            condition: eq(variables.isPullRequest, false)
             inputs:
               containerregistrytype: 'Azure Container Registry'
               azureSubscription: 'Visual Studio Premium with MSDN(eb3dc777-ca8e-4309-ba9a-867fc0fc3e3d)'
@@ -86,7 +90,7 @@ stages:
   # 
   - stage: staging
     displayName: "Staging"
-    condition: succeeded()
+    condition: and(succeeded(), eq(variables.isPullRequest, false))
     jobs:
       - template: 'deploy.template.yml'
         parameters:
