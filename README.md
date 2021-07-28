@@ -27,6 +27,20 @@ yarn up
 This should be run anytime dependencies or copied assets (e.g. package.json) are changed.
 This command starts the cluster in running in Docker and exposing debug ports.
 
+## Debugging the web app
+First, start a watching instance of the TS compiler in a new terminal:
+
+```
+yarn dev:watch
+```
+
+In another terminal, start the WebPack dev server:
+```
+yarn wp:serve
+```
+
+You can now debug the app over localhost:8080.
+
 
 # Notes
 

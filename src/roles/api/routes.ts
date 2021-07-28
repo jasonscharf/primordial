@@ -54,7 +54,6 @@ export function RegisterRoutes(router: KoaRouter) {
     //  NOTE: If you do not see routes for all of your controllers in this file, then you might not have informed tsoa of where to look
     //      Please look into the "controllerPathGlobs" config option described in the readme: https://github.com/lukeautry/tsoa
     // ###########################################################################################################
-    
         router.get('/api/info',
             async function InfoController_getInfo(context: any, next: any) {
             const args = {
