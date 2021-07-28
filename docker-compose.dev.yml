@@ -55,7 +55,7 @@ services:
     volumes:
       - ./src/roles/web/:/www/app/
       - ./src/roles/web/nginx.conf:/etc/nginx/nginx.conf
-      - ./dist/web/assets:/www/app/assets
+      - ./dist/web/built:/www/app/built
       - ./dist/web/js/:/www/app/js/
 
 

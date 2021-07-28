@@ -56,6 +56,7 @@ CMD ["node", "./api/api.js"]
 # Frontend server
 #
 FROM nginx:latest as web
+COPY ./dist/web /www/app
 COPY ./src/roles/web/index.html /www/app/index.html
 COPY ./src/roles/web/nginx.conf /etc/nginx/nginx.conf
 COPY ./src/roles/web/.htpasswd /etc/apache2/.htpasswd
