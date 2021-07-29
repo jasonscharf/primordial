@@ -3,13 +3,12 @@ import React from "react";
 import "../assets/css/reset.css";
 import "../assets/css/main.css";
 
+import { Splash } from "./components/Splash";
+import { client } from "./includes";
 
-const splash = (
-    <div className="hero-img-wrapper">
-        <div className="hero-img">
-            <h1>P R I M O R D I A L</h1>
-        </div>
-    </div>
+
+const placeholder = (
+    <Splash />
 );
 
-render(splash, document.getElementsByTagName("body")[0]);
+render(placeholder, document.getElementsByTagName("body")[0]);
