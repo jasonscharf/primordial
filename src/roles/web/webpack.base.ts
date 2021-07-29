@@ -27,7 +27,7 @@ export const base = {
                 test: /\.css?$/,
                 use: [
                     "style-loader",
-                    "css-loader"
+                    "css-loader",
                 ],
             }
         ],
@@ -39,6 +39,5 @@ export const base = {
     output: {
         filename: "[name].bundle.js",
         path: path.resolve("dist/web/built"),
-        //clean: true,
     },
 };

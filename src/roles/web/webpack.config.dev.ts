@@ -22,6 +22,5 @@ module.exports = {
     output: {
         filename: "[name].bundle.js",
         path: path.resolve("dist/web/built"),
-        //clean: true,
     },
 };
