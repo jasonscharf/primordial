@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "module": "umd",
+    "module": "CommonJS",
     "moduleResolution": "node",
     "lib": [
       "esnext",
