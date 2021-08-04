@@ -16,7 +16,7 @@ export const Splash = () => {
         return <div />;
     }
 
-    let { mode } = info.environment;
+    const { mode } = info.environment;
     const devMode = mode === "dev";
     let infoText = "development";
     let versionText = "";
@@ -26,7 +26,7 @@ export const Splash = () => {
     }
     else {
         infoText = mode;
-        versionText = `v. ${(info as InfoResponse).buildInfo.version}`
+        versionText = `v. ${(info as InfoResponse).buildInfo.version}`;
     }
 
     return (

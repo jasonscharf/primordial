@@ -1,18 +1,17 @@
 import { Controller } from "tsoa";
-import { OnlyInstantiableByContainer } from "typescript-ioc";
 import { ParameterizedContext } from "koa";
-import { IUser } from "../../common/api";
-import { IUserSession } from "../../common/models/user/IUserSession";
+import { User } from "../../common/api";
+import { UserSession } from "../../common/models/user/UserSession";
 
 
 export abstract class ControllerBase extends Controller {
     protected _ctx: ParameterizedContext | null = null;
-    protected _currentSession: IUserSession | null = null;
+    protected _currentSession: UserSession | null = null;
 
 
     // Needs to be public so it can be set from koa handler
     public set ctx(context: ParameterizedContext | null) {
-        const user: IUser = context && context.state ? context.state.user : null;
+        const user: User  = context && context.state ? context.state.user : null;
         this._currentSession = { user };
         this._ctx = context;
     }

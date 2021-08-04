@@ -39,6 +39,8 @@ export async function down(knex: Knex): Promise<void> {
     // Safety check! We would never, ever want to roll-back production to zero
     if (!env.isProduction()) {
         log.info(`Dropping database '${dbName}'...`);
-        await db.raw(dropScript);
+
+        // Not necessary, and completely disconnects the client, so omitting for now.
+        //await db.raw(dropScript);
     }
 }

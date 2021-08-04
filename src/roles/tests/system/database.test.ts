@@ -1,26 +1,154 @@
-import "intern"
+import "intern";
 import Knex from "knex";
-import { assert, describe, env, it } from "../includes";
+import { Money } from "../../common/numbers";
+import { Price } from "../../common/models/system/Price";
+import { TestDataCtx, getTestData } from "../utils/test-data";
+import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
+import { User } from "../../common/models";
+import { assert, describe, before, env, it } from "../includes";
+import { db, us, sym } from "../../common-backend/includes";
+import { sleep } from "../../common/utils";
+import { assertRejects } from "../utils/async";
 
 
 describe("database", () => {
-    let kx: Knex.QueryBuilder
+    let ctx: TestDataCtx = null;
+
+    before(async () => {
+        ctx = await getTestData();
+    });
 
     it("can connect", async () => {
-        console.log("TODO: Tests!");
+        const result = await db.raw("SELECT 1");
+        assert.exists(result);
+        const { rows } = result;
+        assert.exists(rows);
+        assert.lengthOf(rows, 1);
     });
-});
 
+    it("round-trips JavaScript Date objects correctly", async () => {
+        const user: Partial<User> = {
+            displayName: "Lil' Bear",
+            nameFirst: "Little",
+            nameLast: "Bear",
+        };
 
-intern.on("afterRun", () => {
-    let hasErrors = false;
-    for (const suite of intern.suites) {
-        if (suite.numFailedTests > 0) {
-            hasErrors = true;
-            break;
-        }
-    }
+        const newUser = await us.insertUser(user);
+        const now = new Date();
 
-    // Note: Knex hangs the node process, so we manually exit here.
-    process.exit(hasErrors ? -1 : 0);
+        assert.exists(newUser);
+        const { created } = newUser;
+
+        // Basically just a sanity check to ensure we're not off by a server timezone offset
+        assert.equal(created.getHours(), now.getHours());
+        assert.equal(created.getMinutes(), now.getMinutes());
+        assert.equal(created.getSeconds(), now.getSeconds());
+    });
+
+    it("automatically updates the 'updated' timestamp on a record", async () => {
+        const user: Partial<User> = {
+            displayName: "Moosington",
+            nameFirst: "Moosington",
+            nameLast: "Borkwell",
+        };
+
+        const newUser = await us.insertUser(user);
+        assert.exists(newUser);
+
+        const createdAt = newUser.created;
+        const updatedAtCreation = newUser.updated;
+
+        assert.equal(createdAt.getTime(), updatedAtCreation.getTime());
+
+        const updatedProps: Partial<User> = {
+            id: newUser.id,
+            displayName: "Moosington Borkwell, Esq.",
+        };
+
+        await sleep(100);
+
+        const updatedUser = await us.updateUser(updatedProps);
+        const { updated } = updatedUser;
+
+        assert.ok(updated.getTime() > updatedAtCreation.getTime());
+    });
+
+    it("correctly represents monetary values with 8 decimal points of precision", async () => {
+
+        // SHIBA INU has 12 decimal spots :/
+        const precisePriceStr = "0.000000000001";
+
+        const dummyPriceProps: Partial<Price> = {
+            exchangeId: "binance",
+            baseSymbolId: ctx.testSymbol1.id,
+            quoteSymbolId: ctx.testSymbol1.id,
+            ts: new Date(),
+            open: Money(precisePriceStr),
+            low: Money(precisePriceStr),
+            high: Money(precisePriceStr),
+            close: Money(precisePriceStr),
+            volume: 1,
+        };
+
+        const newPrice = await sym.addSymbolPrice(dummyPriceProps);
+
+        assert.equal(newPrice.open.toString(), precisePriceStr);
+        assert.equal(newPrice.low.toString(), precisePriceStr);
+        assert.equal(newPrice.high.toString(), precisePriceStr);
+        assert.equal(newPrice.close.toString(), precisePriceStr);
+        assert.instanceOf(newPrice.open, Money);
+        assert.instanceOf(newPrice.low, Money);
+        assert.instanceOf(newPrice.high, Money);
+        assert.instanceOf(newPrice.close, Money);
+    });
+
+    it("correctly represents monetary values into the hundreds of billions", async () => {
+        const precisePriceStr = "999999999.000000000001";
+
+        const dummyPriceProps: Partial<Price> = {
+            exchangeId: "binance",
+            baseSymbolId: ctx.testSymbol1.id,
+            quoteSymbolId: ctx.testSymbol1.id,
+            
+            ts: new Date(),
+            open: Money(precisePriceStr),
+            low: Money(precisePriceStr),
+            high: Money(precisePriceStr),
+            close: Money(precisePriceStr),
+            volume: 1,
+        };
+
+        const newPrice = await sym.addSymbolPrice(dummyPriceProps);
+
+        assert.equal(newPrice.close.toString(), precisePriceStr);
+    });
+
+    it("throws on monetary values into the single-digit trillions", async () => {
+        const precisePriceStr = "1999999999.000000000001";
+
+        const dummyPriceProps: Partial<Price> = {
+            exchangeId: "binance",
+            baseSymbolId: ctx.testSymbol1.id,
+            quoteSymbolId: ctx.testSymbol1.id,
+            open: Money(precisePriceStr),
+            low: Money(precisePriceStr),
+            high: Money(precisePriceStr),
+            close: Money(precisePriceStr),
+            volume: 1,
+        };
+
+        assertRejects(() => sym.addSymbolPrice(dummyPriceProps));
+    });
+
+    it("correctly represents non-ASCII symbols", async () => {
+        const symbolProps: Partial<TradeSymbol> = {
+            typeId: TradeSymbolType.CRYPTO,
+            id: "MOOSECOIN CASH",
+            sign: "ᔉ",
+            displayUnits: 8,
+        };
+
+        const newCurrency = await sym.addSymbol(symbolProps);
+        assert.equal(newCurrency.sign, symbolProps.sign);
+    });
 });

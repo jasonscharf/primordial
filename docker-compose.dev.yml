@@ -10,13 +10,15 @@ services:
   db:
     image: timescaledev/timescaledb:latest-pg11
     hostname: db
+    ports:
+      - 5432:5432
+
     volumes:
-      - db:/var/lib/postgresql
+      - db_tests:/var/lib/postgresql
     environment:
       POSTGRES_DB: primo
       POSTGRES_USER: primo
       POSTGRES_PASSWORD: primo
-
 
   pgadmin:
     image: dpage/pgadmin4

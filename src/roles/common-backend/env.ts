@@ -13,11 +13,15 @@ const defaults = {
     PRIMO_DB_USE_SSL: "false",
     PRIMO_DB_PORT: 5432,
     PRIMO_MQ_HOSTNAME: "mq",
-    PRIMO_MQ_USERNAME: "dev",
-    PRIMO_MQ_PASSWORD: "dev",
+    PRIMO_MQ_USERNAME: "primo",
+    PRIMO_MQ_PASSWORD: "primo",
     PRIMO_SERVER_PORT: "8000",
     PRIMO_ROLE_HEALTH_PORT: "8001",
     PRIMO_MULTIPART_FORM_UPLOAD_SIZE_LIMIT: "50mb",
+
+    // NOTE: Changing these require database changes.
+    PRIMO_CURRENCY_PRECISION: 21,
+    PRIMO_CURRENCY_SCALE: 12,
 
     // /!\ DO NOT POPULATE HERE /!\
     AZURE_APP_INSIGHTS_ID: "",
@@ -26,11 +30,11 @@ const defaults = {
 };
 
 const allowedModes = [
-"dev",
-"staging",
-"staging-dev",
-"staging-production",
-"production",
+    "dev",
+    "staging",
+    "staging-dev",
+    "staging-production",
+    "production",
 ];
 
 const funcs = {

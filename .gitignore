@@ -2,12 +2,15 @@
 **/node_modules/**
 **/dist/**
 **/artifacts/**
+**/output/**
 
+# Python stuff
 *.pyc
 env
-drop
 
+# Generated
+db-schema
 k8s/manifest.yml
-
+src/roles/web/js/client.ts
 src/api/routes.ts
 src/swagger.json

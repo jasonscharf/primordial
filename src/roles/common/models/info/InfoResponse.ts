@@ -1,10 +1,10 @@
 import { BuildInfo } from "./BuildInfo";
 import { EnvInfo } from "./EnvInfo";
-import { IUser } from "../user/IUser";
+import { User } from "../user/User";
 
 
 export interface InfoResponse {
     buildInfo?: BuildInfo;
     environment: EnvInfo;
-    user: IUser | null;
+    user: User;
 }

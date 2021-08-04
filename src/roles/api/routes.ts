@@ -26,10 +26,16 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "IUser": {
+    "User": {
         "dataType": "refObject",
         "properties": {
             "id": {"dataType":"string","required":true},
+            "created": {"dataType":"datetime","required":true},
+            "updated": {"dataType":"datetime","required":true},
+            "displayName": {"dataType":"string"},
+            "nameFirst": {"dataType":"string","required":true},
+            "nameMiddle": {"dataType":"string","required":true},
+            "nameLast": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
     },
@@ -39,7 +45,7 @@ const models: TsoaRoute.Models = {
         "properties": {
             "buildInfo": {"ref":"BuildInfo"},
             "environment": {"ref":"EnvInfo","required":true},
-            "user": {"dataType":"union","subSchemas":[{"ref":"IUser"},{"dataType":"enum","enums":[null]}],"required":true},
+            "user": {"ref":"User","required":true},
         },
         "additionalProperties": false,
     },
