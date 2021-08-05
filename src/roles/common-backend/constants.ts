@@ -11,6 +11,7 @@ export enum tables {
     PlanModes = "plan_modes",
     PlanRuns = "plan_runs",
     Prices = "prices",
+    TimeResolutions = "time_resolutions",
     TradeSymbols = "symbols",
     TradeSymbolTypes = "symbol_types",
     Users = "users",

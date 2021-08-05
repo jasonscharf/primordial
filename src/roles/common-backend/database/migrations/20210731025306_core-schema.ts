@@ -7,6 +7,8 @@ import env from "../../env";
 import { db, log, tables } from "../../includes";
 import { Exchange } from "../../../common/models/markets/Exchange";
 import { OrderState } from "../../../common/models/markets/Order";
+import { TimeResolution } from "../../../common/models/markets/TimeResolution";
+import { transpile } from "typescript";
 
 
 export async function up(knex: Knex): Promise<void> {
@@ -24,6 +26,18 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function createCoreSchema(knex: Knex) {
+
+    // TimeResolution
+    await knex.schema.createTable(tables.TimeResolutions, table => {
+        table.string("id")
+            .primary()
+            .notNullable()
+            .unique()
+            ;
+
+        table.string("displayName").notNullable();
+    });
+
 
     // EventStreamEvent
     await knex.schema.createTable(tables.Events, table => {
@@ -95,6 +109,9 @@ export async function createCoreSchema(knex: Knex) {
 
         table.string("exchangeId").notNullable();
         table.foreign("exchangeId").references(`${tables.Exchanges}.id`);
+
+        table.string("resId").notNullable();
+        table.foreign("resId").references(`${tables.TimeResolutions}.id`);
 
         createMonetaryColumn(knex, table, "open");
         createMonetaryColumn(knex, table, "high");
@@ -275,6 +292,15 @@ export async function createHypertable(knex: Knex, tableName: string) {
 
 export async function createInitialData(knex: Knex) {
 
+    // TimeResolution
+    for (const key of Object.keys(TimeResolution)) {
+        const res = TimeResolution[key];
+        await knex(tables.TimeResolutions).insert({
+            id: res,
+            displayName: res,
+        });
+    }
+
     // Exchange
     const exchanges: Partial<Exchange>[] = [
         { id: "binance", displayName: "Binance" },
@@ -336,7 +362,7 @@ async function addUpdateTimestampTriggersToMutables(knex: Knex) {
 
     // These don't bear UUID primary ID keys or created/updated timestamps:
     // Events, Prices, PlanModes, TradeSymbols, TradeSymbolTypes
-}
+}    
 
 export async function down(knex: Knex): Promise<void> {
 
@@ -358,4 +384,5 @@ export async function down(knex: Knex): Promise<void> {
     await knex.schema.dropTableIfExists(tables.Users);
     await knex.schema.dropTableIfExists(tables.TradeSymbols);
     await knex.schema.dropTableIfExists(tables.TradeSymbolTypes);
+    await knex.schema.dropTableIfExists(tables.TimeResolutions);
 }

@@ -33,6 +33,7 @@ export class SymbolService {
                 "baseSymbolId",
                 "quoteSymbolId",
                 "exchangeId",
+                "resId",
                 "ts",
                 "open",
                 "high",
@@ -46,10 +47,11 @@ export class SymbolService {
             ].map(col => `"${col}"`);
 
             const { rows } = await db
-                .raw(`INSERT INTO ${tables.Prices} (${cols.join(", ")}) VALUES (?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?, ?) RETURNING *`, [
+                .raw(`INSERT INTO ${tables.Prices} (${cols.join(", ")}) VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?, ?) RETURNING *`, [
                     priceProps.baseSymbolId,
                     priceProps.quoteSymbolId,
                     priceProps.exchangeId,
+                    priceProps.resId,
                     priceProps.ts,
                     priceProps.open.toString(),
                     priceProps.high.toString(),

@@ -7,6 +7,7 @@ export interface Price {
     baseSymbolId: string;
     quoteSymbolId: string
     exchangeId: string;
+    resId: string;
     ts: Date;
     open: Money;
     high: Money;

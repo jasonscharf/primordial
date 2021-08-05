@@ -6,6 +6,7 @@ export class PriceEntity implements Price {
     baseSymbolId: string;
     quoteSymbolId: string;
     exchangeId: string;
+    resId: string;
     ts: Date;
     open: Money;
     high: Money;
@@ -23,6 +24,7 @@ export class PriceEntity implements Price {
             this.baseSymbolId = row.baseSymbolId;
             this.quoteSymbolId = row.quoteSymbolId;
             this.exchangeId = row.exchangeId;
+            this.resId = row.resId;
             this.ts = row.ts;
             this.open = Money(row.open);
             this.high = Money(row.high);
