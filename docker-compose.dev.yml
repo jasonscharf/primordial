@@ -68,6 +68,8 @@ services:
       context: ./
       target: worker
       dockerfile: ./dockerfile
+    depends_on:
+        - db
     ports:
       - "9230:9229"
     volumes:
