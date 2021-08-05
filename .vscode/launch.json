@@ -45,11 +45,12 @@
             "debug": "sm"
         },
         {
-            "name": "Attach to tests",
-            "type": "pwa-node",
+            "type": "node",
             "request": "attach",
+            "name": "Attach to tests",
             "port": 9231,
             "restart": true,
+            "stopOnEntry": true,
             "sourceMaps": true,
             "remoteRoot": "/app",
             "localRoot": "${workspaceRoot}/dist/",

@@ -6,29 +6,50 @@ version: "3.4"
 
 services:
 
+  # Test database. Should match the dev database, and both should match the Azure Postgres version.
+  db:
+    image: timescaledev/timescaledb:latest-pg11
+    hostname: db
+
+    ports:
+      - "5432:5432"
+      - "5433:5432"
+    volumes:
+      - db_tests:/var/lib/postgresql
+    environment:
+      POSTGRES_DB: primo
+      POSTGRES_USER: primo
+      POSTGRES_PASSWORD: primo
+
+
   # For CI / ad-hoc test running
   tests:
     build:
       context: ./
       target: tests
       dockerfile: ./dockerfile
-
     stdin_open: true
     tty: true
+    depends_on:
+      - db
 
     volumes:
       # Mount coverage folder to get coverage out
       - ./coverage:/build/coverage/:cached
-      - ./dist:/build/dist/:delegated
-      - ./dist/tests:/app/tests/:delegated
+      - ./dist/common:/app/common:delegated
+      - ./dist/common-backend:/app/common-backend:delegated
+      - ./dist/api:/app/api:delegated
+      - ./dist/tests:/app/tests:delegated
+      - ./dist/worker:/app/worker:delegated
+      - ./node_modules:/app/node_modules:delegated
       - ./src/roles:/app/src/roles:delegated
       - ./src/roles/tests/intern.json:/app/tests/intern.json
 
     environment:
       PRIMO_MODE: dev
       PRIMO_DB_HOSTNAME: db
-      PRIMO_DB_USERNAME: dev
-      PRIMO_DB_PASSWORD: dev
+      PRIMO_DB_USERNAME: primo
+      PRIMO_DB_PASSWORD: primo
 
 
   # For debugging in-container
@@ -47,16 +68,20 @@ services:
     volumes:
       # Mount coverage folder to get coverage out
       - ./coverage:/build/coverage/:cached
-      - ./dist:/build/dist/:delegated
-      - ./dist/tests:/app/tests/:delegated
+      - ./dist/common:/app/common:delegated
+      - ./dist/common-backend:/app/common-backend:delegated
+      - ./dist/api:/app/api:delegated
+      - ./dist/tests:/app/tests:delegated
+      - ./dist/worker:/app/worker:delegated
+      - ./node_modules:/app/node_modules:delegated
       - ./src/roles:/app/src/roles:delegated
       - ./src/roles/tests/intern.json:/app/tests/intern.json
 
     environment:
       PRIMO_MODE: dev
       PRIMO_DB_HOSTNAME: db
-      PRIMO_DB_USERNAME: dev
-      PRIMO_DB_PASSWORD: dev
+      PRIMO_DB_USERNAME: primo
+      PRIMO_DB_PASSWORD: primo
 
 
   api:

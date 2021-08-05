@@ -1,0 +1,19 @@
+{
+    "verbose": false,
+    "inspect": true,
+    "exec": "node --inspect=0.0.0.0:9229 /app/node_modules/.bin/intern config=/app/tests/intern.json",
+    "watch": [
+        "/app/**/*.js",
+        "**/nodemon.json"
+    ],
+    "ext": "js,json",
+    "delay": 500,
+    "ignore": [
+        "*.d.ts",
+        "*.map"
+    ],
+    "execMap": {},
+    "events": {
+        "restart": "echo \"--- RESTART ---\""
+    }
+}

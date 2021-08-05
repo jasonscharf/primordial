@@ -18,14 +18,24 @@ export interface EnvInfo {
   mode: string;
 }
 
-export interface IUser {
+export interface User {
   id: string;
+
+  /** @format date-time */
+  created: string;
+
+  /** @format date-time */
+  updated: string;
+  displayName?: string;
+  nameFirst: string;
+  nameMiddle: string;
+  nameLast: string;
 }
 
 export interface InfoResponse {
   buildInfo?: BuildInfo;
   environment: EnvInfo;
-  user: IUser | null;
+  user: User;
 }
 
 export type QueryParamsType = Record<string | number, any>;

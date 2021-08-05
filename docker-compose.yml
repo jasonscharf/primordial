@@ -6,22 +6,6 @@ version: "3.4"
 
 services:
 
-  # PostgreSQL/TimescaleDB for persistence and time-series optimization
-  db:
-    image: timescaledev/timescaledb:latest-pg11
-    hostname: db
-    restart: always
-    ports:
-      - 5432:5432
-
-    volumes:
-      - db_tests:/var/lib/postgresql
-    environment:
-      POSTGRES_DB: primo
-      POSTGRES_USER: primo
-      POSTGRES_PASSWORD: primo
-
-
   # Redis - for session handling and caching
   redis:
     image: redis:6.0.8-alpine
@@ -66,7 +50,6 @@ services:
     depends_on:
       - redis
       - mq
-      - db
 
 
   # Node-based API server
@@ -80,7 +63,6 @@ services:
     depends_on:
       - redis
       - mq
-      - db
     ports:
       - 8000
 
@@ -112,10 +94,6 @@ services:
     volumes:
       # Mount coverage folder to get coverage out
       - ./coverage:/build/coverage/:cached
-      - ./dist:/build/dist/:delegated
-      - ./dist/tests:/app/tests/:delegated
-      - ./src/roles:/app/src/roles:delegated
-      - ./src/roles/tests/intern.json:/app/tests/intern.json
 
     environment:
       PRIMO_MODE: dev
