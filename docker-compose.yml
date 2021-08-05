@@ -63,7 +63,6 @@ services:
     depends_on:
       - redis
       - mq
-      - db
     ports:
       - 8000
 

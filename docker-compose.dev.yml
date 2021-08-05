@@ -40,6 +40,8 @@ services:
       context: ./
       target: api
       dockerfile: ./dockerfile
+    depends_on:
+      - db
     ports:
       - 8000:8000
       - 8010:8010
