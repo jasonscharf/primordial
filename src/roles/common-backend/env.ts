@@ -15,9 +15,14 @@ const defaults = {
     PRIMO_MQ_HOSTNAME: "mq",
     PRIMO_MQ_USERNAME: "primo",
     PRIMO_MQ_PASSWORD: "primo",
+    PRIMO_REDIS_PORT: 6379,
+    PRIMO_REDIS_HOSTNAME: "redis",
+    PRIMO_REDIS_PASSWORD: "primo",
     PRIMO_SERVER_PORT: "8000",
     PRIMO_ROLE_HEALTH_PORT: "8001",
     PRIMO_MULTIPART_FORM_UPLOAD_SIZE_LIMIT: "50mb",
+    PRIMO_DEFAULT_EXCHANGE: "binance",
+    PRIMO_DEFAULT_CURRENCY_QUOTE_SYMBOL: "BTC",
 
     // NOTE: Changing these require database changes.
     PRIMO_CURRENCY_PRECISION: 21,
@@ -30,6 +35,7 @@ const defaults = {
 };
 
 const allowedModes = [
+    "test",
     "dev",
     "staging",
     "staging-dev",
@@ -38,6 +44,7 @@ const allowedModes = [
 ];
 
 const funcs = {
+    isTest: () => (env.PRIMO_MODE === "test" || env.PRIMO_MODE === ""),
     isDev: () => (env.PRIMO_MODE === "dev" || !env.isStagingOrProduction()),
     isStagingDev: () => env.PRIMO_MODE === "staging-dev",
     isStaging: () => env.PRIMO_MODE === "staging-production",

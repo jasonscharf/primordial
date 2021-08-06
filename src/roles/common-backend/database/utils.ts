@@ -17,6 +17,7 @@ export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Prom
     let result: T;
     if (trx) {
         result = await fn(trx);
+        await trx.commit();
     }
     else {
         result = await db.transaction(fn);

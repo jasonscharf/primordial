@@ -15,4 +15,5 @@ patchesStrategicMerge:
   - api.yml
   - ingress.yml
   - secrets.yml
+  - spooler.yml
   - worker.yml

@@ -1,50 +1,50 @@
 #
-# Worker service
+# Spooler service
 #
 apiVersion: v1
 kind: Service
 metadata:
-  name: worker
+  name: spooler
 
 spec:
   ports:
     # Add a port for the debugger to connect
     - name: debug
       protocol: TCP
-      port: 9232
-      targetPort: 9232
+      port: 9233
+      targetPort: 9233
 
 ---
 #
-# Worker deployment
+# Spooler deployment
 #
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker
+  name: spooler
   labels:
-    io.kompose.service: worker
+    io.kompose.service: spooler
 
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: worker
+      io.kompose.service: spooler
 
   template:
     metadata:
       labels:
-        io.kompose.service: worker
+        io.kompose.service: spooler
 
     spec:
       containers:
-        - image: primordialimages.azurecr.io/primo-worker:latest
-          name: worker
+        - image: primordialimages.azurecr.io/primo-spooler:latest
+          name: spooler
           imagePullPolicy: Never
           resources: {}
           command:
             - yarn
-            - start:worker:legacy
+            - start:spooler:legacy
 
           volumeMounts:
             - name: dist
@@ -53,7 +53,7 @@ spec:
               mountPropagation: HostToContainer
 
           ports:
-            - containerPort: 9232
+            - containerPort: 9233
               protocol: TCP
 
       volumes:

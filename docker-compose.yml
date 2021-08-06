@@ -34,9 +34,9 @@ services:
 
 
   # Azurite for local development of storage services
-  storage:
-    image: mcr.microsoft.com/azure-storage/azurite
-    restart: always
+  #storage:
+  #  image: mcr.microsoft.com/azure-storage/azurite
+  #  restart: always
 
 
   # Node-based worker role
@@ -65,6 +65,19 @@ services:
       - mq
     ports:
       - 8000
+
+
+  # Node-based scheduler/coordinator
+  spooler:
+    hostname: spooler
+    image: primordialimages.azurecr.io/primo-spooler:latest # TAGPLACEHOLDER
+    build:
+      context: ./
+      target: spooler
+      dockerfile: ./dockerfile
+    depends_on:
+      - redis
+      - mq
 
 
   # Node-based web frontend

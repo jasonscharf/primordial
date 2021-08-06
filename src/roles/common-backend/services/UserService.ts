@@ -1,6 +1,8 @@
 import { Knex } from "knex";
 import { User } from "../../common/models/user/User";
+import { UserEntity } from "../../common/entities/UserEntity";
 import { UserIdentity } from "../../common/models/user/UserIdentity";
+import { UserIdentityEntity } from "../../common/entities/UserIdentityEntity";
 import { db } from "../includes";
 import { query } from "../database/utils";
 import { tables } from "../constants";
@@ -16,13 +18,18 @@ export class UserService {
      * @param user 
      * @returns 
      */
-    async insertUser(user: Partial<User>): Promise<User> {
-        const [newUser] = <User[]>await db(tables.Users)
-            .insert(user)
-            .returning("*")
-            ;
+    async insertUser(user: Partial<User>, trx?: Knex.Transaction): Promise<User> {
+        const fn = async (trx: Knex.Transaction): Promise<User> => {
+            const [newUserRow] = <User[]>await db(tables.Users)
+                .transacting(trx)
+                .insert(user)
+                .returning("*")
+                ;
 
-        return newUser;
+            return UserEntity.fromRow(newUserRow);
+        };
+
+        return query(this.insertUserAndIdentity.name, fn, trx);
     }
 
     /**
@@ -34,23 +41,22 @@ export class UserService {
      */
     async insertUserAndIdentity(userProps: Partial<User>, identityProps: Partial<UserIdentity>, trx?: Knex.Transaction): Promise<[User, UserIdentity]> {
         const fn = async (trx: Knex.Transaction): Promise<[User, UserIdentity]> => {
-            const [newUser] = <User[]>await db(tables.Users)
+            const [newUserRow] = <User[]>await db(tables.Users)
                 .transacting(trx)
                 .insert(userProps)
                 .returning("*")
                 ;
 
             const identProps = Object.assign({}, identityProps, {
-                userId: newUser.id,
+                userId: newUserRow.id,
             });
 
-            const newIdentity = <UserIdentity>await db(tables.UserIdentities)
+            const [newIdentityRow] = <UserIdentity[]>await db(tables.UserIdentities)
                 .insert(identProps)
+                .returning("*")
                 ;
 
-            await trx.commit();
-
-            return [newUser, newIdentity];
+            return [UserEntity.fromRow(newUserRow), UserIdentityEntity.fromRow(newIdentityRow)];
         };
 
         return query(this.insertUserAndIdentity.name, fn, trx);

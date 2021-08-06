@@ -100,7 +100,7 @@ export async function createCoreSchema(knex: Knex) {
 
     // Price
     await knex.schema.createTable(tables.Prices, table => {
-        table.timestamp("ts")
+        table.timestamp("ts", { useTz: false })
             .primary()
             .notNullable();
 

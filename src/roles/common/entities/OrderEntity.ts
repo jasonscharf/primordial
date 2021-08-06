@@ -20,6 +20,7 @@ export class OrderEntity extends MutableEntity implements Order {
     limit: Money;
     stop: Money;
 
+
     constructor(row?: Partial<Order>) {
         super(row);
 

@@ -42,6 +42,17 @@ CMD ["node", "./worker/worker.js"]
 
 
 #
+# Spooler
+#
+FROM worker-base as spooler
+RUN mkdir -p /mnt/secrets-store
+RUN yarn install
+COPY --from=worker-base /app/ /app/
+COPY ./dist/spooler /app/spooler
+CMD ["node", "./spooler/spooler.js"]
+
+
+#
 # Backend API server
 #
 FROM worker-base as api

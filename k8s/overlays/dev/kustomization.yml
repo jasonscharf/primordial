@@ -12,4 +12,5 @@ resources:
 patchesStrategicMerge:
   - config.local.yml
   - api.yml
+  - spooler.yml
   - web.yml

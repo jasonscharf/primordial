@@ -20,6 +20,7 @@ services:
       POSTGRES_USER: primo
       POSTGRES_PASSWORD: primo
 
+
   pgadmin:
     image: dpage/pgadmin4
     ports:
@@ -50,6 +51,26 @@ services:
       - ./dist/common:/app/common/:delegated
       - ./dist/common-backend:/app/common-backend/:delegated
       - ./dist/api:/app/api/:delegated
+      - ./src/roles:/app/src/roles:delegated
+
+
+  # Node-based scheduler/coordinator
+  spooler:
+    hostname: spooler
+    image: primordialimages.azurecr.io/primo-spooler:latest # TAGPLACEHOLDER
+    command: yarn role:spooler:dev
+    build:
+      context: ./
+      target: spooler
+      dockerfile: ./dockerfile
+    depends_on:
+      - db
+    ports:
+    - 9233:9229
+    volumes:
+      - ./dist/common:/app/common/:delegated
+      - ./dist/common-backend:/app/common-backend/:delegated
+      - ./dist/spooler:/app/spooler/:delegated
       - ./src/roles:/app/src/roles:delegated
 
 

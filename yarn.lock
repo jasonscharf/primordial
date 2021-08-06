@@ -677,6 +677,11 @@
   dependencies:
     "@types/koa" "*"
 
+"@types/luxon@^1.27.1":
+  version "1.27.1"
+  resolved "https://registry.yarnpkg.com/@types/luxon/-/luxon-1.27.1.tgz#aceeb2d5be8fccf541237e184e37ecff5faa9096"
+  integrity sha512-cPiXpOvPFDr2edMnOXlz3UBDApwUfR+cpizvxCy0n3vp9bz/qe8BWzHPIEFcy+ogUOyjKuCISgyq77ELZPmkkg==
+
 "@types/mime@^1":
   version "1.3.2"
   resolved "https://registry.yarnpkg.com/@types/mime/-/mime-1.3.2.tgz#93e25bf9ee75fe0fd80b594bc4feb0e862111b5a"
@@ -1595,6 +1600,11 @@ capture-stack-trace@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/capture-stack-trace/-/capture-stack-trace-1.0.1.tgz#a6c0bbe1f38f3aa0b92238ecb6ff42c344d4135d"
   integrity sha512-mYQLZnx5Qt1JgB1WEiMCf2647plpGeQ2NMR/5L0HNZzGQo4fuSPnK+wjfPnKZV0aiJDgzmWqqkV/g7JD+DW0qw==
+
+ccxt@^1.54.58:
+  version "1.54.58"
+  resolved "https://registry.yarnpkg.com/ccxt/-/ccxt-1.54.58.tgz#c823957339b2a45b999c75a4dd6c46a17d35597b"
+  integrity sha512-1a8NnA22WGkgjr+aoD1HcqUVQLbFs5A/JXh916D7EaipAV5CJcHULjrBbRQG6uA+ZEH4f9rCTRPsxlDzmVcC/A==
 
 chai@~4.3.4:
   version "4.3.4"
@@ -4738,6 +4748,11 @@ lru-cache@^6.0.0:
   dependencies:
     yallist "^4.0.0"
 
+luxon@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/luxon/-/luxon-2.0.1.tgz#b41ca2f1f5ad8099c18603ae6c36a7794039daf0"
+  integrity sha512-8Eawf81c9ZlQj62W3eq4mp+C7SAIAnmaS7ZuEAiX503YMcn+0C1JnMQRtfaQj6B5qTZLgHv0F4H5WabBCvi1fw==
+
 make-dir@^1.0.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/make-dir/-/make-dir-1.3.0.tgz#79c1033b80515bd6d24ec9933e860ca75ee27f0c"
@@ -7031,6 +7046,13 @@ tarn@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/tarn/-/tarn-3.0.1.tgz#ebac2c6dbc6977d34d4526e0a7814200386a8aec"
   integrity sha512-6usSlV9KyHsspvwu2duKH+FMUhqJnAh6J5J/4MITl8s94iSUQTLkJggdiewKv4RyARQccnigV48Z+khiuVZDJw==
+
+tedis@^0.1.12:
+  version "0.1.12"
+  resolved "https://registry.yarnpkg.com/tedis/-/tedis-0.1.12.tgz#e3eeccc92a5d068a35e7b16efef3e4d75cc3ef12"
+  integrity sha512-bxOKYWvdF1WsjkBYIfeO+2+xZuiqHmikqTTYPm3j/FYFpxQsX2JTBh6fFSlH6jDiCL4lfPcS2woIdD3FHopS/Q==
+  dependencies:
+    uuid "^3.3.2"
 
 term-size@^1.2.0:
   version "1.2.0"
