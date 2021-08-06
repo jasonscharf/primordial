@@ -22,7 +22,10 @@ export async function up(knex: Knex): Promise<void> {
 
     // Note: Events are compressed, but prices are not, as they require back-filling, which comes
     // with some practical overhead in TimescaleDB and uncompressing chunks in order to update them.
-    await enableTimescaleDbCompression(knex, tables.Events, "name");
+    
+    // NOTE: Not supported in Azure's version of TimescaleDB due to licensing.
+    // The error: functionality not supported under the current license "ApacheOnly"
+    // await enableTimescaleDbCompression(knex, tables.Events, "name");
 }
 
 export async function createCoreSchema(knex: Knex) {
