@@ -1,21 +1,43 @@
 import "intern";
+import { DateTime } from "luxon";
 import Knex from "knex";
 import { Money, sleep } from "../../common/utils";
-import { SymbolService } from "../../common-backend/services/SymbolService";
-import { TestDataCtx, getTestData, createTestPrice } from "../utils/test-data";
 import { Price } from "../../common/models/system/Price";
+import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS } from "../../common-backend/services/SymbolService";
+import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
-import { db, us } from "../../common-backend/includes";
 import { assertRejects } from "../utils/async";
+import { db, dbm, tables, us } from "../../common-backend/includes";
 import { beforeEach } from "intern/lib/interfaces/tdd";
-import { normalizePriceTime } from "../../common/utils/time";
+import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
 
 
 describe(SymbolService.name, () => {
+
+    // Defaults
+    const exchange = env.PRIMO_DEFAULT_EXCHANGE;
+    const symbolPair = "BTC/USD"; // Not even a real thing, just a simple dummy
+    const res = TimeResolution.ONE_MINUTE;
+
     let ctx: TestDataCtx = null;
     let sym: SymbolService = new SymbolService();
+
+    // Note: Slow. Only use if necessary.
+    async function resetDb() {
+        await dbm.rollback();
+        await dbm.migrate();
+        ctx = await getTestData();
+    }
+
+    async function clearTestPrices() {
+        if (!env.isTest()) {
+            throw new Error(`Can only clear test prices during test`);
+        }
+
+        return db(tables.Prices).delete();
+    }
 
     before(async () => {
         ctx = await getTestData();
@@ -35,6 +57,12 @@ describe(SymbolService.name, () => {
             await sym.addSymbol(symbolProps);
             await assertRejects(() => sym.addSymbol(symbolProps));
         });
+    });
+
+    describe(sym.addSymbolPrice.name, () => {
+        it("throws on null open/low/high/close", async () => {
+            // TEST
+        });
 
         it("correctly represents monetary values with 8 decimal points of precision", async () => {
 
@@ -51,7 +79,7 @@ describe(SymbolService.name, () => {
                 low: Money(precisePriceStr),
                 high: Money(precisePriceStr),
                 close: Money(precisePriceStr),
-                volume: 1,
+                volume: Money("1"),
             };
 
             const newPrice = await sym.addSymbolPrice(dummyPriceProps);
@@ -69,6 +97,7 @@ describe(SymbolService.name, () => {
         it("correctly represents monetary values into the hundreds of billions", async () => {
             const precisePriceStr = "999999999.000000000001";
 
+            // TODO: Shrink
             const dummyPriceProps = createTestPrice({
                 exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
                 baseSymbolId: ctx.testSymbol1.id,
@@ -79,15 +108,13 @@ describe(SymbolService.name, () => {
                 low: Money(precisePriceStr),
                 high: Money(precisePriceStr),
                 close: Money(precisePriceStr),
-                volume: 1,
+                volume: Money("1"),
             });
 
             const newPrice = await sym.addSymbolPrice(dummyPriceProps);
             assert.equal(newPrice.close.toString(), precisePriceStr);
         });
-    });
 
-    describe(sym.addSymbolPrice.name, () => {
         it("throws if the base or quote symbols do not exist", async () => {
             const priceProps = createTestPrice({
                 resId: TimeResolution.ONE_MINUTE,
@@ -118,52 +145,249 @@ describe(SymbolService.name, () => {
             await assertRejects(() => sym.addSymbolPrice(priceProps2));
         });
 
+        it("enforces a multi-colum uniqueness constraint", async () => {
+            // TEST
+        });
+
         // ... TODO: other time resolutions
     });
 
-    describe(sym.getPrices.name, () => {
+    describe(sym.queryPricesForRange.name, () => {
+        it("returns empty price", async () => {
+
+        });
 
         it("matches exchange prices when using TSDB bucketing", async () => {
             // TODO: Ensure 5min data rolled up from TSDB matches 5min data from Binance
         });
     });
 
-    describe(sym.pullSymbolPrices.name, () => {
+    describe(sym.updateSymbolPrices.name, () => {
         it("adds unknown symbols to the DB", async () => {
-
+            // TEST
         });
     });
 
 
     describe(sym.getKnownSymbolNames.name, () => {
         it("returns known symbols", async () => {
+            // TEST
         });
+    });
+
+    describe(sym.addPriceData.name, () => {
+        it("throws if prices don't all have the same symbol IDs as the first one", async () => {
+            // TEST
+        });
+
+        it("produces the correct range for 1m resolution", async () => {
+            await clearTestPrices();
+
+            const symbolPair = `${ctx.testSymbol1.id}/${ctx.testSymbol2.id}`;
+            const start = from("2000-01-01T00:00:00");
+            const end = from("2000-01-01T01:00:00");
+            const res = TimeResolution.ONE_MINUTE;
+            await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
+            const prices = await sym.queryPricesForRange({
+                res,
+                start,
+                end,
+                symbolPair,
+            });
+
+            assert.lengthOf(prices, 60);
+            assert.equal(prices[0].ts.getTime(), start.getTime());
+
+            // Last entry should be at 00:00:59
+            const expectedEnd = DateTime.fromISO("2000-01-01T00:59:00").toJSDate();
+            assert.equal(prices[prices.length - 1].ts.getTime(), expectedEnd.getTime());
+
+            // TODO: Handle the weird null values at end...
+        });
+
+        it("produces the correct range for 5m resolution", async () => {
+            await clearTestPrices();
+
+            const symbolPair = `${ctx.testSymbol1.id}/${ctx.testSymbol2.id}`;
+            const start = from("2000-01-01T00:00:00");
+            const end = from("2000-01-01T01:00:00");
+            const res = TimeResolution.FIVE_MINUTES;
+            await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
+            const prices = await sym.queryPricesForRange({
+                res,
+                start,
+                end,
+                symbolPair,
+            });
+
+            assert.lengthOf(prices, 12);
+            assert.equal(prices[0].ts.getTime(), start.getTime());
+
+            const expectedEnd = DateTime.fromISO("2000-01-01T00:55:00").toJSDate();
+            assert.equal(prices[prices.length - 1].ts.getTime(), expectedEnd.getTime());
+        });
+
+        // TEST: other time resolutions, resolution overlaps (e.g. 5m separate from 1m)
+
+        it("fills gaps in the input data using the last known value", async () => {
+            await clearTestPrices();
+
+            const start = from("2001-01-01T00:00:00");
+            const end = from("2001-01-01T01:00:00");
+            const rawPrices = await generateTestPrices(exchange, symbolPair, res, start, end);
+            assert.lengthOf(rawPrices, 60);
+
+            // Poke some holes in the data
+
+            // Remove first entry 2001-01-01T00:01:00
+            // Remove second-to-last entry 2001-01-1T00:58:00
+            // Worth noting that truncating the actual end of the series will not result in fillage.
+            rawPrices.splice(1, 1);
+            rawPrices.splice(rawPrices.length - 2, 1);
+
+            assert.lengthOf(rawPrices, 58);
+
+            await sym.addPriceData(exchange, TimeResolution.ONE_MINUTE, rawPrices);
+            const addedPrices = await sym.queryPricesForRange({
+                exchange,
+                symbolPair,
+                res,
+                start,
+                end,
+                fillMissing: true,
+            });
+
+            // Should get 60 back still, as the missing prices will be interpolated
+            // NOTE: Not for now, thanks to a weird thing with TimescaleDB. See addPriceData.
+            assert.lengthOf(addedPrices, 60);
+
+            // Peep the filled entries for prices
+            const [firstPrice, secondPrice] = addedPrices;
+            const secondFromLastPrice = addedPrices[addedPrices.length - 2];
+            const thirdFromLastPrice = addedPrices[addedPrices.length - 3];
+
+            assert.equal(firstPrice.ts.getTime(), from("2001-01-01T00:00:00").getTime());
+            assert.equal(secondPrice.ts.getTime(), from("2001-01-01T00:01:00").getTime());
+            assert.equal(secondFromLastPrice.ts.getTime(), from("2001-01-01T00:58:00").getTime());
+            assert.equal(thirdFromLastPrice.ts.getTime(), from("2001-01-01T00:57:00").getTime());
+
+            // Prices should have been interpolated simply by using the previous value
+            assert.equal(secondPrice.close.toString(), firstPrice.close.toString());
+            assert.equal(secondFromLastPrice.close.toString(), thirdFromLastPrice.close.toString());
+
+            // ... other fields 
+        });
+
+        // TEST truncation of a series (should not be gap-filled)
+    });
+
+    describe(`test function ${fillRangeWithData.name}`, () => {
+        it("produces the correct range to 5m resolution", async () => {
+            // TEST
+        });
+    });
+
+    describe(`test function '${fill.name}'`, () => {
+        it("correctly fills a range", async () => {
+            await clearTestPrices();
+
+            // Generate some prices so we can test around them
+            const start = from(`1991-01-01T00:00:00`);
+            const end = from(`1991-01-01T00:03:00`);
+
+            const startFill = from(`1991-01-01T00:01:00`);
+            const endFill = from(`1991-01-01T00:02:00`);
+
+            await fill(startFill, endFill);
+
+            const prices = await sym.queryPricesForRange({ start, end });
+
+            assert.lengthOf(prices, 1);
+        });
+    });
+
+    describe(sym.getMissingRanges.name, () => {
+        it("returns a completely empty range when there's no price data", async () => {
+            const startEmpty = from("1990-01-01T00:00:00");
+            const endEmpty = from("1990-01-01T00:10:00");
+
+            const ranges = await getMissingRanges(startEmpty, endEmpty);
+            assert.lengthOf(ranges, 1);
+
+            const [range] = ranges;
+            assert.equal(range.start.getTime(), startEmpty.getTime());
+            assert.equal(range.end.getTime(), endEmpty.getTime());
+        });
+
+        it("returns empty ranges before any after a filled range", async () => {
+            await clearTestPrices();
+
+            // Generate some prices so we can test around them
+            const startFill = from(`1991-01-01T00:01:00`);
+            const endFill = from(`1991-01-01T00:02:00`);
+
+            await fill(startFill, endFill);
+
+            // 1 minute before and after the filled range
+            const startTest = from(`1991-01-01T00:00:00`);
+            const endTest = from(`1991-01-01T00:03:00`);
+
+            const ranges = await getMissingRanges(startTest, endTest);
+
+            // Before, after
+            assert.lengthOf(ranges, 2);
+
+            const [before, after] = ranges;
+
+            // Empty range before data
+            assert.equal(before.start.getTime(), startTest.getTime());
+            assert.equal(before.end.getTime(), startFill.getTime());
+
+            // Empty range after data
+            assert.equal(after.start.getTime(), endFill.getTime());
+            assert.equal(after.end.getTime(), endTest.getTime());
+        });
+
+        // TEST (more)
+    });
+
+    describe(sym.parseSymbolPair.name, () => {
+        it("correctly parses pairs with slashes", async () => {
+            // TEST
+        });
+
+        it("correctly parses pairs with underscores", async () => {
+            // TEST
+        });
+
     });
 
     describe(sym.updateGlobalSymbolPrices.name, () => {
         it("updates symbol prices for a market", async () => {
-
+            // TEST
         });
     });
 
     describe(sym.deriveTradeSymbolFromCCXT.name, () => {
         it("derives a proper `TradeSymbol` from a CCXT market def", async () => {
-            // ...
+            // TEST
         });
     });
 
-    /*
-    describe(sym.loadMarkets.name, () => {
+
+    describe(sym.loadMarketDefinitions.name, () => {
         it("loads some markets", async () => {
-            throw new Error('Not implemented');
+            // TEST
         });
 
         it("stores market definitions in the cache", async () => {
-            throw new Error('Not implemented');
+            // TEST
         });
 
         it("updates the DB", async () => {
-            throw new Error('Not implemented');
+            // TEST
         });
-    });*/
+    });
+
+
 });

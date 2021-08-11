@@ -10,7 +10,7 @@
     "wp:prod": "webpack -c ./dist/web/webpack.config.production.js",
     "wp:serve": "webpack serve --open -c ./dist/web/webpack.config.dev.js",
     "build": "yarn dev:build && yarn wp:prod",
-    "db:migrate": "knex --migrations-directory 'src/roles/database/migrations/' migrate:make -x ts",
+    "db:migrate": "knex --migrations-directory 'src/roles/common-backend/database/migrations/' migrate:make -x ts",
     "db:schema": "docker run --network host -v \"$PWD/db-schema:/output\" --rm andrewjones/schemaspy-postgres:latest -host localhost -port 5432 -u primo -p primo -db primo -s public",
     "dev:watch": "tsc -w -p src",
     "dev:compile": "tsc -p src",

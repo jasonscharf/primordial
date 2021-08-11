@@ -14,5 +14,6 @@ const db = databaseManager.db;
 const log: Logger = new ConsoleLogger();
 const pubsub = new Pubsub();
 
+export * as constants from "./constants";
 export * from "./services";
 export { cache, db, dbm, log, pubsub, tables, tasks };

@@ -12,7 +12,7 @@ export class PriceEntity implements Price {
     high: Money;
     low: Money;
     close: Money;
-    volume: number;
+    volume: Money;
     openRaw: string;
     highRaw: string;
     lowRaw: string;
@@ -30,7 +30,7 @@ export class PriceEntity implements Price {
             this.high = Money(row.high);
             this.low = Money(row.low);
             this.close = Money(row.close);
-            this.volume = row.volume;
+            this.volume = Money(row.volume);
             this.openRaw = row.openRaw;
             this.highRaw = row.highRaw;
             this.lowRaw = row.lowRaw;

@@ -1,7 +1,7 @@
 import { SpoolerTask } from "../../common/models/system/SpoolerTask";
 import { SpoolerTaskEntity } from "../../common/entities/SpoolerTaskEntity";
 import { SpoolerTaskHandler, SpoolerTaskProgressHandler } from "../system/SpoolerTaskHandler";
-import { db, log } from "../includes";
+import { db, log, tasks } from "../includes";
 import { queries, tables } from "../constants";
 import { query } from "../database/utils";
 
@@ -39,6 +39,19 @@ export class SpoolerService {
                 ;
 
             return rows.map(SpoolerTaskEntity.fromRow);
+        });
+    }
+
+    /**
+     * Marks a set of tasks as no longer running.
+     * @param taskIds 
+     */
+    async markTasksAsNotRunning(taskIds: string[]): Promise<void> {
+        return query(queries.TASKS_MARK_NOT_RUNNING, async db => {
+            await db(tables.SpoolerTasks)
+                .update({ isRunning: false })
+                .whereIn("id", taskIds)
+                ;
         });
     }
 
@@ -106,18 +119,20 @@ export class SpoolerService {
         const progress: SpoolerTaskProgressHandler = (p: number, msg: string) =>
             console.log(`Task '${name}' (${id}) at ${progress}%`);
 
+
+        if (taskFromDb.isRunning) {
+            log.warn(`Not running task '${name}' (${id}) - task already running`);
+            return task.state as TState;
+        }
+
+        if (taskFromDb.frequencySeconds === 0 && taskFromDb.runCount > 0) {
+            throw new Error(`Task '${name}' (${id}) has already been run.`);
+        }
+
         try {
             taskFromDb.prevRun = new Date();
             log.debug(`Running task '${name}' (${id})...`);
 
-            if (taskFromDb.isRunning) {
-                log.warn(`Not running task '${name}' (${id}) - task already running`);
-                return task.state as TState;
-            }
-
-            if (taskFromDb.frequencySeconds === 0 && taskFromDb.runCount > 0) {
-                throw new Error(`Task '${name}' (${id}) has already been run.`);
-            }
 
             await db(tables.SpoolerTasks)
                 .where({ id })

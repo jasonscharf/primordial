@@ -8,8 +8,8 @@ import { SymbolService } from "../../common-backend/services/SymbolService";
 import { Money } from "../../common/numbers";
 import { TestDataCtx, getTestData, createTestPrice } from "../utils/test-data";
 import { assert, describe, before, env, it } from "../includes";
-import { normalizePriceTime } from "../../common/utils/time";
 import { assertRejects } from "../utils/async";
+import { normalizePriceTime } from "../../common-backend/utils/time";
 
 
 describe("numbers", () => {

@@ -28,7 +28,7 @@ export class CacheService {
      * @param timeoutSeconds 
      * @param del 
      */
-    async delegateObject<T>(key: string, timeoutSeconds: number, del: () => Promise<T>): Promise<T> {
+    async getObject<T>(key: string, timeoutSeconds: number, del: () => Promise<T>): Promise<T> {
         const exists = await tedis.exists(key);
         if (exists) {
             const raw = await tedis.get(key) as string;

@@ -2,10 +2,11 @@ import "intern";
 import Knex from "knex";
 import { beforeEach } from "intern/lib/interfaces/tdd";
 import { SymbolService } from "../../common-backend/services/SymbolService";
-import { TestDataCtx, getTestData, createTestPrice } from "../utils/test-data";
+import { TestDataCtx, createTestPrice, getTestData } from "../utils/test-data";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
-import { normalizePriceTime } from "../../common/utils/time";
+import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../../common-backend/utils/time";
+import { assertEqualTimes } from "../utils/misc";
 
 
 describe("time handling", () => {
@@ -60,8 +61,9 @@ describe("time handling", () => {
         test(TimeResolution.TWO_SECONDS, "00:01:59:999", "00:01:58:000");
 
         test(TimeResolution.ONE_MINUTE, "00:12:00:000", "00:12:00:000");
-        test(TimeResolution.ONE_MINUTE, "00:12:34:001", "00:12:00:000");
-        test(TimeResolution.ONE_MINUTE, "00:12:59:999", "00:12:00:000");
+        test(TimeResolution.ONE_MINUTE, "00:12:01:000", "00:12:01:000");
+        test(TimeResolution.ONE_MINUTE, "00:12:34:001", "00:12:34:000");
+        test(TimeResolution.ONE_MINUTE, "00:12:59:999", "00:12:59:000");
 
         test(TimeResolution.FIVE_MINUTES, "00:00:00:000", "00:00:00:000");
         test(TimeResolution.FIVE_MINUTES, "00:01:00:001", "00:00:00:000");
@@ -83,7 +85,99 @@ describe("time handling", () => {
         test(TimeResolution.ONE_HOUR, "00:00:00:000", "00:00:00:000");
         test(TimeResolution.ONE_HOUR, "00:01:01:001", "00:00:00:000");
         test(TimeResolution.ONE_HOUR, "00:59:00:000", "00:00:00:000");
+        test(TimeResolution.ONE_HOUR, "01:45:55:555", "01:00:00:000");
 
         // TODO: Week and month
+    });
+
+    describe(millisecondsPerResInterval.name, () => {
+        // TEST
+    });
+
+    describe(getTimeframeForResolution.name, () => {
+        // TEST
+    });
+
+    describe(splitRanges.name, () => {
+        const limit = 100;
+
+
+        // ... for each resolution
+        it("does not split a range that falls under the limit", async (ctx) => {
+            const res = TimeResolution.ONE_MINUTE;
+            const minutes = 5;
+            const start = from("2000-01-01T00:00:00");
+            const end = new Date(start.getTime() + minutes * 60 * 1000);
+            const splits = splitRanges(res, { start, end }, limit);
+            const [s] = splits;
+
+            assert.lengthOf(splits, 1);
+            assertEqualTimes(s.start, start);
+            assertEqualTimes(s.end, end);
+        });
+
+        it("does not split a range that matches the limit", async (ctx) => {
+            const res = TimeResolution.ONE_MINUTE;
+            const minutes = limit;
+            const start = from("2000-01-01T00:00:00");
+            const end = new Date(start.getTime() + minutes * 60 * 1000);
+            const splits = splitRanges(res, { start, end }, limit);
+            const [s] = splits;
+
+            assert.lengthOf(splits, 1);
+            assertEqualTimes(s.start, start);
+            assertEqualTimes(s.end, end);
+        });
+
+        it("splits (limit + 1) into 2 ranges", async () => {
+            const max = 10;
+
+            // TEST
+            const res = TimeResolution.ONE_MINUTE;
+            const minutes = max + 1;
+            const start = from("2000-01-01T00:00:00");
+            const end = new Date(start.getTime() + minutes * 60 * 1000);
+
+            const splits = splitRanges(res, { start, end }, max);
+            assert.lengthOf(splits, 2);
+
+            const [s1, s2] = splits;
+            assertEqualTimes(s1.start, start);
+            assertEqualTimes(s1.end, from("2000-01-01T00:09:59.999"));
+
+            assertEqualTimes(s2.start, from("2000-01-01T00:10:00"));
+            assertEqualTimes(s2.end, from("2000-01-01T00:10:59.999"));
+        });
+
+        it("sets the correct start and end dates at the minute level", async () => {
+            const max = 10;
+
+            const res = TimeResolution.ONE_MINUTE;
+            const minutes = max * 3;
+            const start = from("2000-01-01T00:00:00");
+            const end = new Date(start.getTime() + minutes * 60 * 1000);
+
+            const splits = splitRanges(res, { start, end }, max);
+            assert.lengthOf(splits, 3);
+
+            const [s1, s2, s3] = splits;
+            assertEqualTimes(s1.start, start);
+            assertEqualTimes(s1.end, from("2000-01-01T00:09:59.999"));
+
+            assertEqualTimes(s2.start, from("2000-01-01T00:10:00"));
+            assertEqualTimes(s2.end, from("2000-01-01T00:19:59.999"));
+
+            assertEqualTimes(s3.start, from("2000-01-01T00:20:00"));
+            assertEqualTimes(s3.end, from("2000-01-01T00:29:59.999"));
+        });
+
+        it("can split correctly into the atomic time res unit", async () => {
+            // TEST split minute-by-minute
+
+        })
+
+
+
+        // TEST ... other resolutions 
     });
 });

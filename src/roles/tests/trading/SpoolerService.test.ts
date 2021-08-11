@@ -6,6 +6,7 @@ import { TestDataCtx, getTestData } from "../utils/test-data";
 import { assert, describe, before, env, it } from "../includes";
 import { assertRejects } from "../utils/async";
 import { beforeEach } from "intern/lib/interfaces/tdd";
+import { dbm } from "../../common-backend/includes";
 
 
 describe(SpoolerService.name, () => {
@@ -16,7 +17,7 @@ describe(SpoolerService.name, () => {
         ctx = await getTestData();
     });
 
-    beforeEach(() => {
+    beforeEach(async () => {
         spool = new SpoolerService();
     });
 
@@ -221,9 +222,17 @@ describe(SpoolerService.name, () => {
 
     describe(spool.hasAnyTasks.name, () => {
         it("returns false when there are no tasks", async () => {
+            // TEST
         });
 
         it("returns true when there are any tasks", async () => {
+            // TEST
+        });
+    });
+
+    describe(spool.markTasksAsNotRunning.name, () => {
+        it("correctly marks a subset of tasks as non-running", async () => {
+            // TEST
         });
     });
 

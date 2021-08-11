@@ -77,7 +77,6 @@ describe("database", () => {
 
     it("throws on monetary values into the single-digit trillions", async () => {
         const precisePriceStr = "1999999999.000000000001";
-
         const dummyPriceProps: Partial<Price> = {
             exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
             baseSymbolId: ctx.testSymbol1.id,
@@ -88,7 +87,7 @@ describe("database", () => {
             low: Money(precisePriceStr),
             high: Money(precisePriceStr),
             close: Money(precisePriceStr),
-            volume: 1,
+            volume: Money("1"),
         };
 
         await assertRejects(() => sym.addSymbolPrice(dummyPriceProps));

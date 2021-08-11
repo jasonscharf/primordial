@@ -100,8 +100,7 @@ export async function createCoreSchema(knex: Knex) {
 
     // Price
     await knex.schema.createTable(tables.Prices, table => {
-        table.timestamp("ts", { useTz: false })
-            .primary()
+        table.timestamp("ts")
             .notNullable();
 
         table.string("baseSymbolId").notNullable();
@@ -116,19 +115,20 @@ export async function createCoreSchema(knex: Knex) {
         table.string("resId").notNullable();
         table.foreign("resId").references(`${tables.TimeResolutions}.id`);
 
+        // Disallow prices for the same time and pair on a given exchange (at the specified res)
+        table.unique(["ts", "baseSymbolId", "quoteSymbolId", "exchangeId", "resId"]);
+
         createMonetaryColumn(knex, table, "open");
         createMonetaryColumn(knex, table, "high");
         createMonetaryColumn(knex, table, "low");
         createMonetaryColumn(knex, table, "close");
+        createMonetaryColumn(knex, table, "volume");
 
         // These are for long-term QA on numeric handling :)
         table.string("openRaw");
         table.string("highRaw");
         table.string("lowRaw");
         table.string("closeRaw");
-
-        // 8 digits on the left should be enough (just like 640K of RAM)
-        table.decimal("volume", 10, 2).notNullable();
     });
 
     // OrderState

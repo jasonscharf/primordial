@@ -6,6 +6,7 @@ import * as tasks from "./tasks";
 import { SpoolerTask } from "../common/models/system/SpoolerTask";
 import { UpdateSymbolsState } from "../common-backend/services/SymbolService";
 import { dbm, log } from "../common-backend/includes";
+import { shortTime } from "../common-backend/utils/time";
 import { spooler, sym } from "../common-backend/services";
 import { systemHealthCheck } from "./tasks/SystemHealthCheck";
 import { updateMarketDefs } from "./tasks/UpdateMarketDefs";
@@ -18,14 +19,11 @@ healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
 healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
 
 
-
-
-
-
-// Spooler entrypoint
+// Top-level spooler entrypoint. 
 (async function load() {
     try {
         log.info(`Spooler startup...`);
+
         await dbm.migrate();
 
         // IMMEDIATE PRIORITY is to start/resume broadcasting prices to the rest of the cluster ASAP
@@ -40,7 +38,6 @@ healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
         // Schedule persisted tasks to run
         // Note: This is called by SYSTEM_REFRESH_TASKS to periodically refresh task models
         await refreshTasksForExecution();
-
     }
     catch (err) {
         log.error(`FATAL: Spooler startup error`, err);
@@ -133,10 +130,9 @@ function scheduleRefreshTasks() {
     taskRefreshTimeout = setTimeout(refreshTasksForExecution, 2000);
 }
 
-function shortTime(dt: Date) {
-    return `${("0" + dt.getHours()).slice(-2)}:${("0" + dt.getMinutes()).slice(-2)}:${("0" + dt.getSeconds()).slice(-2)}`;
-}
 
+// Track any tasks that this instance is currently running
+const locallyRunningTasks = new Map<string, boolean>();
 
 /**
  * Refreshes the system's recurring tasks, pulling them from the database and
@@ -169,7 +165,7 @@ async function refreshTasksForExecution(state?: unknown) {
                 console.debug(`Task '${name}' (${id}) was set to run at ${shortTime(nextRun)} but that elapsed. Running now...`);
             }
             else {
-                console.debug(`Task '${name}' (${id}) set to run at ${shortTime(nextRun)} in ${msToNextRun / 1000} seconds`);
+                //console.debug(`Task '${name}' (${id}) set to run at ${shortTime(nextRun)} in ${msToNextRun / 1000} seconds`);
             }
         }
 
@@ -182,14 +178,23 @@ async function refreshTasksForExecution(state?: unknown) {
         }
 
         // Task runner
+        const capturedTask = task;
         const interval = setTimeout(async () => {
             let start = 0;
             let end = 0;
             try {
                 start = Date.now();
 
+                if (capturedTask.isRunning) {
+                    return;
+                }
+
+                locallyRunningTasks.set(capturedTask.id, true);
+
                 // runTask will also set the nextRun timestamp
-                await spooler.runTask(task);
+                await spooler.runTask(capturedTask);
+
+                locallyRunningTasks.set(capturedTask.id, false);
             }
             catch (err) {
                 log.error(`Unhandled error running task '${name}' (${id})`, err);
@@ -197,7 +202,7 @@ async function refreshTasksForExecution(state?: unknown) {
             finally {
                 end = Date.now();
                 const duration = end - start;
-                log.debug(`Done task '${name}' (${id}) in ${duration}ms`);
+                //log.debug(`Done task '${name}' (${id}) in ${duration}ms`);
             }
 
         }, msToNextRun);
@@ -216,10 +221,18 @@ async function addStreamingPriceWatchers() {
 
 
 async function shutdown() {
-    // TODO: Mark all tasks as non-running.
     clearTaskIntervals();
     clearInterval(taskRefreshTimeout);
+
+    // TODO: Mark all currently running tasks as non-running.
+    const running = Array.from(locallyRunningTasks.entries())
+        .filter(([k, v]) => v)
+        .map(([k, v]) => k)
+        ;
+
+    await spooler.markTasksAsNotRunning(running).then(() => `Marked ${running.length} task(s) as no longer running`);
 }
+
 
 let hasHandledProcessTermination = false;
 function handleProcessTermination() {

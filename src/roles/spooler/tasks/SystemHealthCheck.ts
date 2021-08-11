@@ -17,5 +17,5 @@ export const systemHealthCheck: SpoolerTaskHandler = async (state, progress) => 
     // NOTE: Everything in here and in all spooler tasks must run _quick_!
     // ... delegate to workers, aggregate results in a separate event handler
 
-    log.debug(`System OK`);
+    //log.debug(`System OK`);
 };
