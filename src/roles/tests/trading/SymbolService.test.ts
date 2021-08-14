@@ -247,7 +247,7 @@ describe(SymbolService.name, () => {
 
             assert.lengthOf(rawPrices, 58);
 
-            await sym.addPriceData(exchange, TimeResolution.ONE_MINUTE, rawPrices);
+            await sym.addPriceData(exchange, TimeResolution.ONE_MINUTE, rawPrices); 
             const addedPrices = await sym.queryPricesForRange({
                 exchange,
                 symbolPair,
@@ -319,7 +319,7 @@ describe(SymbolService.name, () => {
             assert.equal(range.end.getTime(), endEmpty.getTime());
         });
 
-        it("returns empty ranges before any after a filled range", async () => {
+        it("returns empty ranges before and after a filled range", async () => {
             await clearTestPrices();
 
             // Generate some prices so we can test around them

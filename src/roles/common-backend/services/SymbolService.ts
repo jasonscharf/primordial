@@ -229,30 +229,63 @@ export class SymbolService {
                 end,
             };
 
+            /*
+                                
+                                last(COALESCE(volume::${numType}, 0), ts))::${numType}) as volume,
+                                last(COALESCE(open::${numType}, 0), ts))::${numType}) as open,
+                                last(COALESCE(low::${numType}, 0), ts))::${numType}) as low,
+                                last(COALESCE(high::${numType}, 0), ts))::${numType}) as high,
+                                last(COALESCE(close::${numType}, 0), ts))::${numType}) as close,
+
+                FROM time_series
+                WHERE "${tempTableName}".ts >= :start AND "${tempTableName}".ts <= :end
+                LEFT JOIN "${tempTableName}" on date_trunc('minute', "${tempTableName}".ts) = time_series.tf
+            
+                GROUP BY time_series.tf, "${tempTableName}".ts, "exchangeId"
+                ORDER BY time_series.tf
+
+            */
+
+            //const { timeSeries: rows } = await trx.raw
+
+
+            // TODO
+
+
+            const pgDatePart = getPostgresDatePartForTimeRes(res);
+            const tsdbTimeframe = getTimeframeForResolution(res);
+
             // Note the inclusive logic in the WHERE - this is to match up with buckets
             const q = await trx.raw(
                 `
                 INSERT INTO ${tables.Prices} ("ts", "baseSymbolId", "quoteSymbolId", "exchangeId", "resId", "openRaw", "closeRaw", "lowRaw", "highRaw",
                     "volume", "open", "close", "low", "high") (
-                    SELECT time_bucket_gapfill(:res, "ts", :start, :end) as time,
-                        :base AS "baseSymbolId",
-                        :quote AS "quoteSymbolId",
-                        :exchange AS "exchangeId",
-                        :res AS "resId",
-                        last("openRaw", ts),
-                        last("closeRaw", ts),
-                        last("lowRaw", ts),
-                        last("highRaw", ts),
-                        locf(sum(volume::${numType})) as volume,
-                        locf(last(open, ts)::${numType}) as open,
-                        locf(last(low, ts)::${numType}) as low,
-                        locf(last(high, ts)::${numType}) as high,
-                        locf(last(close, ts)::${numType}) as close
-
-                    FROM "${tempTableName}"
-                    WHERE "${tempTableName}".ts >= :start AND "${tempTableName}".ts <= :end
-                    GROUP BY time, "exchangeId"
-                    ORDER BY time
+                        WITH time_series AS (
+                            SELECT generate_series(:start::timestamp, :end::timestamp, interval '${tsdbTimeframe}') as tf
+                        )
+                        SELECT
+                            time_series.tf as ts,
+                            :base AS "baseSymbolId",
+                            :quote AS "quoteSymbolId",
+                            :exchange AS "exchangeId",
+                            :res AS "resId",
+        
+                            last("openRaw", ts),
+                            last("closeRaw", ts),
+                            last("lowRaw", ts),
+                            last("highRaw", ts),
+        
+                            COALESCE(last(volume::${numType}, ts)::${numType}, 0) as volume,
+                            COALESCE(last(open::${numType}, ts)::${numType}, 0) as open,
+                            COALESCE(last(close::${numType}, ts)::${numType}, 0) as close,
+                            COALESCE(last(low::${numType}, ts)::${numType}, 0) as low,
+                            COALESCE(last(high::${numType}, ts)::${numType}, 0) as high
+        
+                        FROM time_series
+                        LEFT JOIN "${tempTableName}" on date_trunc('${pgDatePart}', "${tempTableName}".ts) = time_series.tf
+                        
+                        GROUP BY 1
+                        ORDER BY time_series.tf
                 )`, bindings);
 
             return;
