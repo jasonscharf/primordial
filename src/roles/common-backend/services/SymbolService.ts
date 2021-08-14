@@ -255,7 +255,10 @@ export class SymbolService {
             const pgDatePart = getPostgresDatePartForTimeRes(res);
             const tsdbTimeframe = getTimeframeForResolution(res);
 
-            // Note the inclusive logic in the WHERE - this is to match up with buckets
+            // Insert the raw data into a temporary table, and then select it into the prices table, applying
+            // gap-filling and performing the appropriate numeric casts. This is to work around the lack of
+            // "time_bucket_gapfill" in Apache 2.0 licensed TSDB, which is what Azure uses.
+            // Note the inclusive logic in the WHERE - this is to match up with buckets.
             const q = await trx.raw(
                 `
                 INSERT INTO ${tables.Prices} ("ts", "baseSymbolId", "quoteSymbolId", "exchangeId", "resId", "openRaw", "closeRaw", "lowRaw", "highRaw",
@@ -264,28 +267,42 @@ export class SymbolService {
                             SELECT generate_series(:start::timestamp, :end::timestamp, interval '${tsdbTimeframe}') as tf
                         )
                         SELECT
-                            time_series.tf as ts,
+                            time_series.tf as ts, 
                             :base AS "baseSymbolId",
                             :quote AS "quoteSymbolId",
                             :exchange AS "exchangeId",
                             :res AS "resId",
-        
+
                             last("openRaw", ts),
                             last("closeRaw", ts),
                             last("lowRaw", ts),
                             last("highRaw", ts),
-        
-                            COALESCE(last(volume::${numType}, ts)::${numType}, 0) as volume,
-                            COALESCE(last(open::${numType}, ts)::${numType}, 0) as open,
-                            COALESCE(last(close::${numType}, ts)::${numType}, 0) as close,
-                            COALESCE(last(low::${numType}, ts)::${numType}, 0) as low,
-                            COALESCE(last(high::${numType}, ts)::${numType}, 0) as high
-        
+
+                            COALESCE(
+                                LAST(volume::${numType}, ts),
+                                    LAG(LAST(volume::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as volume,
+
+                            COALESCE(
+                                LAST(open::${numType}, ts),
+                                    LAG(LAST(open::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as open,
+
+                            COALESCE(
+                                LAST(close::${numType}, ts),
+                                    LAG(LAST(close::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as close,
+
+                            COALESCE(
+                                LAST(close::${numType}, ts),
+                                    LAG(LAST(close::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as close,
+
+                            COALESCE(
+                                LAST(high::${numType}, ts),
+                                    LAG(LAST(high::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as high
+
                         FROM time_series
                         LEFT JOIN "${tempTableName}" on date_trunc('${pgDatePart}', "${tempTableName}".ts) = time_series.tf
-                        
-                        GROUP BY 1
-                        ORDER BY time_series.tf
+                        WHERE time_series.tf >= :start AND time_series.tf <= :end
+                        GROUP BY time_series.tf, ts
+                        ORDER BY time_series.tf ASC
                 )`, bindings);
 
             return;

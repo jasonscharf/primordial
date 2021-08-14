@@ -247,7 +247,7 @@ describe(SymbolService.name, () => {
 
             assert.lengthOf(rawPrices, 58);
 
-            await sym.addPriceData(exchange, TimeResolution.ONE_MINUTE, rawPrices); 
+            await sym.addPriceData(exchange, TimeResolution.ONE_MINUTE, rawPrices);
             const addedPrices = await sym.queryPricesForRange({
                 exchange,
                 symbolPair,
@@ -271,11 +271,13 @@ describe(SymbolService.name, () => {
             assert.equal(secondFromLastPrice.ts.getTime(), from("2001-01-01T00:58:00").getTime());
             assert.equal(thirdFromLastPrice.ts.getTime(), from("2001-01-01T00:57:00").getTime());
 
-            // Prices should have been interpolated simply by using the previous value
+            // Prices should have been filled using the previous observed value
+            assert.equal(secondPrice.open.toString(), firstPrice.open.toString());
+            assert.equal(secondPrice.low.toString(), firstPrice.low.toString());
+            assert.equal(secondPrice.high.toString(), firstPrice.high.toString());
             assert.equal(secondPrice.close.toString(), firstPrice.close.toString());
+            assert.equal(secondPrice.volume.toString(), firstPrice.volume.toString());
             assert.equal(secondFromLastPrice.close.toString(), thirdFromLastPrice.close.toString());
-
-            // ... other fields 
         });
 
         // TEST truncation of a series (should not be gap-filled)
