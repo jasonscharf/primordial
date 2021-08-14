@@ -341,7 +341,7 @@ describe(SymbolService.name, () => {
 
             // Empty range before data
             assert.equal(before.start.getTime(), startTest.getTime());
-            assert.equal(before.end.getTime(), startFill.getTime());
+            assert.equal(before.end.getTime(), startFill.getTime() - 1);
 
             // Empty range after data
             assert.equal(after.start.getTime(), endFill.getTime());
