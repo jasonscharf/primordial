@@ -43,6 +43,9 @@ You can now debug the app over localhost:8080.
 
 
 # Notes
+- The platform cross-exchange library [CCXT](https://github.com/ccxt/ccxt) but assumes usage of the Binance API under the hood (for now)
+- Some important notes from a different trading platform: [Freqtrade Exchange Notes](https://github.com/freqtrade/freqtrade/blob/develop/docs/exchanges.md#binance-blacklist)
+
 
 ## Minikube for troubleshooting K8S issues
 Minikube can be useful for debugging some Kubernetes issues.

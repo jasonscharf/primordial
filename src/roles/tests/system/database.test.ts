@@ -73,62 +73,12 @@ describe("database", () => {
         assert.ok(updated.getTime() > updatedAtCreation.getTime());
     });
 
-    it("correctly represents monetary values with 8 decimal points of precision", async () => {
 
-        // SHIBA INU has 12 decimal spots :/
-        const precisePriceStr = "0.000000000001";
-
-        const dummyPriceProps: Partial<Price> = {
-            exchangeId: "binance",
-            baseSymbolId: ctx.testSymbol1.id,
-            quoteSymbolId: ctx.testSymbol1.id,
-            resId: "1m",
-            ts: new Date(),
-            open: Money(precisePriceStr),
-            low: Money(precisePriceStr),
-            high: Money(precisePriceStr),
-            close: Money(precisePriceStr),
-            volume: 1,
-        };
-
-        const newPrice = await sym.addSymbolPrice(dummyPriceProps);
-
-        assert.equal(newPrice.open.toString(), precisePriceStr);
-        assert.equal(newPrice.low.toString(), precisePriceStr);
-        assert.equal(newPrice.high.toString(), precisePriceStr);
-        assert.equal(newPrice.close.toString(), precisePriceStr);
-        assert.instanceOf(newPrice.open, Money);
-        assert.instanceOf(newPrice.low, Money);
-        assert.instanceOf(newPrice.high, Money);
-        assert.instanceOf(newPrice.close, Money);
-    });
-
-    it("correctly represents monetary values into the hundreds of billions", async () => {
-        const precisePriceStr = "999999999.000000000001";
-
-        const dummyPriceProps: Partial<Price> = {
-            exchangeId: "binance",
-            baseSymbolId: ctx.testSymbol1.id,
-            quoteSymbolId: ctx.testSymbol1.id,
-            resId: "1m",
-            ts: new Date(),
-            open: Money(precisePriceStr),
-            low: Money(precisePriceStr),
-            high: Money(precisePriceStr),
-            close: Money(precisePriceStr),
-            volume: 1,
-        };
-
-        const newPrice = await sym.addSymbolPrice(dummyPriceProps);
-
-        assert.equal(newPrice.close.toString(), precisePriceStr);
-    });
 
     it("throws on monetary values into the single-digit trillions", async () => {
         const precisePriceStr = "1999999999.000000000001";
-
         const dummyPriceProps: Partial<Price> = {
-            exchangeId: "binance",
+            exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
             baseSymbolId: ctx.testSymbol1.id,
             quoteSymbolId: ctx.testSymbol1.id,
             resId: "1m",
@@ -137,10 +87,10 @@ describe("database", () => {
             low: Money(precisePriceStr),
             high: Money(precisePriceStr),
             close: Money(precisePriceStr),
-            volume: 1,
+            volume: Money("1"),
         };
 
-        assertRejects(() => sym.addSymbolPrice(dummyPriceProps));
+        await assertRejects(() => sym.addSymbolPrice(dummyPriceProps));
     });
 
     it("correctly represents non-ASCII symbols", async () => {

@@ -1,7 +1,7 @@
 {
     "verbose": false,
     "inspect": true,
-    "exec": "node --inspect=0.0.0.0:9229 /app/node_modules/.bin/intern config=/app/tests/intern.json",
+    "exec": "node --nolazy --inspect=0.0.0.0:9229 /app/spooler/spooler.js",
     "watch": [
         "/app/**/*.js",
         "**/nodemon.json"

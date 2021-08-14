@@ -1,0 +1,44 @@
+#
+# Backend deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spooler
+  labels:
+    io.kompose.service: spooler
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: spooler
+
+  template:
+    spec:
+      containers:
+        - name: spooler
+          securityContext:
+            capabilities:
+              drop:
+              - NET_RAW
+            
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+
+          env:
+            - name: PRIMO_MODE
+              value: "staging"
+
+            - name: PRIMO_DB_NAME
+              value: "primo_staging"
+
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "azure-key-vault"

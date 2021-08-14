@@ -17,6 +17,7 @@ export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Prom
     let result: T;
     if (trx) {
         result = await fn(trx);
+        await trx.commit();
     }
     else {
         result = await db.transaction(fn);
@@ -49,11 +50,11 @@ export function createCommonEntityFields(knex: Knex, table: Knex.CreateTableBuil
     }
 
     table.string("displayName").nullable();
-    table.timestamp("created", { useTz: false })
+    table.timestamp("created")
         .notNullable()
         .defaultTo(knex.fn.now())
         ;
-    table.timestamp("updated", { useTz: false })
+    table.timestamp("updated")
         .notNullable()
         .defaultTo(knex.fn.now())
         ;
@@ -70,6 +71,7 @@ export function createCommonEntityFields(knex: Knex, table: Knex.CreateTableBuil
 export function createMonetaryColumn(knex: Knex, table: Knex.CreateTableBuilder, colName: string) {
     return table
         .decimal(colName, env.PRIMO_CURRENCY_PRECISION, env.PRIMO_CURRENCY_SCALE)
+        .notNullable()
         .defaultTo(0)
         ;
 }

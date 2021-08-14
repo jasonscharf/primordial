@@ -3,6 +3,7 @@
 #
 resources:
 - api.yml
+- spooler.yml
 - worker.yml
 - ingress.yml
 - redis.yml

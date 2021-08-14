@@ -1,11 +1,52 @@
+import ccxt, { Dictionary } from "ccxt";
+import { DateTime } from "luxon";
+import env from "../env";
+import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/system/Price";
 import { PriceEntity } from "../../common/entities/PriceEntity";
-import { TradeSymbol } from "../../common/models/markets/TradeSymbol";
+import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TradeSymbolEntity } from "../../common/entities/TradeSymbolEntity";
-import { db } from "../includes";
+import { cache, db, log } from "../includes";
+import { caching, limits, queries, tables } from "../constants";
+import { getPostgresDatePartForTimeRes, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime } from "../utils/time";
 import { query } from "../database/utils";
-import { tables } from "../constants";
+import { sym } from "../services";
 
+
+/**
+ * Represents a request to update definitions or prices for a particular, matching set of symbols.
+ */
+// TODO: Better name and local...this is effectively an "InputSet" or "SymbolSet" in the design parlance
+export interface UpdateSymbolsState {
+    filterByBase?: string;
+    filterByQuote?: string;
+}
+
+export interface PriceDataRange {
+    exchange: string;
+    symbolPair: string;
+    start: Date;
+    end: Date;
+}
+
+export interface PriceDataParameters {
+    exchange: string;
+    symbolPair: string;
+    res: TimeResolution,
+    start: Date,
+    end?: Date,
+    fillMissing?: boolean;
+};
+
+export const DEFAULT_PRICE_DATA_PARAMETERS: Partial<PriceDataParameters> = {
+    exchange: env.PRIMO_DEFAULT_EXCHANGE,
+    symbolPair: "BTC/USD",
+    res: TimeResolution.ONE_MINUTE,
+    start: DateTime.fromISO("2010-01-01").toJSDate(),
+    end: new Date(),
+    fillMissing: true,
+};
 
 /**
  * Handles the reading and writing of tradeable symbol pairs.
@@ -13,14 +54,64 @@ import { tables } from "../constants";
  */
 export class SymbolService {
 
+    // This is the system's Binance account.
+    protected _exchange: ccxt.binance = null;
+    protected _markets: ccxt.Dictionary<ccxt.Market> = null;
+
+
+    constructor() {
+        this._exchange = new ccxt.binance({
+            // TODO
+        });
+    }
+
+    /**
+     * Loads market definitions for a given exchange.
+     * @param exchange
+     */
+    async loadMarketDefinitions(exchange = env.PRIMO_DEFAULT_EXCHANGE): Promise<ccxt.Dictionary<ccxt.Market>> {
+        if (this._markets) {
+            return this._markets;
+        }
+        else {
+            log.info(`Fetching market definitions from ${exchange}...`);
+            return this._markets = await this._exchange.loadMarkets();
+        }
+    }
+
+    /**
+     * Fetches all known symbol names for a particular exchange.
+     * @param exchange 
+     */
+    async getKnownSymbolNames(exchange = env.PRIMO_DEFAULT_EXCHANGE): Promise<string[]> {
+        return query(queries.SYMBOLS_LIST_NAMES, async trx => {
+            interface Row {
+                id: string;
+            }
+            const rows = <Row[]>await db(tables.TradeSymbols)
+                .select("id")
+                ;
+
+            return rows.map(row => row.id);
+        });
+    }
+
+    /**
+     * 
+     * @param res 
+     */
+    async lastSymbolPricing(res = TimeResolution.ONE_MINUTE) {
+
+    }
+
     /**
      * Adds a single symbol price to the database.
      * @param props
      * @returns 
      */
     async addSymbolPrice(props: Partial<Price>): Promise<Price> {
-        return query("symbol-add-price", async trx => {
- 
+        return query(queries.SYMBOLS_PRICES_ADD, async trx => {
+
             // Ensure we are reflecting the raw (string-form) values as well (for now)
             const priceProps: Partial<Price> = Object.assign({}, props, <Partial<Price>>{
                 openRaw: props.open.toString(),
@@ -47,7 +138,7 @@ export class SymbolService {
             ].map(col => `"${col}"`);
 
             const { rows } = await db
-                .raw(`INSERT INTO ${tables.Prices} (${cols.join(", ")}) VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?, ?) RETURNING *`, [
+                .raw(`INSERT INTO ${tables.Prices} (${cols.join(", ")}) VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?) RETURNING *`, [
                     priceProps.baseSymbolId,
                     priceProps.quoteSymbolId,
                     priceProps.exchangeId,
@@ -57,7 +148,7 @@ export class SymbolService {
                     priceProps.high.toString(),
                     priceProps.low.toString(),
                     priceProps.close.toString(),
-                    priceProps.volume,
+                    priceProps.volume.toString(),
                     priceProps.openRaw,
                     priceProps.highRaw,
                     priceProps.lowRaw,
@@ -71,20 +162,426 @@ export class SymbolService {
     }
 
     /**
-     * Adds a new unique trade symbol to the DB, e.g. a cryptocurrency or an equity.
+     * Adds sorted, well-formed (time bucketed) pricing data.
+     * NOTE: All prices must be for the same symbol.
+     * @param exchange 
+     * @param rawPrices 
+     */
+    async addPriceData(exchange: string, res: TimeResolution, rawPrices: Partial<Price>[]): Promise<void> {
+        if (rawPrices.length < 1) {
+            return;
+        }
+
+        // Bulk inserting Money types is tricky, and we'll need to cast each row's monetary values.
+        // To do so, we bulk insert into a test table, and then sort and cast with a subsequence.
+
+        // Knex doesn't handle Money (Big) quite right, so we need to explicitly toString it here
+        const prices = rawPrices.map(p => {
+            return {
+                ...p,
+                open: p.open.toString(),
+                close: p.close.toString(),
+                low: p.low.toString(),
+                high: p.high.toString(),
+                volume: p.volume.toString(),
+            }
+        });
+
+        // TODO: WIP rough draft of using a "staging" table to insert string data, which
+        // can then be properly casted into a single insert statement from said table.
+
+        const tempTableName = `temp-import-prices-` + Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 8);
+        return query(queries.SYMBOLS_PRICES_ADD_BULK, async trx => {
+            const tt = await trx.raw(`CREATE TEMPORARY TABLE "${tempTableName}" (
+                "ts" TIMESTAMP WITH TIME ZONE,
+                "baseSymbolId" VARCHAR,
+                "quoteSymbolId" VARCHAR,
+                "exchangeId" VARCHAR,
+                "resId" VARCHAR,
+                "openRaw" VARCHAR, "closeRaw" VARCHAR, "lowRaw" VARCHAR, "highRaw" VARCHAR,
+                "volume" VARCHAR,
+                "open" VARCHAR,
+                "close" VARCHAR,
+                "low" VARCHAR,
+                "high" VARCHAR
+            )`);
+
+            // Add to staging table 
+            await trx(tempTableName).insert(prices);
+
+            const numType = `numeric(${env.PRIMO_CURRENCY_PRECISION}, ${env.PRIMO_CURRENCY_SCALE})`;
+
+            const start = prices[0].ts;
+            const end = prices[prices.length - 1].ts;
+
+            // Take the base and quote from the first price
+            const base = prices[0].baseSymbolId;
+            const quote = prices[0].quoteSymbolId;
+
+            // Select with casts into prices table.
+            // NOTE: Might make sense to actually pull from the staging table with time_bucket in order to normalizes timestamps.
+            const bindings = {
+                exchange: exchange,
+                res,
+                base,
+                quote,
+                start,
+                end,
+            };
+
+            // Note the inclusive logic in the WHERE - this is to match up with buckets
+            const q = await trx.raw(
+                `
+                INSERT INTO ${tables.Prices} ("ts", "baseSymbolId", "quoteSymbolId", "exchangeId", "resId", "openRaw", "closeRaw", "lowRaw", "highRaw",
+                    "volume", "open", "close", "low", "high") (
+                    SELECT time_bucket_gapfill(:res, "ts", :start, :end) as time,
+                        :base AS "baseSymbolId",
+                        :quote AS "quoteSymbolId",
+                        :exchange AS "exchangeId",
+                        :res AS "resId",
+                        last("openRaw", ts),
+                        last("closeRaw", ts),
+                        last("lowRaw", ts),
+                        last("highRaw", ts),
+                        locf(sum(volume::${numType})) as volume,
+                        locf(last(open, ts)::${numType}) as open,
+                        locf(last(low, ts)::${numType}) as low,
+                        locf(last(high, ts)::${numType}) as high,
+                        locf(last(close, ts)::${numType}) as close
+
+                    FROM "${tempTableName}"
+                    WHERE "${tempTableName}".ts >= :start AND "${tempTableName}".ts <= :end
+                    GROUP BY time, "exchangeId"
+                    ORDER BY time
+                )`, bindings);
+
+            return;
+        });
+    }
+
+    /**
+     * Updates symbol prices for some exchange, for some timeframe.
+     * @param args 
+     * @param symbolList 
+     */
+    async updateGlobalSymbolPrices(args: UpdateSymbolsState, symbolList = "*.*") {
+        // MOVED
+    }
+
+    /**
+     * Derives a trade symbol from a CCXT market definition.
+     * Not all fields are populated - the sign must be populated later.
+    * @param symbol 
+    * @param base
+    */
+    deriveTradeSymbolFromCCXT(symbol: string, base = true): Partial<TradeSymbol> {
+        const id = symbol.toUpperCase();
+        const def = this._exchange.currencies[symbol];
+        if (!def) {
+            throw new Error(`Could not find definition for symbol '${symbol}' in exchange '${this._exchange.id}'`);
+        }
+
+        const displayUnits = def.precision;
+        const newSymbol: Partial<TradeSymbol> = {
+            typeId: TradeSymbolType.CRYPTO,
+            id,
+            displayName: id,
+            sign: id,
+            displayUnits,
+        };
+
+        return newSymbol;
+    }
+
+    /**
+     * Adds a new unique trade symbol to the DB, e.g. a cryptocurrency or an equity.limits
      * Every symbol (including equities) has a base symbol (the asset) and a quote symbol (e.g. BTC, USD, CAD, etc)
      * @param props 
      * @returns 
      */
     async addSymbol(props: Partial<TradeSymbol>): Promise<TradeSymbol> {
-        return query("symbol-add", async trx => {
-            const [row] = <TradeSymbol[]>await db(tables.TradeSymbols)
-                .transacting(trx)
+        return query(queries.SYMBOLS_ADD, async trx => {
+            const [row] = <TradeSymbol[]>await trx(tables.TradeSymbols)
                 .insert(props)
                 .returning("*")
                 ;
 
             return TradeSymbolEntity.fromRow(row);
         });
+    }
+
+    /**
+     * Queries a time-series of prices from the database, bucketed at the given resolution, e.g. 1 min.
+     * Returns rows with null values where data is missing.
+     * Does not pull any missing price data from external APIs.
+     * @param exchange limits
+     * @param start 
+     * @param end 
+     */
+    async queryPricesForRange(params: Partial<PriceDataParameters>): Promise<Price[]> {
+        const appliedParams = Object.assign({}, DEFAULT_PRICE_DATA_PARAMETERS, params);
+        const { exchange, end, fillMissing, res, start, symbolPair } = appliedParams;
+        const [base, quote] = this.parseSymbolPair(symbolPair);
+        const tf = getTimeframeForResolution(res);
+
+        // Note the lack of gap filling here - this is done on data ingestion.
+        return query(queries.SYMBOLS_PRICES_QUERY, async db => {
+            const pgDatePart = getPostgresDatePartForTimeRes(res);
+            const query = `
+                WITH time_range AS (
+                    SELECT date_trunc(:pgDatePart, dd)::timestamp AS "generated"
+                    FROM generate_series
+                            ( :start::timestamp
+                            , :end::timestamp
+                            , :tf::interval) dd
+                ),
+                time_range_buckets AS (
+                    SELECT time_bucket(:res, generated) as generated
+                    FROM time_range
+                ),
+                existing_prices AS (
+                    SELECT time_bucket(:res, ts) as ts,
+                        last(close, ts) as close,
+                        :exchange as exchangeId,
+                        :res as resId,
+                        last(open, ts) as open,
+                        last(low, ts) as low,
+                        last(high, ts) as high,
+                        last(close, ts) as close,
+                        sum(volume) as volume,
+                        :base as "baseSymbolId",
+                        :quote as "quoteSymbolId"
+                    FROM prices
+                    WHERE "exchangeId" = :exchange
+                    AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
+                    AND ("ts" >= :start AND "ts" < :end)
+                    GROUP BY "ts"
+                    ORDER BY "ts"
+                )
+                SELECT *
+                FROM existing_prices
+                LEFT OUTER JOIN time_range_buckets ON "ts" = "generated"
+            `;
+
+            const bindings = {
+                tf,
+                pgDatePart,
+                exchange,
+                res,
+                base,
+                quote,
+                start,
+                end,
+            };
+
+            const { rows } = await db.raw(query, bindings);
+            return rows.map(row => PriceEntity.fromRow(row));
+        });
+    }
+
+    /**
+     * Updates symbol prices in the database.
+     * @param exchange 
+     * @param symbolPair 
+     * @param start 
+     * @param end 
+     */
+    async updateSymbolPrices(exchange: string, symbolPair: string, res: TimeResolution, start: Date, end: Date = new Date(), sync = true): Promise<Price[]> {
+        const [base, quote] = this.parseSymbolPair(symbolPair);
+        const nowMs = this._exchange.milliseconds();
+        const startMs = start.getTime();
+
+
+        if (startMs > nowMs) {
+            throw new Error(`Invalid start/end dates`);
+        }
+
+        const intervalMs = millisecondsPerResInterval(res);
+
+        // Figure out what data needs to be pulled.
+        const ranges = await this.getMissingRanges(exchange, symbolPair, res, start, end);
+
+        const params: ccxt.Params = {};
+        const rp = [];
+        for (const r of ranges) {
+            try {
+                const limit = Math.min(Math.ceil((r.end.getTime() - r.start.getTime()) / intervalMs), limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES);
+
+                // Note: Not all changes support OHLCV and CCXT's docs mention it as experimental :/
+                // https://ccxt.readthedocs.io/en/latest/manual.html#ohlcv-candlestick-charts
+                const data = await this._exchange.fetchOHLCV(symbolPair, res, r.start.getTime(), limit);
+                const prices = data.map(d => {
+                    const [ms, openFloat, highFloat, lowFloat, closeFloat, volumeFloat] = d;
+                    const price: Partial<Price> = {
+                        ts: new Date(ms),
+                        exchangeId: exchange,
+                        baseSymbolId: base,
+                        quoteSymbolId: quote,
+                        resId: res,
+                        open: Money(openFloat.toString()),
+                        low: Money(lowFloat.toString()),
+                        high: Money(highFloat.toString()),
+                        close: Money(closeFloat.toString()),
+                        volume: Money(volumeFloat.toString()),
+
+                        openRaw: openFloat.toString(),
+                        highRaw: highFloat.toString(),
+                        lowRaw: lowFloat.toString(),
+                        closeRaw: closeFloat.toString(),
+                    };
+
+                    return price;
+                });
+
+                await sym.addPriceData(exchange, res, prices);
+            }
+            catch (err) {
+                if (err.detail) {
+                    log.error(`[SYNC] Error: ${err.detail}`)
+                }
+                else {
+                    log.error(`Error updating '${symbolPair}' for ${start}-${end} from ${exchange}`, err);
+                }
+            }
+        }
+
+        // TODO: SymbolUpdateSummary
+        return [];
+    }
+
+    /**
+     * Fetches a symbol from the database by its ID.
+     * Returns null if the symbol does not exist.
+     * @param id 
+     * @returns 
+     */
+    async getSymbol(id: string): Promise<TradeSymbol> {
+        return query(queries.SYMBOLS_GET, async trx => {
+            const rows = <TradeSymbol[]>await trx(tables.TradeSymbols)
+                .select("*")
+                .where({ id })
+                ;
+
+            return rows.length > 0 ? TradeSymbolEntity.fromRow(rows[0]) : null;
+        });
+    }
+
+    /**
+     * Returns a set of range objects indicating missing price data for a given range.
+     * @param exchange 
+     * @param symbolPair 
+     * @param res 
+     * @param start 
+     * @param end 
+     */
+    async getMissingRanges(exchange: string, symbolPair: string, res: TimeResolution, start: Date, end: Date = new Date()): Promise<PriceDataRange[]> {
+
+        // NOTE: This assumes markets are open 24/7! In other words... crypto only (for now)
+
+        const [baseName, quoteName] = this.parseSymbolPair(symbolPair);
+        const [base, quote] = await Promise.all([
+            this.getSymbol(baseName),
+            this.getSymbol(quoteName),
+        ]);
+
+        if (!base) {
+            throw new Error(`Unknown base symbol '${baseName}'`);
+        }
+        else if (!quote) {
+            throw new Error(`Unknown base symbol '${quoteName}'`);
+        }
+
+        // Pull ranges, filling with null values where no data exists
+        const pgDatePart = getPostgresDatePartForTimeRes(res);
+        const tf = res;
+        return query(queries.SYMBOLS_PRICES_RANGES, async db => {
+            const q = `
+                WITH time_range AS (
+                    SELECT date_trunc(:pgDatePart, dd)::timestamp AS "generated"
+                    FROM generate_series
+                            ( :start::timestamp 
+                            , :end::timestamp
+                            , :tf::interval) dd
+                ),
+                time_range_buckets AS (
+                    SELECT time_bucket(:tf, generated) as generated
+                    FROM time_range
+                ),
+                existing_prices AS (
+                    SELECT time_bucket(:tf, ts) as ts
+                    FROM prices
+                    WHERE "exchangeId" = :exchange
+                    AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
+                    AND ("ts" >= :start AND "ts" < :end)
+                    GROUP BY "ts"
+                    ORDER BY "ts"
+                )
+                SELECT *
+                FROM existing_prices
+                FULL OUTER JOIN time_range_buckets ON "ts" = "generated"
+            `;
+
+            const bindings = {
+                tf,
+                pgDatePart,
+                exchange,
+                res,
+                base: base.id,
+                quote: quote.id,
+                start,
+                end,
+            };
+
+            // Derive continguous empty ranges
+            const { rows } = await db.raw(q, bindings);
+            const ranges: PriceDataRange[] = [];
+
+            let lastDate: Date = null;
+            let currRange: PriceDataRange = null;
+            let inEmptyRange = false;
+
+            for (const row of rows) {
+                if (row.ts === null) {
+                    if (!inEmptyRange) {
+                        inEmptyRange = true;
+
+                        currRange = {
+                            exchange,
+                            start: row.generated,
+                            symbolPair,
+                            end: null,
+                        };
+
+                        ranges.push(currRange);
+                    }
+                    else if (currRange) {
+                        currRange.end = new Date(row.ts - 1);
+                    }
+                }
+                else if (inEmptyRange) {
+                    currRange.end = new Date(row.ts - 1);
+                    currRange = null;
+                    inEmptyRange = false
+                }
+            }
+
+            if (currRange) {
+                currRange.end = end;
+            }
+            return ranges;
+        });
+    }
+
+    /**
+     * Parses a separated symbol pair such as "ETH/BTC" or "ETH_BTC".
+     * @param pair 
+     */
+    parseSymbolPair(pair: string): string[] {
+        const pieces = pair.split(/[_\/\\-]/);
+        if (pieces.length > 2 || pieces.length === 0) {
+            throw new Error(`Malformed symbol pair '${pair}'`);
+        }
+
+        return pieces.map(p => p.toUpperCase());
     }
 }

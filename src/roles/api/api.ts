@@ -121,7 +121,7 @@ console.log("--- API server entrypoint ---");
 process.on("SIGTERM", () => console.info("SIGTERM: API"));
 
 
-console.log(`Running migrations (if needed)...`);
+log.info(`API role running migrations (if needed)...`);
 dbm.migrate()
     .then(createSocketServer)
     .then(() => {

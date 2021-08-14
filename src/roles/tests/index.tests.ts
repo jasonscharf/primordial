@@ -1,5 +1,9 @@
 import { dbm } from "../common-backend/includes";
 import "./system/database.test";
+import "./system/numbers.test";
+import "./system/time.test";
+import "./trading/SpoolerService.test";
+import "./trading/SymbolService.test";
 
 
 intern.on("beforeRun", async () => {

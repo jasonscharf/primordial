@@ -1,5 +1,4 @@
 import { Money } from "../../numbers";
-import { ImmutableModel } from "../ImmutableEntity";
 
 
 // NOTE: Does not extend ImmutableModel, as there is no "id" key in prices.
@@ -13,7 +12,7 @@ export interface Price {
     high: Money;
     low: Money;
     close: Money;
-    volume: number;
+    volume: Money;
     openRaw: string;
     highRaw: string;
     lowRaw: string;

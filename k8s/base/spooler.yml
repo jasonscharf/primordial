@@ -1,0 +1,109 @@
+#
+# Spooler service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: spooler
+
+spec:
+  type: NodePort
+  selector:
+    io.kompose.service: spooler
+
+  ports:
+    - name: health
+      protocol: TCP
+      port: 8001
+      targetPort: 8001
+---
+#
+# Spooler deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spooler
+  labels:
+    io.kompose.service: spooler
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: spooler
+
+  template:
+    metadata:
+      labels:
+        io.kompose.service: spooler
+
+    spec:
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: []
+      containers:
+        - image: primordialimages.azurecr.io/primo-spooler:latest # TAGPLACEHOLDER
+          imagePullPolicy: Always
+          name: spooler
+
+          resources: {}
+
+          # TODO: Set (carefully) for cluster auto-scaling
+          #resources:
+          #  requests:
+          #    memory: "64Mi"
+          #    cpu: "50m"
+          #  limits:
+          #    memory: "256Mi"
+          #    cpu: "250m"
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          ports:
+            - name: health
+              containerPort: 8001
+              protocol: TCP
+
+          # Note: Any secret values referenced here must also go in the staging/prod secret providers.
+          env:
+            - name: PRIMO_DB_HOSTNAME
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_DB_HOSTNAME
+
+            - name: PRIMO_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_DB_USERNAME
+
+            - name: PRIMO_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_DB_PASSWORD
+
+            - name: PRIMO_MQ_HOSTNAME
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_MQ_HOSTNAME
+
+            - name: PRIMO_MQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_MQ_USERNAME
+
+            - name: PRIMO_MQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_MQ_PASSWORD

@@ -1,3 +1,6 @@
+/**
+ * Represents time resolutions for price intervals.
+ */
 export enum TimeResolution {
     ONE_SECOND = "1s",
     TWO_SECONDS = "2s",
