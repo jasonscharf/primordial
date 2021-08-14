@@ -35,12 +35,6 @@ async function shutdown() {
             healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
             healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
         });
-
-
-    // Note: A health check is required for cluster health
-    const healthCheck = new Koa();
-    healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
-    healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
 })();
 
 
