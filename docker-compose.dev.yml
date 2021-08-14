@@ -14,7 +14,7 @@ services:
       - 5432:5432
 
     volumes:
-      - db_tests:/var/lib/postgresql
+      - db:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: primo
       POSTGRES_USER: primo
