@@ -83,15 +83,7 @@ export const updateSymbolPricesGlobal: SpoolerTaskHandler<UpdateSymbolsState> = 
     }
 
     // ... compute all symbols to sync
-    const symbolPairsToUpdate = [
-        "BTC/TUSD",
-        "DOGE/BTC",
-        "ADA/BTC",
-        "NANO/BTC",
-        "DOT/BTC",
-        "C98/BTC",
-        "XMR/BTC",
-    ];
+    const symbolPairsToUpdate = await sym.getGlobalWatchlistSymbolPairs();
 
     // For each symbol, compute missing ranges
     // Take the first missing range, constrain it to fit within API request limits, e.g. max 500

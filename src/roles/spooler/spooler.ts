@@ -11,6 +11,7 @@ import { spooler, sym } from "../common-backend/services";
 import { systemHealthCheck } from "./tasks/SystemHealthCheck";
 import { updateMarketDefs } from "./tasks/UpdateMarketDefs";
 import { updateSymbolPricesGlobal } from "./tasks/UpdateSymbolPricesGlobal";
+import { connectToBinanceWebSocket, disconnectBinanceWebSocket } from "./binance-socket";
 
 
 // Note: A health check is required for cluster health
@@ -217,12 +218,20 @@ async function refreshTasksForExecution(state?: unknown) {
 async function addStreamingPriceWatchers() {
     // ... pull watchlist from database
     // ... if no listener exists for each symbol, add it!
+    await connectToBinanceWebSocket();
 }
 
 
 async function shutdown() {
     clearTaskIntervals();
     clearInterval(taskRefreshTimeout);
+
+    try {
+        disconnectBinanceWebSocket();
+    }
+    catch (err) {
+        log.error(`Error disconnecting Binance socket`, err);
+    }
 
     // TODO: Mark all currently running tasks as non-running.
     const running = Array.from(locallyRunningTasks.entries())

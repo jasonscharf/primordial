@@ -66,6 +66,21 @@ export class SymbolService {
     }
 
     /**
+     * Returns the default "global" watchlist.
+     */
+    async getGlobalWatchlistSymbolPairs(): Promise<string[]> {
+        return [
+            "BTC/TUSD",
+            "DOGE/BTC",
+            "ADA/BTC",
+            "NANO/BTC",
+            "DOT/BTC",
+            "C98/BTC",
+            "XMR/BTC",
+        ];
+    }
+
+    /**
      * Loads market definitions for a given exchange.
      * @param exchange
      */
@@ -77,6 +92,23 @@ export class SymbolService {
             log.info(`Fetching market definitions from ${exchange}...`);
             return this._markets = await this._exchange.loadMarkets();
         }
+    }
+
+    /**
+    * Fetches all known symbols for a particular exchange.
+    * @param exchange 
+    */
+    async getKnownSymbols(exchange = env.PRIMO_DEFAULT_EXCHANGE): Promise<TradeSymbol[]> {
+        return query(queries.SYMBOLS_LIST_NAMES, async trx => {
+            interface Row {
+                id: string;
+            }
+            const rows = <Row[]>await db(tables.TradeSymbols)
+                .select("*")
+                ;
+
+            return rows.map(TradeSymbolEntity.fromRow);
+        });
     }
 
     /**
@@ -138,7 +170,11 @@ export class SymbolService {
             ].map(col => `"${col}"`);
 
             const { rows } = await db
-                .raw(`INSERT INTO ${tables.Prices} (${cols.join(", ")}) VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?) RETURNING *`, [
+                .raw(`
+                INSERT INTO ${tables.Prices} (${cols.join(", ")})
+                VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?)
+                ON CONFLICT DO NOTHING
+                RETURNING *`, [
                     priceProps.baseSymbolId,
                     priceProps.quoteSymbolId,
                     priceProps.exchangeId,
@@ -229,28 +265,6 @@ export class SymbolService {
                 end,
             };
 
-            /*
-                                
-                                last(COALESCE(volume::${numType}, 0), ts))::${numType}) as volume,
-                                last(COALESCE(open::${numType}, 0), ts))::${numType}) as open,
-                                last(COALESCE(low::${numType}, 0), ts))::${numType}) as low,
-                                last(COALESCE(high::${numType}, 0), ts))::${numType}) as high,
-                                last(COALESCE(close::${numType}, 0), ts))::${numType}) as close,
-
-                FROM time_series
-                WHERE "${tempTableName}".ts >= :start AND "${tempTableName}".ts <= :end
-                LEFT JOIN "${tempTableName}" on date_trunc('minute', "${tempTableName}".ts) = time_series.tf
-            
-                GROUP BY time_series.tf, "${tempTableName}".ts, "exchangeId"
-                ORDER BY time_series.tf
-
-            */
-
-            //const { timeSeries: rows } = await trx.raw
-
-
-            // TODO
-
 
             const pgDatePart = getPostgresDatePartForTimeRes(res);
             const tsdbTimeframe = getTimeframeForResolution(res);
@@ -303,7 +317,9 @@ export class SymbolService {
                         WHERE time_series.tf >= :start AND time_series.tf <= :end
                         GROUP BY time_series.tf, ts
                         ORDER BY time_series.tf ASC
-                )`, bindings);
+                )
+                ON CONFLICT DO NOTHING
+                `, bindings);
 
             return;
         });

@@ -23,15 +23,18 @@ const defaults = {
     PRIMO_MULTIPART_FORM_UPLOAD_SIZE_LIMIT: "50mb",
     PRIMO_DEFAULT_EXCHANGE: "binance",
     PRIMO_DEFAULT_CURRENCY_QUOTE_SYMBOL: "BTC",
+    PRIMO_SYSTEM_BINANCE_API_KEY: null,
+    PRIMO_SYSTEM_BINANCE_API_SECRET: null,
+
 
     // NOTE: Changing these require database changes.
     PRIMO_CURRENCY_PRECISION: 21,
     PRIMO_CURRENCY_SCALE: 12,
 
-    // /!\ DO NOT POPULATE HERE /!\
     AZURE_APP_INSIGHTS_ID: "",
     CSRF_SECRET: "",
     SESSION_KEYS: "",
+
 };
 
 const allowedModes = [

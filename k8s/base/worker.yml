@@ -81,7 +81,6 @@ spec:
 
           # Note: Any secret values referenced here must also go in the staging/prod secret providers.
           env:
-
             - name: PRIMO_AZURE_APP_INSIGHTS_ID
               valueFrom:
                 secretKeyRef:
@@ -109,3 +108,15 @@ spec:
                   name: config
                   key: PRIMO_DB_PASSWORD
                   optional: true
+
+            - name: PRIMO_SYSTEM_BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_SYSTEM_BINANCE_API_KEY
+
+            - name: PRIMO_SYSTEM_BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_SYSTEM_BINANCE_API_SECRET
