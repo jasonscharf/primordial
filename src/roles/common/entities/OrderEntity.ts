@@ -21,25 +21,25 @@ export class OrderEntity extends MutableEntity implements Order {
     stop: Money;
 
 
-    constructor(row?: Partial<Order>) {
+    constructor(row?: Partial<Order>, prefix = "") {
         super(row);
 
         if (row) {
-            this.botRunId = row.botRunId;
-            this.baseSymbolId = row.baseSymbolId;
-            this.quoteSymbolId = row.quoteSymbolId;
-            this.exchangeId = row.exchangeId;
-            this.stopLossOrderId = row.stopLossOrderId;
-            this.relatedOrderId = row.relatedOrderId;
-            this.extOrderId = row.extOrderId;
-            this.stateId = row.stateId;
-            this.quantity = row.quantity;
-            this.price = row.price;
-            this.gross = row.gross;
-            this.fees = row.fees;
-            this.strike = row.strike;
-            this.limit = row.limit;
-            this.stop = row.stop;
+            this.botRunId = row[prefix + "botRunId"];
+            this.baseSymbolId = row[prefix + "baseSymbolId"];
+            this.quoteSymbolId = row[prefix + "quoteSymbolId"];
+            this.exchangeId = row[prefix + "exchangeId"];
+            this.stopLossOrderId = row[prefix + "stopLossOrderId"];
+            this.relatedOrderId = row[prefix + "relatedOrderId"];
+            this.extOrderId = row[prefix + "extOrderId"];
+            this.stateId = row[prefix + "stateId"];
+            this.quantity = Money(row[prefix + "quantity"]);
+            this.price = Money(row[prefix + "price"]);
+            this.gross = Money(row[prefix + "gross"]);
+            this.fees = Money(row[prefix + "fees"]);
+            this.strike = Money(row[prefix + "strike"]);
+            this.limit = Money(row[prefix + "limit"]);
+            this.stop = Money(row[prefix + "stop"]);
         }
     }
 

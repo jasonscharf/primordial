@@ -6,7 +6,7 @@ import { SpoolerTaskHandler } from "../../common-backend/system/SpoolerTaskHandl
 import { TradeSymbol } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { constants, log, sym } from "../../common-backend/includes";
-import { millisecondsPerResInterval, splitRanges } from "../../common-backend/utils/time";
+import { millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../../common-backend/utils/time";
 
 
 const DEFAULT_STATE: UpdateSymbolsState = {
@@ -100,9 +100,14 @@ export const updateSymbolPricesGlobal: SpoolerTaskHandler<UpdateSymbolsState> = 
     }
 
     const syncRangesForSymbols = new Map<string, PriceDataRange[]>();
+
     for (const pair of symbolPairsToUpdate) {
         const splits: PriceDataRange[] = [];
-        const missingRanges = await sym.getMissingRanges(exchange, pair, res, start);
+
+        // Only pull up the current interval.
+        const end = normalizePriceTime(res, new Date());
+
+        const missingRanges = await sym.getMissingRanges(exchange, pair, res, start, end);
         if (missingRanges.length === 0) {
             log.debug(`[${updateSymbolPricesGlobal.name}] Data for '${pair}' is up to date @ ${res}`);
             continue;

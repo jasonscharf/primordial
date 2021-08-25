@@ -1,13 +1,14 @@
 import Binance, { Candle } from "binance-api-node";
 import env from "../common-backend/env";
-import { log } from "../common-backend/includes";
-import { sym } from "../common-backend/services";
-import { normalizePriceTime } from "../common-backend/utils/time";
+import { Money } from "../common/numbers";
+import { Price } from "../common/models/system/Price";
 import { TimeResolution } from "../common/models/markets/TimeResolution";
 import { TradeSymbol } from "../common/models/markets/TradeSymbol";
-import { Price } from "../common/models/system/Price";
-import { Money } from "../common/numbers";
-import { sleep } from "../common/utils";
+import { constants, log, mq } from "../common-backend/includes";
+import { normalizePriceTime } from "../common-backend/utils/time";
+import { sym } from "../common-backend/services";
+import { PriceUpdateMessage } from "../common-backend/messages/trading";
+import { QueueMessage } from "../common-backend/messages/QueueMessage";
 
 
 const client = Binance({
@@ -72,6 +73,11 @@ function lookupSymbolPair(pair: string) {
  * @param candle 
  */
 export function handleCandle(symbolPair: string, res: TimeResolution, candle: Candle) {
+    if (env.isDev()) {
+        console.log(`Handle candle for ${symbolPair} @ ${new Date().toISOString()}`);
+    }
+
+    const receivedTs = candle.eventTime;
     const startTime = normalizePriceTime(res, new Date(candle.startTime));
     const eventTime = new Date(candle.eventTime);
     const [baseSymbol, quoteSymbol] = lookupSymbolPair(symbolPair);
@@ -106,15 +112,22 @@ export function handleCandle(symbolPair: string, res: TimeResolution, candle: Ca
     };
 
 
-    //
-    // ... turn into a tick on the queue
-    //
+    const sentTs = Date.now();
+    const msg: QueueMessage<PriceUpdateMessage> = {
+        name: constants.events.EVENT_PRICE_UPDATE,
+        receivedTs,
+        sentTs,
+        payload: {
+            ...price as Price,
+        }
+    };
 
+    // Fire and forget price update to both queues
+    mq.addWorkerMessageHi(constants.events.EVENT_PRICE_UPDATE, msg);
 
     if (candle.isFinal) {
-        // ... optionally save price
         sym.addPriceData(env.PRIMO_DEFAULT_EXCHANGE, res, [price])
-            .then(() => log.debug(`Updated ${symbolPair} from Binance WebSocket. P: ${price.close.toString()} H/L: ${price.high.toString()}/${price.low.toString()} V: ${price.volume}`))
+            .then(() => log.debug(`Updated ${symbolPair} from Binance WebSocket. P: ${price.close.toString()} L/H: ${price.low.toString()}/${price.high.toString()} V: ${price.volume}`))
             .catch(err => log.error(`Error saving price for '${baseSymbol.id}/${quoteSymbol.id}' @ ${price.ts.toISOString()}`, err))
             ;
     }

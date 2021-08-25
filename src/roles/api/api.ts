@@ -107,7 +107,6 @@ async function createSocketServer() {
 
     wss.on("connection", function (ws) {
         console.log(`Socket connected`);
-        debugger;
 
         ws.on("message", function (message) {
             console.log("Received from client: %s", message);

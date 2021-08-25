@@ -1,9 +1,17 @@
 import { dbm } from "../common-backend/includes";
+
+
+//import "./trading/CapitalService.test"; /*
+
 import "./system/database.test";
 import "./system/numbers.test";
 import "./system/time.test";
-import "./trading/SpoolerService.test";
+import "./system/CommandService.test";
+import "./system/SpoolerService.test";
+import "./system/UserService.test";
+import "./trading/CapitalService.test";
 import "./trading/SymbolService.test";
+//*/
 
 
 intern.on("beforeRun", async () => {

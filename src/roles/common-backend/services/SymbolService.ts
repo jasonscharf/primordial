@@ -11,6 +11,7 @@ import { cache, db, log } from "../includes";
 import { caching, limits, queries, tables } from "../constants";
 import { getPostgresDatePartForTimeRes, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime } from "../utils/time";
 import { query } from "../database/utils";
+import { randomString } from "../../common/utils";
 import { sym } from "../services";
 
 
@@ -69,15 +70,28 @@ export class SymbolService {
      * Returns the default "global" watchlist.
      */
     async getGlobalWatchlistSymbolPairs(): Promise<string[]> {
-        return [
-            "BTC/TUSD",
-            "DOGE/BTC",
-            "ADA/BTC",
-            "NANO/BTC",
-            "DOT/BTC",
-            "C98/BTC",
-            "XMR/BTC",
-        ];
+
+        // Just temporary standins. Ultimately they should be everything always, from every exchange ever.
+        if (env.isDev()) {
+            return [
+                "BTC/TUSD",
+                "ETH/BTC",
+                "DOGE/BTC",
+            ];
+        }
+        else {
+
+            // TODO: Derive from active bot instances
+            return [
+                "ETH/BTC",
+                "DOGE/BTC",
+                "ADA/BTC",
+                "NANO/BTC",
+                "DOT/BTC",
+                "C98/BTC",
+                "XMR/BTC",
+            ];
+        }
     }
 
     /**
@@ -133,7 +147,7 @@ export class SymbolService {
      * @param res 
      */
     async lastSymbolPricing(res = TimeResolution.ONE_MINUTE) {
-
+        // TODO
     }
 
     /**
@@ -226,7 +240,7 @@ export class SymbolService {
         // TODO: WIP rough draft of using a "staging" table to insert string data, which
         // can then be properly casted into a single insert statement from said table.
 
-        const tempTableName = `temp-import-prices-` + Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 8);
+        const tempTableName = `temp-import-prices-` + randomString();
         return query(queries.SYMBOLS_PRICES_ADD_BULK, async trx => {
             const tt = await trx.raw(`CREATE TEMPORARY TABLE "${tempTableName}" (
                 "ts" TIMESTAMP WITH TIME ZONE,
@@ -328,7 +342,7 @@ export class SymbolService {
     /**
      * Updates symbol prices for some exchange, for some timeframe.
      * @param args 
-     * @param symbolList 
+     * @param symbolList
      */
     async updateGlobalSymbolPrices(args: UpdateSymbolsState, symbolList = "*.*") {
         // MOVED

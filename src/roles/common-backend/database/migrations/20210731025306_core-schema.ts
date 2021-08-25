@@ -1,6 +1,6 @@
 import { Knex } from "knex";
 import { TradeSymbolType } from "../../../common/models/markets/TradeSymbol";
-import { PlanMode } from "../../../common/models/system/Plan";
+import { Mode } from "../../../common/models/system/Strategy";
 import { addUpdateTimestampTrigger } from "../../../common/utils";
 import { createCommonEntityFields as createMutableEntityFields, createMonetaryColumn, enableCompression as enableTimescaleDbCompression } from "../utils";
 import env from "../../env";
@@ -271,7 +271,7 @@ export async function createCoreSchema(knex: Knex) {
     });
 
 
-    // Plan
+    // Plan (renamed to strategy post-hoc)
     await knex.schema.createTable(tables.Plans, table => {
         createMutableEntityFields(knex, table);
 
@@ -339,11 +339,11 @@ export async function createInitialData(knex: Knex) {
 
     // PlanMode
     const planModes = [
-        { id: PlanMode.BACK_TEST, displayName: "Back testing", },
-        { id: PlanMode.FORWARD_TEST, displayName: "Forward testing", },
-        { id: PlanMode.LIVE, displayName: "Live" },
-        { id: PlanMode.LIVE_TEST, displayName: "Live testing", },
-        { id: PlanMode.PAUSED, displayName: "Paused" },
+        { id: Mode.BACK_TEST, displayName: "Back testing", },
+        { id: Mode.FORWARD_TEST, displayName: "Forward testing", },
+        { id: Mode.LIVE, displayName: "Live" },
+        { id: Mode.LIVE_TEST, displayName: "Live testing", },
+        { id: Mode.PAUSED, displayName: "Paused" },
     ];
 
     for (const pm of planModes) {

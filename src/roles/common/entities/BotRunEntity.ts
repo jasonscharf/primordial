@@ -4,13 +4,15 @@ import { MutableEntity } from "../models/MutableEntity";
 
 export class BotRunEntity extends MutableEntity implements BotRun {
     instanceId: string;
+    active: boolean;
 
 
-    constructor(row?: Partial<BotRun>) {
+    constructor(row?: Partial<BotRun>, prefix = "") {
         super(row);
 
         if (row) {
-            this.instanceId = row.instanceId;
+            this.instanceId = row[prefix + "instanceId"];
+            this.active = row[prefix + "active"];
         }
     }
 

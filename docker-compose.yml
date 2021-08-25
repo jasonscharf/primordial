@@ -30,7 +30,7 @@ services:
       - mq_data:/var/lib/rabbitmq/mnesia
     environment:
       RABBITMQ_DEFAULT_USER: primo
-      RABBITMQ_DEFAULT_PASSWORD: primo
+      RABBITMQ_DEFAULT_PASS: primo
 
 
   # Azurite for local development of storage services

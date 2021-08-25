@@ -165,3 +165,9 @@ spec:
                 secretKeyRef:
                   name: config
                   key: PRIMO_SYSTEM_BINANCE_API_SECRET
+
+            - name: PRIMO_SYSTEM_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_SYSTEM_USER_ID

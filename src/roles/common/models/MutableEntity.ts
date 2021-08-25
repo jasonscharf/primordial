@@ -23,12 +23,12 @@ export class MutableEntity implements MutableModel {
     displayName?: string;
 
 
-    constructor(row?: Partial<MutableModel>) {
+    constructor(row?: Partial<MutableModel>, prefix = "") {
         if (row) {
-            this.id = row.id;
-            this.created = row.created;
-            this.updated = row.updated;
-            this.displayName = isNullOrUndefined(row.displayName) ? "" : row.displayName;
+            this.id = row[prefix + "id"];
+            this.created = row[prefix + "created"];
+            this.updated = row[prefix + "updated"];
+            this.displayName = isNullOrUndefined(row[prefix + "displayName"]) ? "" : row[prefix + "displayName"];
         }
     }
 }

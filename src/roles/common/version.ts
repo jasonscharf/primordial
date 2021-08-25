@@ -1,4 +1,4 @@
 export const version = {
-    full: "!VERSION.FULL!",
-    hash: "!VERSION.ID!",
+    full: "1.0",
+    hash: "abc",
 };

@@ -32,5 +32,19 @@ export async function addUpdateTimestampTrigger(kx: Knex, tableName: string) {
     await kx.raw(makeFunction);
 }
 
+/**
+ * General purpose random string of a given length, default length 8.
+ * Not suitable for cryptographic purposes.
+ * @param len
+ */
+export function randomString(len = 8) {
+    return Math.random()
+        .toString(36)
+        .replace(/[^a-z]+/g, "")
+        .substr(0, len)
+        ;
+}
+
+
 export * from "./numbers";
 
