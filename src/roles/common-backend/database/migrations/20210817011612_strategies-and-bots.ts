@@ -29,12 +29,16 @@ export async function up(knex: Knex): Promise<void> {
     // Add fields to Strategy
     await knex.schema.alterTable(tables.Strategies, table => {
         table.string("name").notNullable();
+
+        // Strategies must be uniquely named in workspaces
+        table.unique(["workspaceId", "name"]);
     });
 
 
     // Add fields to BotDefinition
     await knex.schema.alterTable(tables.BotDefinitions, table => {
         table.string("name").notNullable();
+        table.string("normalizedGenome").notNullable();
         table.string("symbols").notNullable().defaultTo("*");
     });
 
@@ -168,61 +172,7 @@ export async function up(knex: Knex): Promise<void> {
     const su = await addSystemUser(trx);
     const workspace = await addDefaultWorkspaceForSystemUser(trx, su.id);
     const plan = await addDefaultStratForSystemUserWorkspace(trx, su.id, workspace.id);
-    //const def = await addDefaultBotDefForDefaultStrategy(trx, workspace.id);
-    //const instance = await addDefaultBotInstance(trx, def.id);
-}
 
-export async function addDefaultBotInstance(trx: Knex.Transaction, definitionId: string) {
-    const defaultBotInstanceProps: Partial<BotInstance<unknown>> = {
-        definitionId,
-        displayName: "Default Bot",
-        name: "default",
-        type: "default",
-        runState: RunState.NEW,
-        symbols: "BTC/TUSD",
-        stateInternal: {
-            baseSymbolId: "BTC",
-            quoteSymbolId: "TUSD",
-        },
-        currentGenome: DEFAULT_GENOME,
-        stateJson: null,
-    };
-
-    const defaultBotInstance = await query("migration.add-default-bot-instance", async db => {
-        const [row] = <BotInstance<unknown>[]>await db(tables.BotInstances)
-            .insert(defaultBotInstanceProps)
-            .returning("*")
-            ;
-
-        return BotInstanceEntity.fromRow(row);
-    }, trx);
-
-    return defaultBotInstance;
-}
-
-// TODO: Index on any genome fields
-// TODO: Add normalizedGenome field for rigor
-// TODO: Add workspace ID + strat name constraint on strats
-// TODO: Remove (use SS)
-export async function addDefaultBotDefForDefaultStrategy(trx: Knex.Transaction, workspaceId: string) {
-    const defaultBotDefProps: Partial<BotDefinition> = {
-        name: "default",
-        displayName: "Default Bot",
-        description: "Default bot, for testing/debugging purposes",
-        workspaceId: workspaceId,
-        genome: DEFAULT_GENOME,
-    };
-
-    const defaultBotDef = await query("migration.add-default-bot-def", async db => {
-        const [row] = <BotDefinition[]>await db(tables.BotDefinitions)
-            .insert(defaultBotDefProps)
-            .returning("*")
-            ;
-
-        return BotDefinitionEntity.fromRow(row);
-    }, trx);
-
-    return defaultBotDef;
 }
 
 export async function addDefaultStratForSystemUserWorkspace(trx: Knex.Transaction, ownerId: string, workspaceId: string) {
@@ -270,6 +220,7 @@ export async function deleteNewData(trx: Knex.Transaction) {
     }
 
     await query("migration.delete-default-workspace", async db => {
+        await db(tables.BotRuns).delete();
         await db(tables.BotInstances).delete();
         await db(tables.BotDefinitions).delete();
         await db(tables.AllocationTransactions).delete();
@@ -294,6 +245,7 @@ export async function down(knex: Knex.Transaction): Promise<void> {
 
     await knex.schema.alterTable(tables.BotDefinitions, table => {
         table.dropColumn("name");
+        table.dropColumn("normalizedGenome");
         table.dropColumn("symbols");
     });
 

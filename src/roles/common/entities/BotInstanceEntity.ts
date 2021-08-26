@@ -21,6 +21,7 @@ export class BotInstanceEntity<T> extends MutableEntity implements BotInstance<T
     prevTick: Date;
     symbols: string;
     currentGenome?: string;
+    normalizedGenome?: string;
     stateInternal: BotInstanceStateInternal;
     stateJson: T;
 
@@ -41,6 +42,7 @@ export class BotInstanceEntity<T> extends MutableEntity implements BotInstance<T
             this.prevTick = row[prefix + "prevTick"];
             this.symbols = row[prefix + "symbols"];
             this.currentGenome = row[prefix + "currentGenome"];
+            this.normalizedGenome = row[prefix + "normalizedGenome"];
             this.stateInternal = row[prefix + "stateInternal"];
             this.stateJson = row[prefix + "stateJson"];
         }

@@ -50,6 +50,12 @@ export async function addNewBotDefAndInstance(defProps = TEST_DEFAULT_NEW_BOT_DE
         if (!appliedInstanceProps.name) {
             appliedInstanceProps.name = appliedInstanceProps.displayName = name;
         }
+        if (!appliedDefProps.normalizedGenome) {
+            appliedDefProps.normalizedGenome = appliedDefProps.genome;
+        }
+        if (!appliedInstanceProps.normalizedGenome) {
+            appliedInstanceProps.normalizedGenome = appliedInstanceProps.currentGenome;
+        }
 
         const user = await users.getSystemUser();
         const workspace = await strats.getDefaultWorkspaceForUser(user.id, user.id, trx);

@@ -1,7 +1,7 @@
-import { TimeResolution } from "../markets/TimeResolution";
 import { Mode } from "./Strategy";
 import { MutableModel } from "../MutableEntity";
 import { RunState } from "./RunState";
+import { TimeResolution } from "../markets/TimeResolution";
 
 
 export interface BotInstanceStateInternal {
@@ -23,6 +23,7 @@ export interface BotInstance<T = unknown> extends MutableModel {
 
     // Populated when an instance has a mutation from its base (definition)
     currentGenome?: string;
+    normalizedGenome?: string;
 
     runState: RunState;
     stateInternal: BotInstanceStateInternal;
