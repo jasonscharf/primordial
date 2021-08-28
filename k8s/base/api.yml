@@ -153,3 +153,21 @@ spec:
                 secretKeyRef:
                   name: config
                   key: PRIMO_MQ_PASSWORD
+
+            - name: PRIMO_SYSTEM_BINANCE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_SYSTEM_BINANCE_API_KEY
+
+            - name: PRIMO_SYSTEM_BINANCE_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_SYSTEM_BINANCE_API_SECRET
+
+            - name: PRIMO_SYSTEM_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: config
+                  key: PRIMO_SYSTEM_USER_ID

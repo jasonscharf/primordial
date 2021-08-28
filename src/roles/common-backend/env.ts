@@ -23,15 +23,24 @@ const defaults = {
     PRIMO_MULTIPART_FORM_UPLOAD_SIZE_LIMIT: "50mb",
     PRIMO_DEFAULT_EXCHANGE: "binance",
     PRIMO_DEFAULT_CURRENCY_QUOTE_SYMBOL: "BTC",
+    PRIMO_SYSTEM_USER_ID: null,
+    PRIMO_SYSTEM_BINANCE_API_KEY: null,
+    PRIMO_SYSTEM_BINANCE_API_SECRET: null,
+
+    // Set on worker roles to control whether they handle low- or high- priority messages.
+    // This only applies in staging or production environments. During dev and testing, a single
+    // worker will listed on both queues for ease-of-debuggability.
+    PRIMO_WORKER_PRIORITY_AFFINITY: "both",
+
 
     // NOTE: Changing these require database changes.
     PRIMO_CURRENCY_PRECISION: 21,
     PRIMO_CURRENCY_SCALE: 12,
 
-    // /!\ DO NOT POPULATE HERE /!\
     AZURE_APP_INSIGHTS_ID: "",
     CSRF_SECRET: "",
     SESSION_KEYS: "",
+
 };
 
 const allowedModes = [

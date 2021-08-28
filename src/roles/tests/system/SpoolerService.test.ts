@@ -1,6 +1,6 @@
 import { SpoolerTask } from "../../common/models/system/SpoolerTask";
-import { SpoolerTaskHandler } from "../../common-backend/system/SpoolerTaskHandler";
 import { SpoolerTaskEntity } from "../../common/entities/SpoolerTaskEntity";
+import { SpoolerTaskHandler } from "../../common-backend/system/SpoolerTaskHandler";
 import { SpoolerService } from "../../common-backend/services/SpoolerService";
 import { TestDataCtx, getTestData } from "../utils/test-data";
 import { assert, describe, before, env, it } from "../includes";

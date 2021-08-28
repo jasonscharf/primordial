@@ -32,6 +32,7 @@ services:
     tty: true
     depends_on:
       - db
+      - redis
     environment:
       PRIMO_MODE: test
       PRIMO_DB_HOSTNAME: db
@@ -51,7 +52,7 @@ services:
 
 
   # For debugging in-container
-  tests_debugging:
+  debug:
     command: yarn role:tests:dev
     build:
       context: ./

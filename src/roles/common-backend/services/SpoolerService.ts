@@ -23,7 +23,7 @@ export class SpoolerService {
                 .returning("*")
                 ;
 
-            return task;
+            return SpoolerTaskEntity.fromRow(task)
         });
     }
 

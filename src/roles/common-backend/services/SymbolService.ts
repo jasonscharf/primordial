@@ -11,6 +11,7 @@ import { cache, db, log } from "../includes";
 import { caching, limits, queries, tables } from "../constants";
 import { getPostgresDatePartForTimeRes, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime } from "../utils/time";
 import { query } from "../database/utils";
+import { randomString } from "../../common/utils";
 import { sym } from "../services";
 
 
@@ -66,6 +67,34 @@ export class SymbolService {
     }
 
     /**
+     * Returns the default "global" watchlist.
+     */
+    async getGlobalWatchlistSymbolPairs(): Promise<string[]> {
+
+        // Just temporary standins. Ultimately they should be everything always, from every exchange ever.
+        if (env.isDev()) {
+            return [
+                "BTC/TUSD",
+                "ETH/BTC",
+                "DOGE/BTC",
+            ];
+        }
+        else {
+
+            // TODO: Derive from active bot instances
+            return [
+                "ETH/BTC",
+                "DOGE/BTC",
+                "ADA/BTC",
+                "NANO/BTC",
+                "DOT/BTC",
+                "C98/BTC",
+                "XMR/BTC",
+            ];
+        }
+    }
+
+    /**
      * Loads market definitions for a given exchange.
      * @param exchange
      */
@@ -77,6 +106,23 @@ export class SymbolService {
             log.info(`Fetching market definitions from ${exchange}...`);
             return this._markets = await this._exchange.loadMarkets();
         }
+    }
+
+    /**
+    * Fetches all known symbols for a particular exchange.
+    * @param exchange 
+    */
+    async getKnownSymbols(exchange = env.PRIMO_DEFAULT_EXCHANGE): Promise<TradeSymbol[]> {
+        return query(queries.SYMBOLS_LIST_NAMES, async trx => {
+            interface Row {
+                id: string;
+            }
+            const rows = <Row[]>await db(tables.TradeSymbols)
+                .select("*")
+                ;
+
+            return rows.map(TradeSymbolEntity.fromRow);
+        });
     }
 
     /**
@@ -101,7 +147,7 @@ export class SymbolService {
      * @param res 
      */
     async lastSymbolPricing(res = TimeResolution.ONE_MINUTE) {
-
+        // TODO
     }
 
     /**
@@ -138,7 +184,11 @@ export class SymbolService {
             ].map(col => `"${col}"`);
 
             const { rows } = await db
-                .raw(`INSERT INTO ${tables.Prices} (${cols.join(", ")}) VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?) RETURNING *`, [
+                .raw(`
+                INSERT INTO ${tables.Prices} (${cols.join(", ")})
+                VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?)
+                ON CONFLICT DO NOTHING
+                RETURNING *`, [
                     priceProps.baseSymbolId,
                     priceProps.quoteSymbolId,
                     priceProps.exchangeId,
@@ -190,7 +240,7 @@ export class SymbolService {
         // TODO: WIP rough draft of using a "staging" table to insert string data, which
         // can then be properly casted into a single insert statement from said table.
 
-        const tempTableName = `temp-import-prices-` + Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 8);
+        const tempTableName = `temp-import-prices-` + randomString();
         return query(queries.SYMBOLS_PRICES_ADD_BULK, async trx => {
             const tt = await trx.raw(`CREATE TEMPORARY TABLE "${tempTableName}" (
                 "ts" TIMESTAMP WITH TIME ZONE,
@@ -228,28 +278,6 @@ export class SymbolService {
                 start,
                 end,
             };
-
-            /*
-                                
-                                last(COALESCE(volume::${numType}, 0), ts))::${numType}) as volume,
-                                last(COALESCE(open::${numType}, 0), ts))::${numType}) as open,
-                                last(COALESCE(low::${numType}, 0), ts))::${numType}) as low,
-                                last(COALESCE(high::${numType}, 0), ts))::${numType}) as high,
-                                last(COALESCE(close::${numType}, 0), ts))::${numType}) as close,
-
-                FROM time_series
-                WHERE "${tempTableName}".ts >= :start AND "${tempTableName}".ts <= :end
-                LEFT JOIN "${tempTableName}" on date_trunc('minute', "${tempTableName}".ts) = time_series.tf
-            
-                GROUP BY time_series.tf, "${tempTableName}".ts, "exchangeId"
-                ORDER BY time_series.tf
-
-            */
-
-            //const { timeSeries: rows } = await trx.raw
-
-
-            // TODO
 
 
             const pgDatePart = getPostgresDatePartForTimeRes(res);
@@ -303,7 +331,9 @@ export class SymbolService {
                         WHERE time_series.tf >= :start AND time_series.tf <= :end
                         GROUP BY time_series.tf, ts
                         ORDER BY time_series.tf ASC
-                )`, bindings);
+                )
+                ON CONFLICT DO NOTHING
+                `, bindings);
 
             return;
         });
@@ -312,7 +342,7 @@ export class SymbolService {
     /**
      * Updates symbol prices for some exchange, for some timeframe.
      * @param args 
-     * @param symbolList 
+     * @param symbolList
      */
     async updateGlobalSymbolPrices(args: UpdateSymbolsState, symbolList = "*.*") {
         // MOVED

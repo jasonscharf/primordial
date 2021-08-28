@@ -1,11 +1,12 @@
 import "intern";
+import { DateTime } from "luxon";
 import Knex from "knex";
 import { beforeEach } from "intern/lib/interfaces/tdd";
 import { SymbolService } from "../../common-backend/services/SymbolService";
 import { TestDataCtx, createTestPrice, getTestData } from "../utils/test-data";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
-import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../../common-backend/utils/time";
+import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, shortDateAndTime, splitRanges } from "../../common-backend/utils/time";
 import { assertEqualTimes } from "../utils/misc";
 
 
@@ -21,6 +22,13 @@ describe("time handling", () => {
         sym = new SymbolService();
     });
 
+    describe(shortDateAndTime.name, () => {
+        it("represents otherwise ambiguous times correctly via YYYY/MM/DD", async () => {
+            const mooseBirthdayApprox = DateTime.fromISO("2018-12-22T00:00:00.000Z");
+            const val = shortDateAndTime(mooseBirthdayApprox.toJSDate());
+            assert.equal(val, "2018-12-22 00:00:00");
+        });
+    });
 
     function test(res: TimeResolution, dtStr1: string, dtStr2: string) {
         it(`${dtStr1} normalizes to ${dtStr2} with resolution ${res}`, async () => {

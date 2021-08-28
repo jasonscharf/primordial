@@ -5,7 +5,9 @@ import env from "../common-backend/env";
 import * as tasks from "./tasks";
 import { SpoolerTask } from "../common/models/system/SpoolerTask";
 import { UpdateSymbolsState } from "../common-backend/services/SymbolService";
+import { connectToBinanceWebSocket, disconnectBinanceWebSocket } from "./binance-socket";
 import { dbm, log } from "../common-backend/includes";
+import { registerCommandHandlers } from "../common-backend/commands/command-handlers";
 import { shortTime } from "../common-backend/utils/time";
 import { spooler, sym } from "../common-backend/services";
 import { systemHealthCheck } from "./tasks/SystemHealthCheck";
@@ -28,6 +30,9 @@ healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
 
         // IMMEDIATE PRIORITY is to start/resume broadcasting prices to the rest of the cluster ASAP
         await addStreamingPriceWatchers();
+
+        // Register command implementations
+        await registerCommandHandlers();
 
         // Register task implementations
         await registerTaskHandlers();
@@ -217,12 +222,19 @@ async function refreshTasksForExecution(state?: unknown) {
 async function addStreamingPriceWatchers() {
     // ... pull watchlist from database
     // ... if no listener exists for each symbol, add it!
+    await connectToBinanceWebSocket();
 }
-
 
 async function shutdown() {
     clearTaskIntervals();
     clearInterval(taskRefreshTimeout);
+
+    try {
+        disconnectBinanceWebSocket();
+    }
+    catch (err) {
+        log.error(`Error disconnecting Binance socket`, err);
+    }
 
     // TODO: Mark all currently running tasks as non-running.
     const running = Array.from(locallyRunningTasks.entries())

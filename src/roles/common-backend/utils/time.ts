@@ -109,6 +109,16 @@ export function shortTime(dt: Date) {
     return `${("0" + dt.getHours()).slice(-2)}:${("0" + dt.getMinutes()).slice(-2)}:${("0" + dt.getSeconds()).slice(-2)}`;
 }
 
+/**
+ * Produces a short, human-readable representation of the current date and time in YYYY-MM-DD h/m/s.
+ * @param dt 
+ * @returns 
+ */
+export function shortDateAndTime(dt: Date) {
+    return `${dt.getFullYear()}-${(("0" + (dt.getMonth() + 1)).slice(-2))}-${("0" + dt.getDate()).slice(-2)}` +
+        ` ${("0" + dt.getHours()).slice(-2)}:${("0" + dt.getMinutes()).slice(-2)}:${("0" + dt.getSeconds()).slice(-2)}`;
+}
+
 
 /**
  * Rounds a price down the nearest appropriate floor, according to the `TimeResolution` passed.

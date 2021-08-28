@@ -17,6 +17,21 @@
         {
             "type": "node",
             "request": "attach",
+            "name": "Attach to CLI",
+            "stopOnEntry": true,
+            "restart": true,
+            "port": 9234,
+            "sourceMaps": true,
+            "remoteRoot": "/app",
+            "localRoot": "${workspaceRoot}/dist",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "debug": "sm"
+        },
+        {
+            "type": "node",
+            "request": "attach",
             "name": "Attach to API",
             "stopOnEntry": true,
             "restart": true,
@@ -55,7 +70,8 @@
             "remoteRoot": "/app",
             "localRoot": "${workspaceRoot}/dist",
             "skipFiles": [
-                "<node_internals>/**"
+                "<node_internals>/**",
+                "**/node_modules/knex/**"
             ],
             "debug": "sm"
         },

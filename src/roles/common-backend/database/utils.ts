@@ -17,7 +17,7 @@ export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Prom
     let result: T;
     if (trx) {
         result = await fn(trx);
-        await trx.commit();
+        //await trx.commit();
     }
     else {
         result = await db.transaction(fn);
@@ -26,6 +26,16 @@ export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Prom
     // console.log(`Done query '${name}'`);
 
     return result;
+}
+
+/**
+ * Little helper function for writing Knex queries.
+ * @param table 
+ * @param col 
+ * @returns 
+ */
+export function ref(table: string, col = "id") {
+    return `${table}.${col}`;
 }
 
 

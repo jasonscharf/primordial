@@ -40,6 +40,7 @@ describe(SymbolService.name, () => {
     }
 
     before(async () => {
+        await resetDb();
         ctx = await getTestData();
     });
 
@@ -126,27 +127,36 @@ describe(SymbolService.name, () => {
             await assertRejects(() => sym.addSymbolPrice(priceProps));
         });
 
-        it("throws when adding a price for the same minute", async () => {
+        it("does not throw when adding a price for the same minute", async () => {
+            await clearTestPrices();
+
             const { testSymbol1, testSymbol2 } = ctx;
 
-            const ts1 = new Date();
-            const ts2 = new Date();
+            const sameMinute = from("2000-01-01T00:00:00.000Z");
 
             const priceProps1 = createTestPrice({
                 resId: TimeResolution.ONE_MINUTE,
                 baseSymbolId: "BTC",
                 quoteSymbolId: "USD",
-                ts: ts1,
+                ts: sameMinute,
+                close: Money("888"),
             });
 
-            const priceProps2 = Object.assign({}, priceProps1, { ts: ts2 });
+            const priceProps2 = Object.assign({}, priceProps1, { ts: sameMinute });
 
+            // Conflicts should be ignored and there should be no duplicate price
             await sym.addSymbolPrice(priceProps1);
-            await assertRejects(() => sym.addSymbolPrice(priceProps2));
+            await sym.addSymbolPrice(priceProps2);
+
+            const prices = await sym.queryPricesForRange({ exchange, start: sameMinute, end: from("2000-01-01T00:01:00.000Z")  });
+            assert.lengthOf(prices, 1);
+
+            const [p] = prices;
+            assert.equal(p.close.toString(), priceProps1.close.toString());
         });
 
-        it("enforces a multi-colum uniqueness constraint", async () => {
-            // TEST
+        it("enforces a multi-column uniqueness constraint", async () => {
+            // TEST (raw SQL)
         });
 
         // ... TODO: other time resolutions

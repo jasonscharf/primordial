@@ -1,20 +1,113 @@
 import { DateTime } from "luxon";
 import env from "../../common-backend/env";
+import { BotDefinition } from "../../common/models/system/BotDefinition";
+import { BotInstance } from "../../common/models/system/BotInstance";
+import { Knex } from "knex";
+import { Mode, Strategy } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/system/Price";
 import { PriceDataRange } from "../../common-backend/services/SymbolService";
+import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
+import { User } from "../../common/models";
+import { Workspace } from "../../common/models/system/Workspace";
 import { assert } from "../includes";
-import { db, sym } from "../../common-backend/includes";
+import { capital, constants, db, strats, sym, tables, us, users } from "../../common-backend/includes";
 import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
+import { version } from "../../common/version";
+import { randomName } from "../../common-backend/utils/names";
+import { query } from "../../common-backend/database/utils";
 
 
 export interface TestDataCtx {
+    user: User;
+    workspace: Workspace;
+    strategy: Strategy;
     testSymbol1: TradeSymbol;
     testSymbol2: TradeSymbol;
 }
 
+export const TEST_DEFAULT_NEW_BOT_DEF_PROPS: Partial<BotDefinition> = {
+    description: "test",
+    genome: "BBBBO",
+    symbols: "ETH/BTC",
+    displayName: "test",
+    name: "test",
+};
+
+export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
+    runState: RunState.NEW,
+    modeId: Mode.BACK_TEST,
+    exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
+    currentGenome: "BBBBO",
+};
+
+export async function addNewBotDefAndInstance(defProps = TEST_DEFAULT_NEW_BOT_DEF_PROPS, instanceProps = TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS, trx: Knex.Transaction = null) {
+    trx = trx || await db.transaction();
+    try {
+        const appliedDefProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_DEF_PROPS, defProps);
+        const appliedInstanceProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS, instanceProps);
+
+        const name = randomName();
+        if (!appliedDefProps.name) {
+            appliedDefProps.name = appliedDefProps.displayName = name;
+        }
+        if (!appliedInstanceProps.name) {
+            appliedInstanceProps.name = appliedInstanceProps.displayName = name;
+        }
+        if (!appliedDefProps.normalizedGenome) {
+            appliedDefProps.normalizedGenome = appliedDefProps.genome;
+        }
+        if (!appliedInstanceProps.normalizedGenome) {
+            appliedInstanceProps.normalizedGenome = appliedInstanceProps.currentGenome;
+        }
+
+        const user = await users.getSystemUser();
+        const workspace = await strats.getDefaultWorkspaceForUser(user.id, user.id, trx);
+        const strat = await strats.getOrCreateDefaultStrategy(workspace.id, user.id, trx);
+        const existing = await strats.getBotDefinitionByName(workspace.id, name, trx);
+        if (existing) {
+            throw new Error(`Bot definition with name '${name}' already exists`);
+        }
+
+        const workspaceId = workspace.id;
+
+        if (!appliedDefProps.workspaceId) {
+            appliedDefProps.workspaceId = workspaceId;
+        }
+
+        const ledger = await capital.createAllocationForBot(strat.id, "100 BTC");
+        const { alloc } = ledger;
+        const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
+        const instance = await strats.createNewInstanceFromDef(def, name, alloc.id, false, trx);
+
+        await trx.commit();
+
+        return {
+            def,
+            instance,
+        };
+    }
+    catch (err) {
+        await trx.rollback();
+        throw err;
+    }
+}
+
+export async function clearTestData() {
+    await query("testing.delete-test-data", async db => {
+        await db(tables.BotRuns).delete();
+        await db(tables.BotInstances).delete();
+        await db(tables.BotDefinitions).delete();
+        await db(tables.AllocationTransactions).delete();
+        await db(tables.AllocationItems).delete();
+        await db(tables.Allocations).delete();
+       //await db(tables.Strategies).delete();
+        //await db(tables.Workspaces).delete();
+        await db(tables.ExchangeAccounts).delete();
+    });
+}
 
 export function createTestPrice(props?: Partial<Price>) {
     const dummyPriceProps: Partial<Price> = {
@@ -56,7 +149,13 @@ export async function getTestData() {
     const testSymbol1 = symbol1 || await sym.addSymbol(symbolProps1);
     const testSymbol2 = symbol2 || await sym.addSymbol(symbolProps2);
 
+    const user = await us.getSystemUser();
+    const workspace = await strats.getDefaultWorkspaceForUser(user.id, user.id);
+    const strategy = await strats.getOrCreateDefaultStrategy(workspace.id, user.id);
     return {
+        user,
+        workspace,
+        strategy,
         testSymbol1,
         testSymbol2,
     };
@@ -167,4 +266,27 @@ export async function fill(start = from("2010-01-01T00:00:00"), end = from("2010
 
 export async function getMissingRanges(start = from("2010-01-01T00:00:00"), end = from("2010-01-01T23:59:59:999"), res = TimeResolution.ONE_MINUTE): Promise<PriceDataRange[]> {
     return sym.getMissingRanges(env.PRIMO_DEFAULT_EXCHANGE, "BTC/USD", res, start, end);
+}
+
+
+
+function makeTestbot(props: Partial<BotInstance>) {
+    const definitionId = "";
+
+    const baseProps: Partial<BotInstance> = {
+        runState: RunState.NEW,
+        build: version.full,
+        currentGenome: constants.DEFAULT_GENOME,
+        displayName: `testbot`,
+        definitionId,
+        modeId: Mode.FORWARD_TEST,
+        stateInternal: {
+            baseSymbolId: "BTC",
+            quoteSymbolId: "TUSD",
+        },
+        stateJson: {
+        },
+    };
+
+    return Object.assign({}, baseProps, props);
 }

@@ -47,8 +47,11 @@ CMD ["node", "./worker/worker.js"]
 FROM worker-base as spooler
 RUN mkdir -p /mnt/secrets-store
 RUN yarn install
+RUN apk add --no-cache --upgrade bash
 COPY --from=worker-base /app/ /app/
 COPY ./dist/spooler /app/spooler
+COPY ./src/roles/spooler/primo.sh /app/primo
+RUN chmod +x /app/primo && ln -s /app/primo /usr/bin/primo
 CMD ["node", "./spooler/spooler.js"]
 
 
