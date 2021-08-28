@@ -2,6 +2,7 @@
 # Base config for Kustomize
 #
 resources:
+- mq.yml
 - api.yml
 - spooler.yml
 - worker.yml
