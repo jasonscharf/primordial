@@ -58,6 +58,12 @@ export class StrategyService {
      * @param botDefProps Properties for the new bot definition
      */
     async addNewBotDefinition(strategyId: string, botDefProps: Partial<BotDefinition>, trx: Knex.Transaction = null) {
+
+        // TODO: Normalize genomes for storage
+        if (!botDefProps.normalizedGenome) {
+            botDefProps.normalizedGenome = botDefProps.genome;
+        }
+
         const newBotDefinition = await query(queries.BOTS_DEFS_CREATE, async db => {
             const [row] = <BotDefinition[]>await db(tables.BotDefinitions)
                 .insert(botDefProps)
@@ -79,22 +85,67 @@ export class StrategyService {
      */
     async getBots(workspaceId: string, strategyId: string, trx: Knex.Transaction = null): Promise<BotInstanceDescriptor[]> {
         const bots = await query(queries.BOTS_LIST, async db => {
-            const rows = <Partial<BotDefinition & BotInstance & BotRun>[]>
+            const rows2 = <Partial<BotDefinition & BotInstance & BotRun>[]>
                 await db(`${tables.BotDefinitions} as def`)
                     .innerJoin(`${tables.BotInstances} as instance`, "instance.definitionId", "=", "def.id")
                     .leftJoin(`${tables.BotRuns} as run`, "run.instanceId", "=", "instance.id")
-                    .where("run.active", "=", true)
+                    //.where("run.active", "=", true)
                     .select(`def.id as def_id`)
                     .select(`def.name as def_name`)
                     .select(`instance.id as instance_id`)
                     .select(`instance.name as instance_name`)
                     .select(`instance.symbols as instance_symbols`)
-                    .select(`instance.modeId as instance_modeId`)
                     .select(`instance.resId as instance_resId`)
                     .select(`instance.modeId as instance_modeId`)
                     .select(`instance.runState as instance_runState`)
                     .select(`run.id as run_id`)
+                    .select(`run.created as run_created`)
+                    .select(`run.updated as run_updated`)
+                    .select(`run.active as run_active`)
+                    .orderBy(`run.updated`)
                 ;
+
+            const bindings = {
+                workspaceId,
+                strategyId,
+            };
+
+            const query = db.raw(
+                `
+                SELECT
+                DISTINCT ON (bot_instances)
+                    ${ref(tables.BotDefinitions, "id")} as def_id,
+                    ${ref(tables.BotDefinitions, "name")} as def_name,
+
+                    ${ref(tables.BotInstances, "id")} as "instance_id",
+                    ${ref(tables.BotInstances, "\"definitionId\"")} as "instance_definitionId",
+                    ${ref(tables.BotInstances, "name")} as "instance_name",
+                    ${ref(tables.BotInstances, "symbols")} as "instance_symbols",
+                    ${ref(tables.BotInstances, "\"modeId\"")} as "instance_modeId",
+                    ${ref(tables.BotInstances, "\"resId\"")} as "instance_resId",
+                    ${ref(tables.BotInstances, "\"runState\"")} as "instance_runState",
+
+                    runs.id as run_id,
+                    runs.created as run_created,
+                    runs.updated as run_updated,
+                    runs.active as run_active
+                    
+                FROM ${tables.BotDefinitions}
+                INNER JOIN ${tables.Workspaces} ON ${tables.BotDefinitions}."workspaceId" = :workspaceId
+                INNER JOIN ${tables.Strategies} ON ${tables.Strategies}."workspaceId" = ${tables.Workspaces}.id
+                INNER JOIN ${tables.BotInstances} ON bot_instances."definitionId" = ${ref(tables.BotDefinitions)}
+                LEFt JOIN LATERAL
+                (
+                    SELECT *
+                    FROM bot_runs AS br
+                    WHERE "instanceId" = bot_instances.id
+                    ORDER BY updated DESC
+                    LIMIT 1
+                ) AS runs on TRUE
+                `, bindings
+            );
+
+            const { rows } = await query;
 
             return rows.map(row => {
                 const res: BotInstanceDescriptor = {
@@ -106,7 +157,7 @@ export class StrategyService {
 
                 res.def = BotDefinitionEntity.fromRow(row, "def_");
                 res.instance = BotInstanceEntity.fromRow(row, "instance_");
-                res.run = BotInstanceEntity.fromRow(row, "run_");
+                res.run = BotRunEntity.fromRow(row, "run_");
 
                 return res;
             });
@@ -502,6 +553,25 @@ export class StrategyService {
             trx.rollback();
             throw err;
         }
+    }
+
+    /**
+     * Gets all runs for a particular bot, in ascending chronological order.
+     * @param instanceId 
+     * @param trx 
+     */
+    async getRunsForBot(instanceId: string, trx: Knex.Transaction = null) {
+        const runs = await query(queries.BOTS_RUNS_LIST, async db => {
+            const rows = <BotRun[]>await db(tables.BotRuns)
+                .where(<Partial<BotRun>>{ instanceId })
+                .orderBy("updated", "asc")
+                .returning("*")
+                ;
+
+            return rows.map(row => BotRunEntity.fromRow(row));
+        }, trx);
+
+        return runs;
     }
 
     /**

@@ -47,7 +47,7 @@
     "test:debug:start": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up -d --build",
     "test:debug:stop": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml down",
     "test:debug:logs":"yarn -s dc:tests logs -f tests_debugging",
-    "test:reboot": "yarn test:debug:stop && docker volume rm primo_tests_db_tests && yarn test:debug:start && docker restart primo_tests_tests_debugging_1",
+    "test:reboot": "yarn test:debug:stop && docker volume rm primo_tests_db_tests && yarn test:debug:start && docker restart primo_tests_debug_1",
     "role:tests:run": "c8 -x **/tests/** -r cobertura node --nolazy /app/node_modules/.bin/intern config=/app/tests/intern.json target=dev",
     "role:api:dev": "nodemon --signal SIGTERM -V --config /app/src/roles/api/nodemon.json",
     "role:worker:dev": "nodemon --signal SIGTERM -V --config /app/src/roles/worker/nodemon.json",

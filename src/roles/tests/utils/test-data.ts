@@ -1,23 +1,29 @@
 import { DateTime } from "luxon";
 import env from "../../common-backend/env";
+import { BotDefinition } from "../../common/models/system/BotDefinition";
 import { BotInstance } from "../../common/models/system/BotInstance";
-import { Mode } from "../../common/models/system/Strategy";
+import { Knex } from "knex";
+import { Mode, Strategy } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/system/Price";
 import { PriceDataRange } from "../../common-backend/services/SymbolService";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
+import { User } from "../../common/models";
+import { Workspace } from "../../common/models/system/Workspace";
 import { assert } from "../includes";
-import { capital, constants, db, strats, sym, users } from "../../common-backend/includes";
+import { capital, constants, db, strats, sym, tables, us, users } from "../../common-backend/includes";
 import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
 import { version } from "../../common/version";
-import { BotDefinition } from "../../common/models/system/BotDefinition";
 import { randomName } from "../../common-backend/utils/names";
-import { Knex } from "knex";
+import { query } from "../../common-backend/database/utils";
 
 
 export interface TestDataCtx {
+    user: User;
+    workspace: Workspace;
+    strategy: Strategy;
     testSymbol1: TradeSymbol;
     testSymbol2: TradeSymbol;
 }
@@ -89,6 +95,20 @@ export async function addNewBotDefAndInstance(defProps = TEST_DEFAULT_NEW_BOT_DE
     }
 }
 
+export async function clearTestData() {
+    await query("testing.delete-test-data", async db => {
+        await db(tables.BotRuns).delete();
+        await db(tables.BotInstances).delete();
+        await db(tables.BotDefinitions).delete();
+        await db(tables.AllocationTransactions).delete();
+        await db(tables.AllocationItems).delete();
+        await db(tables.Allocations).delete();
+       //await db(tables.Strategies).delete();
+        //await db(tables.Workspaces).delete();
+        await db(tables.ExchangeAccounts).delete();
+    });
+}
+
 export function createTestPrice(props?: Partial<Price>) {
     const dummyPriceProps: Partial<Price> = {
         exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
@@ -129,7 +149,13 @@ export async function getTestData() {
     const testSymbol1 = symbol1 || await sym.addSymbol(symbolProps1);
     const testSymbol2 = symbol2 || await sym.addSymbol(symbolProps2);
 
+    const user = await us.getSystemUser();
+    const workspace = await strats.getDefaultWorkspaceForUser(user.id, user.id);
+    const strategy = await strats.getOrCreateDefaultStrategy(workspace.id, user.id);
     return {
+        user,
+        workspace,
+        strategy,
         testSymbol1,
         testSymbol2,
     };

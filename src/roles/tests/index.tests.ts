@@ -10,6 +10,7 @@ import "./system/CommandService.test";
 import "./system/SpoolerService.test";
 import "./system/UserService.test";
 import "./trading/CapitalService.test";
+import "./trading/StrategyService.test";
 import "./trading/SymbolService.test";
 //*/
 

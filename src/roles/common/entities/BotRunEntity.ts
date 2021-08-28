@@ -8,7 +8,7 @@ export class BotRunEntity extends MutableEntity implements BotRun {
 
 
     constructor(row?: Partial<BotRun>, prefix = "") {
-        super(row);
+        super(row, prefix);
 
         if (row) {
             this.instanceId = row[prefix + "instanceId"];
@@ -16,7 +16,7 @@ export class BotRunEntity extends MutableEntity implements BotRun {
         }
     }
 
-    static fromRow(row?: Partial<BotRun>) {
-        return row ? new BotRunEntity(row) : null;
+    static fromRow(row?: Partial<BotRun>, prefix = "") {
+        return row ? new BotRunEntity(row, prefix) : null;
     }
 }

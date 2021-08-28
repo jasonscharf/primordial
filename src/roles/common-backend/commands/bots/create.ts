@@ -114,11 +114,15 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
             };
 
 
+            // TODO: Normalize genomes for storage
+            const normalizedGenome = genome;
+
             const description = "";
             const workspaceId = workspace.id;
             const DEFAULT_BOT_DEF_PROPS: Partial<BotDefinition> = {
                 description,
                 genome,
+                normalizedGenome,
                 name,
                 symbols,
                 workspaceId,
@@ -127,7 +131,7 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
 
             const appliedProps = Object.assign({}, DEFAULT_BOT_DEF_PROPS, props);
             const def = await strats.addNewBotDefinition(strat.id, appliedProps, trx);
-            
+
             // Attach the allocation, or fail.
             let allocation: Allocation = null;
             if (args.alloc) {

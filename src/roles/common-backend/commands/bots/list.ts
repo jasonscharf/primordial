@@ -56,6 +56,9 @@ export class BotList implements CommandHandler<BotListArgs> {
             "instance.id",
             "def.id",
             "run.id",
+            "run.created",
+            "run.updated",
+            "run.active",
         ];
 
         await trx.commit();

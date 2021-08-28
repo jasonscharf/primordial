@@ -3,8 +3,8 @@ import { it } from "intern/lib/interfaces/bdd";
 import env from "../../common-backend/env";
 import { StrategyService } from "../../common-backend/services/StrategyService";
 import { before, beforeEach } from "intern/lib/interfaces/tdd";
-import { describe } from "../includes";
-import { getTestData, TestDataCtx } from "../utils/test-data";
+import { assert, describe } from "../includes";
+import { addNewBotDefAndInstance, clearTestData, getTestData, TestDataCtx } from "../utils/test-data";
 
 
 describe(StrategyService.name, () => {
@@ -39,10 +39,90 @@ describe(StrategyService.name, () => {
 
     describe(strats.getRunningBotsForFilter.name, () => {
         it("returns non-paused and non-stopped bots", async () => {
+            // TEST 
+        });
+    });
 
+    describe(strats.getBots.name, () => {
+        it("returns entries for non running bot", async () => {
+            await clearTestData();
+            const { instance } = await addNewBotDefAndInstance();
+            await strats.startBotInstance(instance.id);
+            await strats.stopBotInstance(instance.id);
+
+            const { workspace, strategy } = ctx;
+
+            const botListEntries = await strats.getBots(workspace.id, strategy.id);
+            assert.lengthOf(botListEntries, 1);
+
+            const [e] = botListEntries;
+            const { run } = e;
+            assert.isFalse(run.active);
+        });
+
+        it("returns the latest run for each bot", async () => {
+            await clearTestData();
+
+            const { instance } = await addNewBotDefAndInstance();
+            await strats.startBotInstance(instance.id);
+            await strats.stopBotInstance(instance.id);
+            await strats.startBotInstance(instance.id);
+
+            const { workspace, strategy } = ctx;
+
+            const botListEntries = await strats.getBots(workspace.id, strategy.id);
+            assert.lengthOf(botListEntries, 1);
+
+            const [e] = botListEntries;
+            const { run } = e;
+            assert.isTrue(run.active);
+        });
+
+        it("only returns items from the given workspace and strategy", async () => {
             // TEST
-            debugger;
+        });
+    });
 
+    describe(strats.getRunsForBot.name, () => {
+        it("returns nothing for a bot that hasn't run", async () => {
+            const { instance } = await addNewBotDefAndInstance();
+            const initialRuns = await strats.getRunsForBot(instance.id);
+            assert.lengthOf(initialRuns, 0);
+        });
+
+        it("returns an active run for a running bot", async () => {
+            const { instance } = await addNewBotDefAndInstance();
+            await strats.startBotInstance(instance.id);
+
+            const activeRuns = await strats.getRunsForBot(instance.id);
+            assert.lengthOf(activeRuns, 1);
+
+            const [activeRun] = activeRuns;
+            assert.equal(activeRun.active, true);
+        });
+
+        it("returns an inactive run for a stopped bot", async db => {
+            const { instance } = await addNewBotDefAndInstance();
+            await strats.startBotInstance(instance.id);
+            await strats.stopBotInstance(instance.id);
+
+            const runs = await strats.getRunsForBot(instance.id);
+            assert.lengthOf(runs, 1);
+            const [firstRun] = runs;
+            assert.isFalse(firstRun.active);
+        });
+
+        it("returns an active run for a restarted bot", async () => {
+            const { instance } = await addNewBotDefAndInstance();
+            await strats.startBotInstance(instance.id);
+            await strats.stopBotInstance(instance.id);
+            await strats.startBotInstance(instance.id);
+
+            const runs = await strats.getRunsForBot(instance.id);
+            assert.lengthOf(runs, 2);
+            const [firstRun, secondRun] = runs;
+            assert.isFalse(firstRun.active);
+            assert.isTrue(secondRun.active);
         });
     });
 

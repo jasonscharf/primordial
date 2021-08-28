@@ -52,7 +52,7 @@ services:
 
 
   # For debugging in-container
-  tests_debugging:
+  debug:
     command: yarn role:tests:dev
     build:
       context: ./
