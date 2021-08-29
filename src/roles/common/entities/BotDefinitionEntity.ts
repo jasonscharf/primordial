@@ -7,7 +7,6 @@ export class BotDefinitionEntity extends MutableEntity implements BotDefinition 
     name: string;
     symbols: string;
     genome: string;
-    normalizedGenome: string;
     description?: string;
 
 
@@ -19,7 +18,6 @@ export class BotDefinitionEntity extends MutableEntity implements BotDefinition 
             this.name = row[prefix + "name"];
             this.symbols = row[prefix + "symbols"];
             this.genome = row[prefix + "genome"];
-            this.normalizedGenome = row[prefix + "normalizedGenome"];
             this.description = row[prefix + "description"];
         }
     }

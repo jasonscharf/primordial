@@ -58,12 +58,6 @@ export class StrategyService {
      * @param botDefProps Properties for the new bot definition
      */
     async addNewBotDefinition(strategyId: string, botDefProps: Partial<BotDefinition>, trx: Knex.Transaction = null) {
-
-        // TODO: Normalize genomes for storage
-        if (!botDefProps.normalizedGenome) {
-            botDefProps.normalizedGenome = botDefProps.genome;
-        }
-
         const newBotDefinition = await query(queries.BOTS_DEFS_CREATE, async db => {
             const [row] = <BotDefinition[]>await db(tables.BotDefinitions)
                 .insert(botDefProps)

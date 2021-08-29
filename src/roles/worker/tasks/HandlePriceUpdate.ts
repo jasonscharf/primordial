@@ -1,14 +1,18 @@
 import { Knex } from "knex";
 import { BotContext, botIdentifier, buildBotContext } from "../../common-backend/bots/BotContext";
 import { BotDefinition } from "../../common/models/system/BotDefinition";
-import { BotImplementationBase } from "../../common-backend/bots/BotImplementationBase";
+import { BotImplementation } from "../../common-backend/bots/BotImplementation";
 import { BotInstance } from "../../common/models/system/BotInstance";
 import { BotRun } from "../../common/models/system/BotRun";
+import { GeneticBot } from "../bots/GeneticBot";
+import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
+import { Factory } from "../../common-backend/bots/BotFactory";
 import { PriceUpdateMessage } from "../../common-backend/messages/trading";
 import { QueueMessage } from "../../common-backend/messages/QueueMessage";
+import { RunState } from "../../common/models/system/RunState";
 import { constants, db, log, mq, strats } from "../../common-backend/includes";
 import env from "../../common-backend/env";
-import { RunState } from "../../common/models/system/RunState";
+import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base";
 
 
 /**
@@ -68,6 +72,10 @@ export function matchFilter(symbolOrPair: string, filter: string) {
 }
 
 
+// TODO: Extract
+const botFactory = new Factory();
+botFactory.register(DEFAULT_BOT_IMPL, args => new GeneticBot());
+
 /**
  * Ticks a stateful trading bot.
  * @param def 
@@ -79,12 +87,18 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
     const run: BotRun = null; // TODO
     const ctx = await buildBotContext(def, instanceRecord, run);
 
+    // TODO: Extract to BotRunner facility
+
+    const { genome } = ctx;
+    const botType = genome.getGene<string>("META", "IMPL").value;
+    const instance = botFactory.create(botType) as BotImplementation;
+
     // Initialize new bots in a transaction to ensure we don't initialize it multiple times
     if (instanceRecord.runState === RunState.INITIALIZING) {
         let trx = await db.transaction();
         try {
             log.info(`Initializing ${botIdentifier(instanceRecord)}`);
-            const instance = new BotImplementationBase();
+
             const newState = await instance.initialize(ctx);
 
             if (newState) {
@@ -94,28 +108,23 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
             instanceRecord.runState = RunState.ACTIVE;
             instanceRecord.prevTick = new Date();
 
-            await strats.updateBotInstance(instanceRecord);
+            await strats.updateBotInstance(instanceRecord, trx);
             await trx.commit();
         }
         catch (err) {
             log.error(`Error initializing ${botIdentifier(instanceRecord)}. Rolling back...`, err);
 
             instanceRecord.runState = RunState.ERROR;
-            await strats.updateBotInstance(instanceRecord);
-
             await trx.rollback();
+            await strats.updateBotInstance(instanceRecord);
         }
     }
 
 
 
     if (instanceRecord.runState === RunState.ACTIVE) {
-
-        // TODO: Verify last tick is legit (extra layer)
-
-        const instance = new BotImplementationBase();
-        await instance.computeIndicatorsForTick(ctx);
-        const tickState = await instance.tick(ctx)
+        await instance.computeIndicatorsForTick(ctx, price);
+        const tickState = await instance.tick(ctx, price);
 
         if (tickState !== null && instanceRecord.stateJson !== undefined) {
             instanceRecord.stateJson = tickState;

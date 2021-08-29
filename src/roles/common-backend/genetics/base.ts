@@ -9,7 +9,7 @@ export const DEFAULT_BOT_IMPL = "genetic-bot.vanilla.v1";
 
 export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
     "META": new Chromosome("META", "Meta", "Phenotype metadata", [
-        new Gene<string>("IMP", GeneticValueType.STRING, DEFAULT_BOT_IMPL, "Bot implementation variant to use"),
+        new Gene<string>("IMPL", GeneticValueType.STRING, DEFAULT_BOT_IMPL, "Bot implementation variant to use"),
     ]),
     "TIME": new Chromosome("TIME", "Time", "Controls time related behaviour, notably time resolution", [
         new Gene<TimeResolution>("RES", GeneticValueType.TIME_RES, TimeResolution.FIFTEEN_MINUTES, "Specifies the time resolution to trade at, e.g. '1m', '15m', '1h', etc"),

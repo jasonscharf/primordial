@@ -8,6 +8,7 @@ import { CommandHandler } from "../CommandHandler";
 import { CommandResult } from "../CommandResult";
 import { CommonArgs } from "../CommonArgs";
 import { CommonBotArgs } from "../CommonArgsBots";
+import { GenomeParser } from "../../genetics/GenomeParser";
 import { PrimoAlreadyExistsError, PrimoMissingArgumentError } from "../../../common/errors/errors";
 import { Workspace } from "../../../common/models/system/Workspace";
 import { WorkspaceEntity } from "../../../common/entities/WorkspaceEntity";
@@ -114,15 +115,15 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
             };
 
 
-            // TODO: Normalize genomes for storage
-            const normalizedGenome = genome;
+            const parser = new GenomeParser();
+            const parsedGenome = parser.parse(genome);
+            const normalizedGenome = genome; // TODO
 
             const description = "";
             const workspaceId = workspace.id;
             const DEFAULT_BOT_DEF_PROPS: Partial<BotDefinition> = {
                 description,
                 genome,
-                normalizedGenome,
                 name,
                 symbols,
                 workspaceId,

@@ -1,4 +1,5 @@
 import { Order } from "../../common/models/markets/Order";
+import { PriceUpdateMessage } from "../messages/trading";
 import { BotContext, botIdentifier } from "./BotContext";
 import { BotImplementation } from "./BotImplementation";
 
@@ -24,9 +25,10 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
 
     /**
      * Computes/updates any active indicators for the current frame, storing their values.
-     * @param ctx 
+     * @param ctx
+     * @param price
      */
-    async computeIndicatorsForTick(ctx: BotContext<TState>): Promise<TState> {
+    async computeIndicatorsForTick(ctx: BotContext<TState>, price: PriceUpdateMessage): Promise<TState> {
         const { state } = ctx;
         return state;
     }
@@ -34,11 +36,13 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
     /**
      * Ticks a bot.
      * Note that ticks may come at any time, different exchange/symbol combinations are updated at different freqs.
-     * @param ctx 
+     * @param ctx
+     * @param price
      */
-    async tick(ctx: BotContext<TState>) {
-        const { instance } = ctx;
+    async tick(ctx: BotContext<TState>, price: PriceUpdateMessage): Promise<TState> {
+        const { instance, state } = ctx;
         ctx.log.debug(`[BOT] ${botIdentifier(instance)} ticks...`);
+        return state;
     }
 
     /**

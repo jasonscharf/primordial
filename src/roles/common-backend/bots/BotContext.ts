@@ -2,6 +2,8 @@ import env from "../env";
 import { BotDefinition } from "../../common/models/system/BotDefinition";
 import { BotInstance, BotInstanceStateInternal } from "../../common/models/system/BotInstance";
 import { BotRun } from "../../common/models/system/BotRun";
+import { Genome } from "../../common/models/genetics/Genome";
+import { GenomeParser } from "../genetics/GenomeParser";
 import { Logger } from "../../common/utils/Logger";
 import { Order, OrderState } from "../../common/models/markets/Order";
 import { OrderDelegateArgs } from "./BotOrderDelegate";
@@ -16,6 +18,7 @@ import { log, orders } from "../includes";
 export interface BotContext<TState = unknown> {
     def: BotDefinition;
     instance: BotInstance;
+    genome: Genome;
     runId: string;
     state: TState;
     stateInternal: BotInstanceStateInternal;
@@ -44,9 +47,11 @@ export function botIdentifier(bot: BotInstance) {
  * @returns 
  */
 export async function buildBotContext(def: BotDefinition, record: BotInstance, run: BotRun): Promise<BotContext> {
+    const { genome } = new GenomeParser().parse(record.currentGenome);
     const ctx: Partial<BotContext> = {
         def,
         instance: record,
+        genome,
         state: record.stateJson,
         stateInternal: record.stateInternal,
         log,

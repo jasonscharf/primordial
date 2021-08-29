@@ -19,23 +19,25 @@ export class Genome {
         return Array.from(this._baseChromosomes.values());
     }
 
-    getGene(chromosomeName: string, geneName: string) {
+    getGene<T>(chromosomeName: string, geneName: string): Gene<T> {
         if (!this._baseChromosomes.has(chromosomeName)) {
             return null;
         }
 
         const baseChromosome = this._baseChromosomes.get(chromosomeName);
         const baseGene = baseChromosome.getGene(geneName);
-        
+
         if (this._overlaidChromosomes.has(chromosomeName)) {
             const overlaidChromosome = this._overlaidChromosomes.get(chromosomeName);
             const overlaidGene = overlaidChromosome.getGene(geneName);
             if (overlaidGene) {
-                return overlaidGene;
+                return overlaidGene.copy() as Gene<T>;
             }
         }
 
-        return baseGene;
+        const ret = baseGene.copy() as Gene<T>;
+        ret.value = ret.defaultValue;
+        return ret;
     }
 
     constructor(baseChromosomes: Chromosome[], overlaidChromosomes: Chromosome[]) {
