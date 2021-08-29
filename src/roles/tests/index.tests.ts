@@ -1,7 +1,7 @@
 import { dbm } from "../common-backend/includes";
 
 
-//import "./trading/CapitalService.test"; /*
+//import "./genetics/GeneticParser.test"; /*
 
 import "./system/database.test";
 import "./system/numbers.test";
@@ -12,6 +12,7 @@ import "./system/UserService.test";
 import "./trading/CapitalService.test";
 import "./trading/StrategyService.test";
 import "./trading/SymbolService.test";
+import "./genetics/GeneticParser.test";
 //*/
 
 
