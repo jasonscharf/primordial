@@ -80,7 +80,7 @@ export async function addNewBotDefAndInstance(defProps = TEST_DEFAULT_NEW_BOT_DE
         const ledger = await capital.createAllocationForBot(strat.id, "100 BTC");
         const { alloc } = ledger;
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
-        const instance = await strats.createNewInstanceFromDef(def, name, alloc.id, false, trx);
+        const instance = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
 
         await trx.commit();
 
@@ -177,6 +177,31 @@ export const sineGenerator: TestPriceGenerator = (start: Date, end: Date, res: T
     // TODO: Complete this stub...
 
     const s = Math.sin(pct);
+    const open = 0;
+    const close = s;
+    const low = 0;
+    const high = s;
+
+    const price = createTestPrice({
+        resId: "1m",
+        ts: new Date(),
+        open: Money(open.toString()),
+        low: Money(low.toString()),
+        high: Money(high.toString()),
+        close: Money(close.toString()),
+        volume: Money("1"),
+    });
+
+    return price;
+}
+
+// Note: Money type not used here - number good enough for testing, in this context.
+export const increasingPriceGenerator: TestPriceGenerator = (start: Date, end: Date, res: TimeResolution, ts: Date) => {
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+    const pct = Math.round((ts.getTime() - startMs) / (endMs - startMs) * 100);
+
+    const s = pct;
     const open = 0;
     const close = s;
     const low = 0;

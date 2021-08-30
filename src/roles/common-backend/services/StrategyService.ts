@@ -734,7 +734,7 @@ export class StrategyService {
      * @param trx
      * @returns 
      */
-    async createNewInstanceFromDef(def: BotDefinition, name: string, allocationId: string, start = false, trx: Knex.Transaction = null): Promise<BotInstance> {
+    async createNewInstanceFromDef(def: BotDefinition, res: TimeResolution, name: string, allocationId: string, start = false, trx: Knex.Transaction = null): Promise<BotInstance> {
         return query(queries.BOTS_INSTANCES_CREATE_FROM_DEF, async db => {
             const stateJson = {};
             const [baseSymbolId, quoteSymbolId] = sym.parseSymbolPair(def.symbols);
@@ -749,15 +749,13 @@ export class StrategyService {
                 prevTick: null,
                 runState: start ? RunState.PAUSED : RunState.NEW,
                 type: "default",
+                resId: res,
+                symbols: def.symbols,
                 stateJson,
                 stateInternal: {
                     baseSymbolId,
                     quoteSymbolId,
                 },
-
-                // TODO
-                resId: TimeResolution.ONE_MINUTE,
-                symbols: def.symbols,
             };
 
             const [row] = <BotInstance[]>await db(tables.BotInstances)

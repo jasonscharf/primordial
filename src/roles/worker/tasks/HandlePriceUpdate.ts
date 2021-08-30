@@ -4,15 +4,18 @@ import { BotDefinition } from "../../common/models/system/BotDefinition";
 import { BotImplementation } from "../../common-backend/bots/BotImplementation";
 import { BotInstance } from "../../common/models/system/BotInstance";
 import { BotRun } from "../../common/models/system/BotRun";
+import { Factory } from "../../common-backend/bots/BotFactory";
 import { GeneticBot } from "../bots/GeneticBot";
 import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
-import { Factory } from "../../common-backend/bots/BotFactory";
+import { PriceDataParameters } from "../../common-backend/services/SymbolService";
 import { PriceUpdateMessage } from "../../common-backend/messages/trading";
 import { QueueMessage } from "../../common-backend/messages/QueueMessage";
 import { RunState } from "../../common/models/system/RunState";
-import { constants, db, log, mq, strats } from "../../common-backend/includes";
+import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { constants, db, log, mq, strats, sym } from "../../common-backend/includes";
 import env from "../../common-backend/env";
 import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base";
+import { millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
 
 
 /**
@@ -57,7 +60,7 @@ export async function dispatchTicksRunningBots(msg: QueueMessage<PriceUpdateMess
                 const duration = end - start;
 
                 // TODO: Constant/config
-                if (duration > 100) {
+                if (duration > 0) {
                     log.debug(`Ran bot '${botIdentifier(bot)}' in ${duration}ms`);
                 }
             })
@@ -90,7 +93,9 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
     // TODO: Extract to BotRunner facility
 
     const { genome } = ctx;
+    const symbolPair = instanceRecord.symbols;
     const botType = genome.getGene<string>("META", "IMPL").value;
+    const res = genome.getGene<TimeResolution>("TIME", "RES").value;
     const instance = botFactory.create(botType) as BotImplementation;
 
     // Initialize new bots in a transaction to ensure we don't initialize it multiple times
@@ -123,6 +128,29 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
 
 
     if (instanceRecord.runState === RunState.ACTIVE) {
+        const maxHistoricals = 500;
+        const now = Date.now();
+        const end = normalizePriceTime(res, new Date(now)).getTime();
+        const intervalMs = millisecondsPerResInterval(res);
+        const start = end - (intervalMs * maxHistoricals);
+
+        // Update price history. Note: This is *definitely* a case for optimization.
+        // Let's grab the previous N for now, until some sort of caching/progressive solution
+        // can be executed cross-node (b/c bots run on multiple machines)
+        const params: PriceDataParameters = {
+            exchange: env.PRIMO_DEFAULT_EXCHANGE,
+            res,
+            symbolPair,
+            fillMissing: true,
+            start: new Date(start),
+            end: new Date(end - 1),
+        };
+
+        // TODO: Consider price pull from API in the case of a gap?
+        //  Think about a deployment rollout
+        const prices =  await sym.queryPricesForRange(params);
+        ctx.prices = prices;
+
         await instance.computeIndicatorsForTick(ctx, price);
         const tickState = await instance.tick(ctx, price);
 

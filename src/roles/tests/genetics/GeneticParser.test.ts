@@ -3,11 +3,12 @@ import { Gene } from "../../common/models/genetics/Gene";
 import { GeneticValueType } from "../../common/models/genetics/GeneticValueType";
 import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
 import { GeneticService } from "../../common-backend/services/GeneticService";
+import { Money } from "../../common/numbers";
 import { TestDataCtx, getTestData } from "../utils/test-data";
 import { assert, describe, before, env, it } from "../includes";
 import { beforeEach } from "intern/lib/interfaces/tdd";
-import { DEFAULT_GENETICS } from "../../common-backend/genetics/base";
 import { clone } from "../../common-backend/genetics/utils";
+import { DEFAULT_GENETICS } from "../../common-backend/genetics/base";
 
 
 describe("genetics", () => {
@@ -126,17 +127,35 @@ describe("genetics", () => {
 
         it("allows custom genetics", async () => {
             const genetics = clone(DEFAULT_GENETICS, {
-                "MONEY": new Chromosome("MONEY", "888", "Just a test chromosome", [
-                    new Gene("LIMIT", GeneticValueType.MONEY, "0.0", "Test"),
+                "MONEY": new Chromosome("MONEY", "", "Just a test chromosome", [
+                    new Gene("LIMIT", GeneticValueType.MONEY, Money("888"), "Test"),
                 ]),
             });
+
             const raw = "MONEY-LIMIT=999";
-            debugger;
             const { genome, warnings, errors } = parser.parse(raw, genetics);
             assert.exists(genome);
             assert.lengthOf(warnings, 0);
             assert.lengthOf(errors, 0);
             const { chromosomesAll, chromosomesEnabled } = genome;
+
+            assert.lengthOf(chromosomesEnabled, 1);
+            const [chromo] = chromosomesEnabled;
+            {
+                const gene = chromo.getGene("LIMIT");
+                assert.exists(gene);
+                const { defaultValue, name, value } = gene;
+                assert.equal(name, "LIMIT");
+                assert.equal(value.toString(), "999");
+                assert.equal(defaultValue.toString(), "888");
+            }
+            {
+                const gene = genome.getGene("MONEY", "LIMIT");
+                const { defaultValue, name, value } = gene;
+                assert.equal(name, "LIMIT");
+                assert.equal(value.toString(), "999");
+                assert.equal(defaultValue.toString(), "888");
+            }
         });
 
 
