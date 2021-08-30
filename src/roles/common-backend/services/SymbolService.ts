@@ -427,7 +427,7 @@ export class SymbolService {
                         last(open, ts) as open,
                         last(low, ts) as low,
                         last(high, ts) as high,
-                        last(close, ts) as close,
+                        last(close, ts) as closed, --reserved word
                         sum(volume) as volume,
                         :base as "baseSymbolId",
                         :quote as "quoteSymbolId"
@@ -436,11 +436,17 @@ export class SymbolService {
                     AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
                     AND ("ts" >= :start AND "ts" < :end)
                     GROUP BY "ts"
-                    ORDER BY "ts"
+                    ORDER BY "ts" DESC
                 )
-                SELECT *
+                SELECT ts,
+                        last(open, ts) as open,
+                        last(existing_prices.low, ts) as low,
+                        last(existing_prices.high, ts) as high,
+                        last(existing_prices.closed, ts) as "close",
+                        sum(volume) as volume
                 FROM existing_prices
-                LEFT OUTER JOIN time_range_buckets ON "ts" = "generated"
+                JOIN time_range_buckets ON "ts" = "generated"
+                GROUP BY ts
             `;
 
             const bindings = {
