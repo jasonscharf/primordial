@@ -157,6 +157,10 @@ export class CapitalService {
 
     /**
      * Creates an allocation for a bot, including an item and funding transaction on the ledger.
+     * @param strategyId
+     * @param allocStr
+     * @param options
+     * @param trx
      * @returns
      */
     async createAllocationForBot(strategyId: string, allocStr: string, options: AllocationOptions = DEFAULT_ALLOC_OPTIONS, trx: Knex.Transaction = null): Promise<AllocationLedger> {

@@ -10,6 +10,7 @@ import { CommonArgs } from "../CommonArgs";
 import { CommonBotArgs } from "../CommonArgsBots";
 import { GenomeParser } from "../../genetics/GenomeParser";
 import { PrimoAlreadyExistsError, PrimoMissingArgumentError } from "../../../common/errors/errors";
+import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { Workspace } from "../../../common/models/system/Workspace";
 import { WorkspaceEntity } from "../../../common/entities/WorkspaceEntity";
 import { capital, constants, db, strats } from "../../includes";
@@ -116,7 +117,7 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
 
 
             const parser = new GenomeParser();
-            const parsedGenome = parser.parse(genome);
+            const parsedGenomeResults = parser.parse(genome);
             const normalizedGenome = genome; // TODO
 
             const description = "";
@@ -151,7 +152,8 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
                 throw new PrimoMissingArgumentError(`Please specify a budget for this bot, or attach to an existing one.`);
             }
 
-            const instance = await strats.createNewInstanceFromDef(def, name, allocation.id, startInstance, trx);
+            const res = parsedGenomeResults.genome.getGene<TimeResolution>("TIME", "RES").value;
+            const instance = await strats.createNewInstanceFromDef(def, res, name, allocation.id, startInstance, trx);
 
             const [updatedInstance, run] = await strats.startBotInstance(instance.id, trx);
 

@@ -8,6 +8,7 @@ import { Logger } from "../../common/utils/Logger";
 import { Order, OrderState } from "../../common/models/markets/Order";
 import { OrderDelegateArgs } from "./BotOrderDelegate";
 import { Mode } from "../../common/models/system/Strategy";
+import { Price } from "../../common/models/system/Price";
 import { log, orders } from "../includes";
 
 
@@ -23,6 +24,7 @@ export interface BotContext<TState = unknown> {
     state: TState;
     stateInternal: BotInstanceStateInternal;
     log: Logger;
+    prices: Price[];
 
     placeLimitBuyOrder(ctx: BotContext, args: OrderDelegateArgs): Promise<Order>;
     placeLimitSellOrder(ctx: BotContext, args: OrderDelegateArgs): Promise<Order>;
