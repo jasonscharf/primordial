@@ -35,7 +35,14 @@ export class Chromosome {
         const genes = Array.from(this.genes.entries())
             .map(([k, gene]) => gene.copy())
             ;
-        return new Chromosome(this.name, this.title, this.desc, genes);
+
+        const newChromo = Object.create(Object.getPrototypeOf(this));
+        newChromo.name = this.name;
+        newChromo.title = this.title;
+        newChromo.desc = this.desc;
+        newChromo.genes = this.genes;
+        newChromo.active = genes.some(g => g.active);
+        return newChromo;
     }
 
     /**

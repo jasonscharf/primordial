@@ -28,9 +28,9 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
      * @param ctx
      * @param price
      */
-    async computeIndicatorsForTick(ctx: BotContext<TState>, price: PriceUpdateMessage): Promise<TState> {
+    async computeIndicatorsForTick(ctx: BotContext<TState>, price: PriceUpdateMessage): Promise<Map<string, unknown>> {
         const { state } = ctx;
-        return state;
+        return new Map<string, unknown>();
     }
 
     /**
@@ -39,7 +39,7 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
      * @param ctx
      * @param price
      */
-    async tick(ctx: BotContext<TState>, price: PriceUpdateMessage): Promise<TState> {
+    async tick(ctx: BotContext<TState>, price: PriceUpdateMessage, indicators: Map<string, unknown>): Promise<TState> {
         const { instance, state } = ctx;
         ctx.log.debug(`[BOT] ${botIdentifier(instance)} ticks...`);
         return state;

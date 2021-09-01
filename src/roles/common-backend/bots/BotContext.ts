@@ -25,6 +25,7 @@ export interface BotContext<TState = unknown> {
     stateInternal: BotInstanceStateInternal;
     log: Logger;
     prices: Price[];
+    indicators: Map<string, unknown>;
 
     placeLimitBuyOrder(ctx: BotContext, args: OrderDelegateArgs): Promise<Order>;
     placeLimitSellOrder(ctx: BotContext, args: OrderDelegateArgs): Promise<Order>;

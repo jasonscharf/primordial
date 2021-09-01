@@ -1,4 +1,3 @@
-import { log, strats } from "../../common-backend/includes";
 import { BotDefinition } from "../../common/models/system/BotDefinition";
 import { BotImplementationBase } from "../../common-backend/bots/BotImplementationBase";
 import { BotInstance } from "../../common/models/system/BotInstance";
@@ -7,6 +6,7 @@ import { OrderStatusUpdateMessage } from "../../common-backend/messages/trading"
 import { QueueMessage } from "../../common-backend/messages/QueueMessage";
 import { RunState } from "../../common/models/system/RunState";
 import { botIdentifier, buildBotContext } from "../../common-backend/bots/BotContext";
+import { log, strats } from "../../common-backend/includes";
 
 
 /**

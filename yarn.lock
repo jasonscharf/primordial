@@ -5211,6 +5211,11 @@ nan@^2.12.1:
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.14.2.tgz#f5376400695168f4cc694ac9393d0c9585eeea19"
   integrity sha512-M2ufzIiINKCuDfBSAUr1vWQ+vuVcA9kqx8JJUsbQi6yf1uGRyb7HfpdfUr5qLXf3B/t8dPvcjhKMmlfnP47EzQ==
 
+nan@^2.13.2:
+  version "2.15.0"
+  resolved "https://registry.yarnpkg.com/nan/-/nan-2.15.0.tgz#3f34a473ff18e15c1b5626b62903b5ad6e665fee"
+  integrity sha512-8ZtvEnA2c5aYCZYd1cvgdnU6cqwixRoYg70xPLWUws5ORTa/lnw+u4amixRS/Ac5U5mQVgp9pnlSUnbNWFaWZQ==
+
 nanoid@^3.1.22, nanoid@^3.1.23:
   version "3.1.23"
   resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.1.23.tgz#f744086ce7c2bc47ee0a8472574d5c78e4183a81"
@@ -7247,6 +7252,13 @@ swagger@^0.7.5:
     swagger-editor "^2.9.2"
     swagger-test-templates "^1.2.0"
     swagger-tools "^0.9.0"
+
+talib@^1.1.4:
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/talib/-/talib-1.1.4.tgz#8ed1e93081609f4283cdb9f7bb70830131497672"
+  integrity sha512-b5Q7w4Hn5VG7mok2sf77MirBLJlEI0pYjvrhrdf7e9M4iK2/q8fElIr4bQnOlCIr5QVZhE3KsZuAPvx5Bc334Q==
+  dependencies:
+    nan "^2.13.2"
 
 tapable@^2.0.0, tapable@^2.1.1, tapable@^2.2.0:
   version "2.2.0"

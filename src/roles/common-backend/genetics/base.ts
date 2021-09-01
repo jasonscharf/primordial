@@ -1,6 +1,7 @@
 import { Chromosome } from "../../common/models/genetics/Chromosome";
 import { Gene } from "../../common/models/genetics/Gene";
 import { GeneticValueType } from "../../common/models/genetics/GeneticValueType";
+import { RsiIndicatorChromosome } from "../indicators/RSI";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 
 
@@ -21,9 +22,10 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
         new Gene<number>("T", GeneticValueType.NUMBER, 1, "Threshold at which to consider a sell signal from the weighted average of other indicators"),
     ]),
     "SYM": new Chromosome("SYM", "Symbols", "Controls which symbols to trade", []),
-    "RSI": new Chromosome("RSI", "RSI", "Behaviour involving the Relative Strength Indictor", [
+    "RSI": new RsiIndicatorChromosome("RSI", "RSI", "Behaviour involving the Relative Strength Indictor", [
         new Gene("L", GeneticValueType.NUMBER, 33, "Lower RSI threshold to use as a buy signal"),
         new Gene("H", GeneticValueType.NUMBER, 66, "Upper RSI threshold to use as a sell signal"),
+        new Gene("WL", GeneticValueType.NUMBER, 14, "Window length of closed intervals to consider"),
         new Gene("BW", GeneticValueType.NUMBER, 1, "Weighting for RSI buy signal"),
         new Gene("SW", GeneticValueType.NUMBER, 1, "Weighting for RSI sell signal"),
     ]),
