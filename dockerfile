@@ -1,17 +1,21 @@
 #
 # Base images for Node things
 #
-#FROM node:lts-alpine3.9 as node-base
-FROM node:16-alpine3.11 as node-base
+# Node slim is used here over Alpine due to TALib.
+# Moving the base image back to Alpine would be nice, but is low priority at time of writing.
+FROM node:14.5-slim as node-base
+#RUN apk add --update make g++
+
+# Python is used to build certain NPM dependencies, such as talib.
+ENV PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y python make build-essential apt-transport-https
+
 RUN mkdir -p /app
 COPY ./package.json ./app/
 COPY ./yarn.lock ./app/yarn.lock
 WORKDIR /app
-#RUN apk add --no-cache --virtual .gyp \
-#        python \
-#        make \
-#        g++
 RUN yarn install --frozen-lockfile
+#COPY --from=app-env /code/node_modules/talib /app/node_modules/talib
 
 
 #
@@ -26,9 +30,10 @@ COPY ./dist/common-backend /app/common-backend
 # Tests
 #
 FROM worker-base as tests
+COPY --from=worker-base /app/ /app/
 COPY ./dist/tests /app/tests
 COPY ./src/roles/tests/intern.json /app/tests/
-RUN yarn install
+#RUN yarn install --frozen-lockfile
 CMD ["yarn", "role:tests:run"]
 
 
@@ -47,7 +52,7 @@ CMD ["node", "./worker/worker.js"]
 FROM worker-base as spooler
 RUN mkdir -p /mnt/secrets-store
 RUN yarn install
-RUN apk add --no-cache --upgrade bash
+#RUN apk add --no-cache --upgrade bash
 COPY --from=worker-base /app/ /app/
 COPY ./dist/spooler /app/spooler
 COPY ./src/roles/spooler/primo.sh /app/primo
