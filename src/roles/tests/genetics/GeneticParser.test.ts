@@ -8,7 +8,7 @@ import { TestDataCtx, getTestData } from "../utils/test-data";
 import { assert, describe, before, env, it } from "../includes";
 import { beforeEach } from "intern/lib/interfaces/tdd";
 import { clone } from "../../common-backend/genetics/utils";
-import { DEFAULT_GENETICS } from "../../common-backend/genetics/base";
+import { DEFAULT_GENETICS } from "../../common-backend/genetics/base-genetics";
 
 
 describe("genetics", () => {
@@ -157,7 +157,6 @@ describe("genetics", () => {
                 assert.equal(defaultValue.toString(), "888");
             }
         });
-
 
         it("throws on invalid monetary values", async () => {
             const genetics = clone(DEFAULT_GENETICS, {

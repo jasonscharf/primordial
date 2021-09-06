@@ -1,13 +1,13 @@
-import { Genome } from "../../common/models/genetics/Genome";
-import { GenomeParseResult } from "./GenomeParseResult";
 import { Chromosome } from "../../common/models/genetics/Chromosome";
 import { GeneticValueType } from "../../common/models/genetics/GeneticValueType";
+import { Genome } from "../../common/models/genetics/Genome";
+import { GenomeParseResult } from "./GenomeParseResult";
 import { Gene } from "../../common/models/genetics/Gene";
 import { Money } from "../../common/numbers";
 import { PrimoMalformedGenomeError } from "../../common/errors/errors";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { isNullOrUndefined } from "../../common/utils";
-import { DEFAULT_GENETICS } from "./base";
+import { DEFAULT_GENETICS } from "./base-genetics";
 
 
 export const GENOTYPE_SPLIT_EXPR = /[|,]/;
@@ -16,7 +16,7 @@ export const ACCEPTABLE_FLAG_VALUES_FOR_TRUE = ["y", "yes", "true"];
 export const ACCEPTABLE_FLAG_VALUES_FOR_FALSE = ["n", "no", "false"];
 export const ACCEPTABLE_FLAG_VALUES = [
     ...ACCEPTABLE_FLAG_VALUES_FOR_TRUE,
-    ...ACCEPTABLE_FLAG_VALUES_FOR_FALSE
+    ...ACCEPTABLE_FLAG_VALUES_FOR_FALSE,
 ];
 export const ACCEPTABLE_TIME_RES_VALUES = Object.keys(TimeResolution).map(k => TimeResolution[k]);
 
@@ -157,13 +157,10 @@ export class GenomeParser {
             parsingChromo.genes.set(newGene.name, newGene);
         }
 
-
-        // TODO: Handle base being of type Chromo
         const baseChromos = Object.keys(base).map(k => base[k]);
         const overlaidChromos = Array.from(specifiedChromos.values());
         const genome: Genome = new Genome(baseChromos, overlaidChromos);
-
-        const normalizedGenome = "";
+        const normalizedGenome = ""; // TODO
 
         return {
             normalizedGenome,

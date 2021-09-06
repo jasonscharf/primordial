@@ -220,10 +220,11 @@ export async function deleteNewData(trx: Knex.Transaction) {
     }
 
     await query("migration.delete-default-workspace", async db => {
+        await db(tables.AllocationTransactions).delete();
+        await db(tables.Orders).delete();
         await db(tables.BotRuns).delete();
         await db(tables.BotInstances).delete();
         await db(tables.BotDefinitions).delete();
-        await db(tables.AllocationTransactions).delete();
         await db(tables.AllocationItems).delete();
         await db(tables.Allocations).delete();
         await db(tables.Strategies).delete();

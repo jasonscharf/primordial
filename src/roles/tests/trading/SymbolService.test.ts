@@ -18,7 +18,7 @@ describe(SymbolService.name, () => {
 
     // Defaults
     const exchange = env.PRIMO_DEFAULT_EXCHANGE;
-    const symbolPair = "BTC/USD"; // Not even a real thing, just a simple dummy
+    const symbolPair = "BTC/TUSD";
     const res = TimeResolution.ONE_MINUTE;
 
     let ctx: TestDataCtx = null;
@@ -137,7 +137,7 @@ describe(SymbolService.name, () => {
             const priceProps1 = createTestPrice({
                 resId: TimeResolution.ONE_MINUTE,
                 baseSymbolId: "BTC",
-                quoteSymbolId: "USD",
+                quoteSymbolId: "TUSD",
                 ts: sameMinute,
                 close: Money("888"),
             });

@@ -47,26 +47,26 @@ export class RsiIndicatorChromosome extends IndicatorChromosome {
     }
 
     async compute(ctx: BotContext<GeneticBotState>, tick: Price): Promise<number> {
-        const { genome, prices } = ctx;
+        const { genome, log, prices } = ctx;
 
-        const windowLenGene = genome.getGene<number>("RSI", "WL");
-        const windowLen = isNullOrUndefined(windowLenGene.value)
-            ? windowLenGene.defaultValue
-            : windowLenGene.value
-            ;
+        const optInTimePeriod = genome.getGene<number>("RSI", "OITP").value;
+        const windowLen = genome.getGene<number>("RSI", "WL").value;
+
+        // TODO: Maybe emit a warning?
+        if (optInTimePeriod >= windowLen) {
+            log.warn(`RSI opt-in period is greater than or equal to windowLen. RSI will be invlid.`);
+        }
 
         // TODO: Move to base
 
         // Add the current tick to the price window
-        const priceWindow = prices.slice(-(windowLen + 1)).concat(tick);
+        const priceWindow = prices.slice(-(windowLen - 1)).concat(tick);
         const high = priceWindow.map(p => p.high.toNumber());
         const low = priceWindow.map(p => p.low.toNumber());
         const open = priceWindow.map(p => p.open.toNumber());
         const close = priceWindow.map(p => p.close.toNumber());
 
         return new Promise((res, rej) => {
-
-            // execute Average Directional Movement Index indicator with time period 9
             talib.execute({
                 name: "RSI",
                 startIdx: 0,
@@ -75,7 +75,7 @@ export class RsiIndicatorChromosome extends IndicatorChromosome {
                 low,
                 close,
                 inReal: close,
-                optInTimePeriod: 9, // TODO: To gene
+                optInTimePeriod,
             },
                 (err, output) => {
                     if (err) {

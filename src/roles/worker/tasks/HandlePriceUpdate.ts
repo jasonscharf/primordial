@@ -17,8 +17,8 @@ import { QueueMessage } from "../../common-backend/messages/QueueMessage";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { constants, db, log, mq, strats, sym } from "../../common-backend/includes";
-import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base";
 import { millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
+import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base-genetics";
 
 
 /**
@@ -80,7 +80,7 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
                 const duration = end - start;
 
                 // TODO: Constant/config
-                if (duration > 0) {
+                if (duration > 100) {
                     log.debug(`Ran bot '${botIdentifier(bot)}' in ${duration}ms`);
                 }
             })
@@ -149,7 +149,7 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
 
 
     if (instanceRecord.runState === RunState.ACTIVE) {
-        const maxHistoricals = 500;
+        const maxHistoricals = genome.getGene<number>("TIME", "MI").value;
         const now = Date.now();
         const end = normalizePriceTime(res, new Date(now)).getTime();
         const intervalMs = millisecondsPerResInterval(res);

@@ -1,6 +1,26 @@
 import { Knex } from "knex";
+import { Money } from "../../common/numbers";
 import env from "../env";
 import { db } from "../includes";
+
+
+/**
+ * Creates a shallow clone of a model with Money types stringified for proper database insert.
+ * @param obj 
+ * @returns 
+ */
+export function moneytize(obj: unknown) {
+    const clone = {};
+    for (const k of Object.keys(obj)) {
+        if (obj[k] instanceof Money) {
+            clone[k] = (obj[k] as Money).toString();
+        }
+        else {
+            clone[k] = obj[k];
+        }
+    }
+    return clone;
+}
 
 
 /**

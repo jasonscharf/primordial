@@ -91,6 +91,7 @@ export const caching = {
 export const queries = {
     ALLOCS_GET_LEDGER: "allocations.get-ledger",
     ALLOCS_CREATE_TEST_ALLOC: "allocations.create-testing-alloc",
+    ALLOCS_GET_ITEM_FOR_BOT: "allocations.get-item-for-bot",
     BOTS_DEFS_CREATE: "bots.defs.create",
     BOTS_DEFS_GET_BY_NAME: "bots.defs.gets.get-by-name",
     BOTS_GET_BOT_FOR_ORDER: "bots.get-for-order",
@@ -128,6 +129,7 @@ export const queries = {
     TASKS_ADD: "tasks.add",
     TASKS_GET_PENDING: "tasks.get.pending",
     TASKS_MARK_NOT_RUNNING: "tasks.mark.not-running",
+    TRANSACTIONS_CREATE: "transactions.create",
 };
 
 

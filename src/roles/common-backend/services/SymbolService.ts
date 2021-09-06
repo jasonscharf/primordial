@@ -42,7 +42,7 @@ export interface PriceDataParameters {
 
 export const DEFAULT_PRICE_DATA_PARAMETERS: Partial<PriceDataParameters> = {
     exchange: env.PRIMO_DEFAULT_EXCHANGE,
-    symbolPair: "BTC/USD",
+    symbolPair: "BTC/TUSD",
     res: TimeResolution.ONE_MINUTE,
     start: DateTime.fromISO("2010-01-01").toJSDate(),
     end: new Date(),
