@@ -1,12 +1,12 @@
 import { DateTime } from "luxon";
 import env from "../../common-backend/env";
-import { BotDefinition } from "../../common/models/system/BotDefinition";
-import { BotInstance } from "../../common/models/system/BotInstance";
+import { BotDefinition } from "../../common/models/bots/BotDefinition";
+import { BotInstance } from "../../common/models/bots/BotInstance";
 import { Knex } from "knex";
 import { Mode, Strategy } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
-import { Order, OrderState } from "../../common/models/markets/Order";
-import { Price } from "../../common/models/system/Price";
+import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
+import { Price } from "../../common/models/markets/Price";
 import { PriceDataRange } from "../../common-backend/services/SymbolService";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
@@ -49,6 +49,7 @@ export const TEST_DEFAULT_BUDGET = "1000000 TUSD";
 export function makeTestOrder(props?: Partial<Order>) {
     const DEFAULTS: Partial<Order> = {
         exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
+        typeId: OrderType.LIMIT_BUY,
         baseSymbolId: "BTC",
         quoteSymbolId: "TUSD",
         fees: Money("0.01"),
@@ -87,9 +88,9 @@ export async function addNewBotDefAndInstance(budget = TEST_DEFAULT_BUDGET, star
         const workspace = await strats.getDefaultWorkspaceForUser(user.id, user.id, trx);
         const strat = await strats.getOrCreateDefaultStrategy(workspace.id, user.id, trx);
         const existing = await strats.getBotDefinitionByName(workspace.id, name, trx);
-        if (existing) {
-            throw new Error(`Bot definition with name '${name}' already exists`);
-        }
+        //if (existing) {
+        ///    throw new Error(`Bot definition with name '${name}' already exists`);
+        //}
 
         const workspaceId = workspace.id;
 
@@ -103,7 +104,7 @@ export async function addNewBotDefAndInstance(budget = TEST_DEFAULT_BUDGET, star
         const instance = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
 
         if (start) {
-            await strats.startBotInstance(instance.id, trx);
+            await strats.startBotInstance({ id: instance.id }, trx);
         }
 
         const run = await strats.getLatestRunForInstance(instance.id, trx);

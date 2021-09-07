@@ -1,6 +1,6 @@
-import { BotDefinition } from "./system/BotDefinition";
-import { BotInstance } from "./system/BotInstance";
-import { BotRun } from "./system/BotRun";
+import { BotDefinition } from "./bots/BotDefinition";
+import { BotInstance } from "./bots/BotInstance";
+import { BotRun } from "./bots/BotRun";
 import { Order } from "./markets/Order";
 
 

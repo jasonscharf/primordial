@@ -2,7 +2,7 @@ const talib = require("talib");
 import { BotContext } from "../bots/BotContext";
 import { Chromosome } from "../../common/models/genetics/Chromosome";
 import { GeneticBotState } from "../../worker/bots/GeneticBot";
-import { Price } from "../../common/models/system/Price";
+import { Price } from "../../common/models/markets/Price";
 import { PriceUpdateMessage } from "../messages/trading";
 
 

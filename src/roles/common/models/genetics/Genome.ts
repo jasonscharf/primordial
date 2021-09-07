@@ -1,6 +1,6 @@
-import { DEFAULT_GENETICS } from "../../../common-backend/genetics/base";
 import { Chromosome } from "./Chromosome";
 import { Gene } from "./Gene";
+import { DEFAULT_GENETICS } from "../../../common-backend/genetics/base-genetics";
 
 
 /**
@@ -31,13 +31,18 @@ export class Genome {
             const overlaidChromosome = this._overlaidChromosomes.get(chromosomeName);
             const overlaidGene = overlaidChromosome.getGene(geneName);
             if (overlaidGene) {
-                return overlaidGene.copy() as Gene<T>;
+                const copy = overlaidGene.copy() as Gene<T>;
+                if (!copy.value) {
+                    copy.value = copy.defaultValue;
+                }
+
+                return copy;
             }
         }
 
-        const ret = baseGene.copy() as Gene<T>;
-        ret.value = ret.defaultValue;
-        return ret;
+        const copy = baseGene.copy() as Gene<T>;
+        copy.value = copy.defaultValue;
+        return copy;
     }
 
     constructor(baseChromosomes: Chromosome[], overlaidChromosomes: Chromosome[]) {

@@ -49,16 +49,19 @@ export class CommandService {
         let result: CommandResult<T>;
 
         const start = Date.now();
+
+        // Just for cleaning up property ording by forward declaring.
+        const baseResult = {
+            duration: 0,
+        }
         result = <CommandResult<T>>await handler.execute(ctx);
+
+        const cleanResult = Object.assign({}, baseResult, result);
         const end = Date.now();
         const duration = end - start;
 
-        result.duration = duration;
+        cleanResult.duration = duration;
 
-        //log.debug(`Executed command '${name}' in ${duration}ms`);
-
-        return result;
-
-        return result;
+        return cleanResult;
     }
 }

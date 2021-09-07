@@ -1,15 +1,23 @@
 import env from "../env";
-import { BotDefinition } from "../../common/models/system/BotDefinition";
-import { BotInstance, BotInstanceStateInternal } from "../../common/models/system/BotInstance";
-import { BotRun } from "../../common/models/system/BotRun";
+import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
+import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
+import { BacktestRequest } from "../messages/testing";
+import { BotDefinition } from "../../common/models/bots/BotDefinition";
+import { BotImplementation } from "./BotImplementation";
+import { BotInstance, BotInstanceStateInternal } from "../../common/models/bots/BotInstance";
+import { BotRun } from "../../common/models/bots/BotRun";
 import { Genome } from "../../common/models/genetics/Genome";
+import { GeneticBotFsmState, GeneticBotState } from "../../worker/bots/GeneticBot";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Logger } from "../../common/utils/Logger";
-import { Order, OrderState } from "../../common/models/markets/Order";
-import { OrderDelegateArgs } from "./BotOrderDelegate";
 import { Mode } from "../../common/models/system/Strategy";
-import { Price } from "../../common/models/system/Price";
-import { log, orders } from "../includes";
+import { Money } from "../../common/numbers";
+import { OrderStatusUpdateMessage } from "../messages/trading";
+import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
+import { OrderDelegateArgs } from "./BotOrderDelegate";
+import { Price } from "../../common/models/markets/Price";
+import { capital, constants, log, mq, orders, strats } from "../includes";
+import { moneytize } from "../database/utils";
 
 
 
@@ -27,10 +35,10 @@ export interface BotContext<TState = unknown> {
     prices: Price[];
     indicators: Map<string, unknown>;
 
-    placeLimitBuyOrder(ctx: BotContext, args: OrderDelegateArgs): Promise<Order>;
-    placeLimitSellOrder(ctx: BotContext, args: OrderDelegateArgs): Promise<Order>;
-    placeStopLoss(ctx: BotContext, args: OrderDelegateArgs): Promise<Order>;
-    cancelAllOrders(ctx: BotContext, args: OrderDelegateArgs): Promise<Order[]>;
+    placeLimitBuyOrder(ctx: BotContext, args: OrderDelegateArgs, tick: Price, instance: BotImplementation): Promise<Order>;
+    placeLimitSellOrder(ctx: BotContext, args: OrderDelegateArgs, tick: Price, instance: BotImplementation): Promise<Order>;
+    placeStopLoss(ctx: BotContext, args: OrderDelegateArgs, instance: BotImplementation): Promise<Order>;
+    cancelAllOrders(ctx: BotContext, args: OrderDelegateArgs, instance: BotImplementation): Promise<Order[]>;
 }
 
 /**
@@ -39,6 +47,9 @@ export interface BotContext<TState = unknown> {
  * @returns 
  */
 export function botIdentifier(bot: BotInstance) {
+    if (!bot) {
+        return `(null bot)`;
+    }
     return `${bot.name} (${bot.id.substr(0, 8)})`;
 }
 
@@ -60,15 +71,14 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
         log,
     };
 
-    // Give the bot the facilities it needs based on its mode, e.g. back-testing
+    async function placeOrder(ctx: BotContext, args, tick: Price, liveInstance, buy = true, backtestArgs: BacktestRequest = null) {
 
-    ctx.placeLimitBuyOrder = async (ctx, args, del?) => {
-        debugger;
-
-        const { instance } = ctx;
-        const { exchange, market, price, quantity } = args;
+        const { instance, state } = ctx as BotContext<GeneticBotState>;
+        const { exchange, market } = args;
         const { id: botRunId } = run;
         const { baseSymbolId, quoteSymbolId } = ctx.stateInternal;
+
+        const purchasePrice = tick.close;
 
         const order: Partial<Order> = {
             displayName: `TODO`, // TODO
@@ -76,61 +86,137 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             baseSymbolId,
             quoteSymbolId,
             botRunId,
-            extOrderId: "TEST",
-            strike: price,
-            quantity,
+            strike: purchasePrice,
             stateId: OrderState.OPEN,
         };
 
-        // ... place order goes here
-        if (record.modeId === Mode.LIVE || record.modeId === Mode.LIVE_TEST) {
+        const isLive = record.modeId === Mode.LIVE || record.modeId === Mode.LIVE_TEST;
+        const modeStr = isLive
+            ? "LIVE"
+            : "paper"
+            ;
 
-            //
-            // TODO: Place actual order ... use delegate
-            //
-        }
+        const buyOrSell = buy
+            ? "BUY"
+            : "SELL"
+            ;
 
-        const savedOrder = await orders.addOrderToDatabase(order);
+        let savedOrder: Order;
+        const t = await capital.transact(instance.id, order.quoteSymbolId, order, async (item, trx) => {
 
-        log.debug(`Bot places BUY order`, savedOrder);
-        debugger;
+            const maxBuyingPower = item.amount.mul(Money(item.maxWagerPct.toString()));
+            const profitTargetPct = genome.getGene<number>("PROFIT", "TGTPCT").value;
+
+            // TODO: Double-check PoC bot
+            // TODO: Exchange-based fee structure
+            // TODO: Fees tracking
+
+            let amount: Money = null;
+            const fees = purchasePrice.mul("0.001");
+
+            let quantity: Money = null;
+            if (buy) {
+                quantity = maxBuyingPower.div(purchasePrice);
+                amount = purchasePrice.mul(quantity).mul("-1");
+            }
+            else {
+                quantity = state.prevQuantity;
+                amount = purchasePrice.mul(quantity);
+            }
+
+            const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
+
+
+            order.botRunId = botRunId;
+            order.quantity = quantity;
+            order.price = purchasePrice;
+            order.limit = purchasePrice;
+            order.gross = amount;
+
+            order.strike = targetPrice;
+            order.displayName = `${buyOrSell} ${quantity} X ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId} = ${amount.round(8).toString()} ${order.quoteSymbolId}`;
+            order.extOrderId = "FAKE";
+            order.typeId = buy ? OrderType.LIMIT_BUY : OrderType.LIMIT_SELL;
+
+            if (isLive) {
+                order.opened = new Date();
+            }
+            else {
+                order.opened = tick.ts;
+
+                // Note: It's up to downstream componends 
+            }
+
+            if (!backtestArgs) {
+                savedOrder = await orders.addOrderToDatabase(order, trx);
+            }
+
+            log.info(`Placing ${modeStr} order for ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId}`);
+
+            const transaction: Partial<AllocationTransaction> = {
+                allocationItemId: item.id,
+                orderId: savedOrder.id,
+                displayName: savedOrder.displayName,
+                typeId: AllocationTransactionType.DEBIT,
+                amount,
+            };
+
+            // HACK: Assumes GeneticBot. Perhaps FSM state should be generic
+            let fsmState = state.fsmState;
+            state.fsmState = buy
+                ? GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF
+                : GeneticBotFsmState.WAITING_FOR_SELL_ORDER_CONF
+                ;
+
+            if (buy) {
+                state.prevQuantity = quantity;
+                state.prevPrice = purchasePrice;
+                state.prevOrderId = savedOrder.id;
+                state.targetPrice = targetPrice;
+            }
+            else {
+                state.prevQuantity = null;
+                state.prevPrice = null;
+                state.prevOrderId = null;
+                state.targetPrice = null;
+            }
+
+
+            if (!isLive) {
+                const msg: OrderStatusUpdateMessage = {
+                    exchangeOrder: null,
+                    primoOrder: savedOrder,
+                };
+
+                // Let the bot handle open and close separately
+                savedOrder.stateId = OrderState.OPEN;
+
+                ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, trx);
+
+                savedOrder.stateId = OrderState.CLOSED;
+
+                if (!backtestArgs) {
+                    savedOrder = await orders.updateOrder(savedOrder, trx);
+                }
+
+                ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, trx);
+            }
+
+            //log.debug(`Bot places ${buyOrSell} order`, moneytize(savedOrder));
+            return transaction;
+        });
 
         return savedOrder;
     };
 
+
+
+    ctx.placeLimitBuyOrder = async (ctx, args, tick: Price, liveInstance: BotImplementation) => {
+        return placeOrder(ctx, args, tick, liveInstance, true);
+    }
     //
-    ctx.placeLimitSellOrder = async (ctx, args, del?) => {
-        const { exchange, market, price, quantity } = args;
-        const { id: botRunId } = run;
-        const { baseSymbolId, quoteSymbolId } = ctx.stateInternal;
-
-        // TODO: Commission, OrderFills
-
-        const order: Partial<Order> = {
-            displayName: `TODO`, // TODO
-            exchangeId: exchange,
-            baseSymbolId,
-            quoteSymbolId,
-            botRunId,
-            extOrderId: "TEST",
-            strike: price,
-            quantity,
-            stateId: OrderState.OPEN,
-        };
-
-        // ... place order goes here
-        if (record.modeId === Mode.LIVE || record.modeId === Mode.LIVE_TEST) {
-
-            //
-            // TODO: Place actual order ... use delegate
-            //
-        }
-
-        const savedOrder = await orders.addOrderToDatabase(order);
-        log.debug(`Bot places SELL order`, savedOrder);
-
-        debugger;
-        return savedOrder;
+    ctx.placeLimitSellOrder = async (ctx, args, tick: Price, liveInstance: BotImplementation) => {
+        return placeOrder(ctx, args, tick, liveInstance, false);
     };
 
     return ctx as BotContext;

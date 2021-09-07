@@ -47,7 +47,7 @@ describe(StrategyService.name, () => {
         it("returns entries for non running bot", async () => {
             await clearTestData();
             const { instance } = await addNewBotDefAndInstance();
-            await strats.startBotInstance(instance.id);
+            await strats.startBotInstance({ id: instance.id });
             await strats.stopBotInstance(instance.id);
 
             const { workspace, strategy } = ctx;
@@ -64,9 +64,9 @@ describe(StrategyService.name, () => {
             await clearTestData();
 
             const { instance } = await addNewBotDefAndInstance();
-            await strats.startBotInstance(instance.id);
+            await strats.startBotInstance({ id: instance.id });
             await strats.stopBotInstance(instance.id);
-            await strats.startBotInstance(instance.id);
+            await strats.startBotInstance({ id: instance.id });
 
             const { workspace, strategy } = ctx;
 
@@ -92,7 +92,7 @@ describe(StrategyService.name, () => {
 
         it("returns an active run for a running bot", async () => {
             const { instance } = await addNewBotDefAndInstance();
-            await strats.startBotInstance(instance.id);
+            await strats.startBotInstance({ id: instance.id });
 
             const activeRuns = await strats.getRunsForBot(instance.id);
             assert.lengthOf(activeRuns, 1);
@@ -103,7 +103,7 @@ describe(StrategyService.name, () => {
 
         it("returns an inactive run for a stopped bot", async db => {
             const { instance } = await addNewBotDefAndInstance();
-            await strats.startBotInstance(instance.id);
+            await strats.startBotInstance({ id: instance.id });
             await strats.stopBotInstance(instance.id);
 
             const runs = await strats.getRunsForBot(instance.id);
@@ -114,9 +114,9 @@ describe(StrategyService.name, () => {
 
         it("returns an active run for a restarted bot", async () => {
             const { instance } = await addNewBotDefAndInstance();
-            await strats.startBotInstance(instance.id);
+            await strats.startBotInstance({ id: instance.id });
             await strats.stopBotInstance(instance.id);
-            await strats.startBotInstance(instance.id);
+            await strats.startBotInstance({ id: instance.id });
 
             const runs = await strats.getRunsForBot(instance.id);
             assert.lengthOf(runs, 2);

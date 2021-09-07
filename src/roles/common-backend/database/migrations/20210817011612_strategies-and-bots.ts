@@ -1,7 +1,7 @@
 import knex, { Knex } from "knex";
-import { BotDefinition } from "../../../common/models/system/BotDefinition";
+import { BotDefinition } from "../../../common/models/bots/BotDefinition";
 import { BotDefinitionEntity } from "../../../common/entities/BotDefinitionEntity";
-import { BotInstance } from "../../../common/models/system/BotInstance";
+import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { BotInstanceEntity } from "../../../common/entities/BotInstanceEntity";
 import { Mode } from "../../../common/models/system/Strategy";
 import { RunState } from "../../../common/models/system/RunState";

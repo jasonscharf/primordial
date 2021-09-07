@@ -31,4 +31,13 @@ export class MutableEntity implements MutableModel {
             this.displayName = isNullOrUndefined(row[prefix + "displayName"]) ? "" : row[prefix + "displayName"];
         }
     }
+
+    static get cols() {
+        return [
+            "id",
+            "created",
+            "updated",
+            "displayName",
+        ];
+    }
 }

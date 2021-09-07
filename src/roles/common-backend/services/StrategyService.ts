@@ -1,13 +1,15 @@
 import knex, { Knex } from "knex";
 import env from "../env";
-import { BotDefinition } from "../../common/models/system/BotDefinition";
+import { BacktestRequest } from "../messages/testing";
+import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotDefinitionEntity } from "../../common/entities/BotDefinitionEntity";
-import { BotInstance } from "../../common/models/system/BotInstance";
+import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotInstanceDescriptor } from "../../common/models/BotInstanceDescriptor";
 import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
-import { BotRun } from "../../common/models/system/BotRun";
+import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunEntity } from "../../common/entities/BotRunEntity";
 import { Mode, Strategy } from "../../common/models/system/Strategy";
+import { OrderEntity } from "../../common/entities/OrderEntity";
 import { PrimoUnknownName } from "../../common/errors/errors";
 import { RunState } from "../../common/models/system/RunState";
 import { StrategyEntity } from "../../common/entities/StrategyEntity";
@@ -23,6 +25,11 @@ import { sym } from "../services";
 import { version } from "../../common/version";
 
 
+export interface StartBotInstanceArgs {
+    id: string;
+    testArgs?: BacktestRequest;
+    noSave?: boolean;
+}
 
 /**
  * Handles plans (strategies) and bots.
@@ -270,14 +277,28 @@ export class StrategyService {
                 symbolFilter: symbolFilter.trim(),
             };
 
+            // TODO: TEST
             const rows = <BotInstance[]>await db(tables.BotInstances)
-                .where(<Partial<BotInstance>>{
-                    symbols: symbolFilter,
-                    runState: RunState.NEW,
+                .where(function () {
+                    return this
+                        .where(<Partial<BotInstance>>{
+                            modeId: Mode.LIVE
+                        })
+                        .orWhere(<Partial<BotInstance>>{
+                            modeId: Mode.LIVE_TEST,
+                        })
+                        .orWhere(<Partial<BotInstance>>{
+                            modeId: Mode.FORWARD_TEST,
+                        })
                 })
-                .orWhere(<Partial<BotInstance>>{
-                    symbols: symbolFilter,
-                    runState: RunState.ACTIVE,
+                .andWhere(function () {
+                    return this.where(<Partial<BotInstance>>{
+                        symbols: symbolFilter,
+                        runState: RunState.NEW,
+                    }).orWhere(<Partial<BotInstance>>{
+                        symbols: symbolFilter,
+                        runState: RunState.ACTIVE,
+                    })
                 });
 
 
@@ -372,24 +393,39 @@ export class StrategyService {
             order: null,
         };
 
+        function prefixed(table: string, prefix: string, cols: string[]) {
+            let str = "";
+            for (let i = 0; i < cols.length; ++i) {
+                const c = cols[i];
+                str += `${table}."${c}" as "${prefix}_${c}"`;
+                if (i < cols.length - 1) {
+                    str += ", ";
+                }
+            }
+
+            return str;
+        }
+
+        const commonCols = ["id", "created", "updated", "displayName"];
+
         await query(queries.BOTS_GET_BOT_FOR_ORDER, async db => {
-            const [row] = await db(tables.BotDefinitions)
-                .as("def")
-                .innerJoin(tables.BotInstances, ref(tables.BotDefinitions), "=", ref(tables.BotInstances, "definitionId"))
-                .as("instance")
-                .leftJoin(tables.BotRuns, ref(tables.BotInstances), ref(tables.BotRuns, "instanceId"))
-                .as("run")
-                .innerJoin(tables.Orders, ref(tables.BotRuns), ref(tables.Orders, "botRunId"))
-                .as("order")
-                .where({ orderId })
-                .select(ref(tables.BotDefinitions))
+            const query = db(tables.BotDefinitions)
+                .innerJoin(tables.BotInstances, ref(tables.BotInstances, "definitionId"), ref(tables.BotDefinitions))
+                .leftJoin(tables.BotRuns, ref(tables.BotRuns, "instanceId"), ref(tables.BotInstances))
+                .innerJoin(tables.Orders, ref(tables.Orders, "botRunId"), ref(tables.BotRuns))
+                .where(ref(tables.Orders), "=", orderId)
+                .select(db.raw(prefixed(tables.BotDefinitions, "def", BotDefinitionEntity.cols)))
+                .select(db.raw(prefixed(tables.BotInstances, "instance", BotInstanceEntity.cols)))
+                .select(db.raw(prefixed(tables.BotRuns, "run", BotRunEntity.cols)))
+                .select(db.raw(prefixed(tables.Orders, "order", OrderEntity.cols)))
                 .limit(1)
                 ;
 
-            res.def = BotDefinitionEntity.fromRow(row, "bot");
-            res.instance = BotInstanceEntity.fromRow(row, "instance");
-            res.run = BotInstanceEntity.fromRow(row, "order")
-            res.order = BotInstanceEntity.fromRow(row);
+            const [row] = <any>await query;
+            res.def = BotDefinitionEntity.fromRow(row, "def_");
+            res.instance = BotInstanceEntity.fromRow(row, "instance_");
+            res.run = BotRunEntity.fromRow(row, "run_")
+            res.order = OrderEntity.fromRow(row, "order_");
             return res;
         }, trx);
 
@@ -569,13 +605,16 @@ export class StrategyService {
     }
 
     /**
-    * Starts a new bot instance
-    * @param planId 
+    * Starts a new bot instance.
+    * @param args
+    * @param trx
     */
-    async startBotInstance(instanceId: string, trx: Knex.Transaction = null): Promise<[BotInstance, BotRun]> {
+    async startBotInstance(args: StartBotInstanceArgs, trx: Knex.Transaction = null): Promise<[BotInstance, BotRun]> {
         const newTransaction = !trx;
         trx = trx || await db.transaction();
 
+        const { id: instanceId, noSave } = args;
+        const save = !noSave;
         try {
             let instance = await this.getBotInstanceById(instanceId, trx);
             if (instance.runState === RunState.ACTIVE) {
@@ -594,7 +633,9 @@ export class StrategyService {
                     runState: nextRunState,
                 };
 
-                instance = await this.updateBotInstance(updatedInstanceStateProps, trx);
+                if (save) {
+                    instance = await this.updateBotInstance(updatedInstanceStateProps, trx);
+                }
             }
 
             const now = new Date();
@@ -606,6 +647,10 @@ export class StrategyService {
 
             // New/initializing? Create a new bot run
             if (prevRunState === RunState.NEW || prevRunState === RunState.INITIALIZING || prevRunState === RunState.STOPPED) {
+                if (noSave) {
+                    return [instance, BotRunEntity.fromRow(newRunProps)];
+                }
+
                 const newRun = await query(queries.BOTS_RUNS_START, async db => {
                     const [row] = <BotRun[]>await db(tables.BotRuns)
                         .insert(newRunProps)
@@ -622,7 +667,12 @@ export class StrategyService {
                 return [instance, newRun];
             }
             else if (prevRunState === RunState.PAUSED) {
-                debugger;
+                if (noSave) {
+                    debugger;
+                    throw new Error(`Nosave not supported yet`);
+                    const latestRun = null;
+                    return [instance, latestRun];
+                }
                 // ... handle unpause by starting the latest run
 
                 // TODO: Dedupe from below
@@ -630,8 +680,13 @@ export class StrategyService {
                 return [instance, latestRun];
             }
             else {
+                if (noSave) {
+                    throw new Error(`Nosave not supported yet`);
+                    const latestRun = null;
+                    return [instance, latestRun];
+                }
+
                 // Just fetch the latest run
-                debugger;
                 const savedInstance = await this.updateBotInstance(updatedProps, trx);
                 const latestRun = await query(queries.BOTS_RUNS_LATEST_GET, async db => {
                     const [row] = <BotRun[]>await db(tables.BotRuns)
@@ -659,16 +714,17 @@ export class StrategyService {
 
     /**
      * Stops a bot and any active bot run.
-     * @param planId 
+     * @param instanceId 
+     * @param error
      */
-    async stopBotInstance(instanceId: string, trx: Knex.Transaction = null): Promise<[BotInstance, BotRun]> {
+    async stopBotInstance(instanceId: string, error: Error = null, trx: Knex.Transaction = null): Promise<[BotInstance, BotRun]> {
         const newTransaction = !trx;
         trx = trx || await db.transaction();
 
         try {
             let instance = await this.getBotInstanceById(instanceId, trx);
             const prevRunState = instance.runState;
-            const nextRunState = RunState.STOPPED;
+            const nextRunState = error ? RunState.ERROR : RunState.STOPPED
             const updatedProps: Partial<BotInstance> = {
                 runState: nextRunState,
             };

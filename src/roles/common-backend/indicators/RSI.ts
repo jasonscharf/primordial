@@ -2,7 +2,7 @@ const talib = require("talib");
 import { BotContext } from "../bots/BotContext";
 import { GeneticBotState } from "../../worker/bots/GeneticBot";
 import { IndicatorChromosome } from "../genetics/IndicatorChromosome";
-import { Price } from "../../common/models/system/Price";
+import { Price } from "../../common/models/markets/Price";
 import { PriceUpdateMessage } from "../messages/trading";
 import { isNullOrUndefined } from "../../common/utils";
 
@@ -52,7 +52,6 @@ export class RsiIndicatorChromosome extends IndicatorChromosome {
         const optInTimePeriod = genome.getGene<number>("RSI", "OITP").value;
         const windowLen = genome.getGene<number>("RSI", "WL").value;
 
-        // TODO: Maybe emit a warning?
         if (optInTimePeriod >= windowLen) {
             log.warn(`RSI opt-in period is greater than or equal to windowLen. RSI will be invlid.`);
         }

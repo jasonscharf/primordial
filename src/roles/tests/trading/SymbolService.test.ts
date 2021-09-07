@@ -2,7 +2,7 @@ import "intern";
 import { DateTime } from "luxon";
 import Knex from "knex";
 import { Money, sleep } from "../../common/utils";
-import { Price } from "../../common/models/system/Price";
+import { Price } from "../../common/models/markets/Price";
 import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS, PriceDataParameters } from "../../common-backend/services/SymbolService";
 import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";

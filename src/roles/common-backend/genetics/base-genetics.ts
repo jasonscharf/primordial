@@ -25,7 +25,7 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
         new Gene<number>("T", GeneticValueType.NUMBER, 1, "Threshold at which to consider a buy signal from the weighted average of other indicators"),
     ]),
     "SELL": new Chromosome("SELL", "Buying", "Controls selling behaviour", [
-        new Gene<number>("T", GeneticValueType.NUMBER, 1, "Threshold at which to consider a sell signal from the weighted average of other indicators"),
+        new Gene<number>("T", GeneticValueType.NUMBER, -1, "Threshold at which to consider a sell signal from the weighted average of other indicators"),
     ]),
     "SYM": new Chromosome("SYM", "Symbols", "Controls which symbols to trade", []),
     "RSI": new RsiIndicatorChromosome("RSI", "RSI", "Behaviour involving the Relative Strength Indictor", [

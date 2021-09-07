@@ -1,8 +1,8 @@
 import { Allocation } from "../../../common/models/capital/Allocation";
 import { AssetAmount } from "../../../common/models/capital/AssetAmount";
-import { BotDefinition } from "../../../common/models/system/BotDefinition";
+import { BotDefinition } from "../../../common/models/bots/BotDefinition";
 import { BotInstanceDescriptor } from "../../../common/models/BotInstanceDescriptor";
-import { BotRun } from "../../../common/models/system/BotRun";
+import { BotRun } from "../../../common/models/bots/BotRun";
 import { CommandContext } from "../CommandContext";
 import { CommandHandler } from "../CommandHandler";
 import { CommandResult } from "../CommandResult";
@@ -55,7 +55,7 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
         const DEFAULT_ARGS: Partial<BotCreateArgs> = {
             displayName: null,
             name: newRandomName,
-            alloc: "100 TUSD",
+            alloc: "100 TUSD", // TODO: wat
             startInstance: false,
             symbols: null,
             format: "application/json",
@@ -155,7 +155,7 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
             const res = parsedGenomeResults.genome.getGene<TimeResolution>("TIME", "RES").value;
             const instance = await strats.createNewInstanceFromDef(def, res, name, allocation.id, startInstance, trx);
 
-            const [updatedInstance, run] = await strats.startBotInstance(instance.id, trx);
+            const [updatedInstance, run] = await strats.startBotInstance({ id: instance.id }, trx);
 
             await trx.commit();
 

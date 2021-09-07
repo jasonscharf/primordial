@@ -45,7 +45,7 @@ export class BotStop implements CommandHandler<BotStopArgs> {
             const strat = await strats.getOrCreateDefaultStrategy(workspace.id, requestingUserId, trx);
             const instance = await strats.getBotInstanceByName(workspace.id, name, trx);
             const def = await strats.getBotDefinitionById(workspace.id, instance.definitionId, trx);
-            const [updatedInstance, run] = await strats.stopBotInstance(instance.id, trx);
+            const [updatedInstance, run] = await strats.stopBotInstance(instance.id, null, trx);
 
             await trx.commit();
 

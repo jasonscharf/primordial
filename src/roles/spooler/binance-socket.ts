@@ -1,7 +1,7 @@
 import Binance, { Candle } from "binance-api-node";
 import env from "../common-backend/env";
 import { Money } from "../common/numbers";
-import { Price } from "../common/models/system/Price";
+import { Price } from "../common/models/markets/Price";
 import { TimeResolution } from "../common/models/markets/TimeResolution";
 import { TradeSymbol } from "../common/models/markets/TradeSymbol";
 import { constants, log, mq } from "../common-backend/includes";

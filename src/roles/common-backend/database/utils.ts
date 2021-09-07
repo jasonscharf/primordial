@@ -34,16 +34,19 @@ export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Prom
 
     // TODO: Log level, timing, etc
     // console.log(`Run query '${name}'...`);
+    const start = Date.now();
     let result: T;
     if (trx) {
         result = await fn(trx);
-        //await trx.commit();
     }
     else {
         result = await db.transaction(fn);
     }
 
-    // console.log(`Done query '${name}'`);
+    const end = Date.now();
+    const duration = end - start;
+
+    //console.log(`Done query '${name}' in ${duration}ms`);
 
     return result;
 }

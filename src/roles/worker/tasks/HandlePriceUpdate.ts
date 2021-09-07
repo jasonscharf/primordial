@@ -2,15 +2,15 @@ import { DateTime } from "luxon";
 import { Knex } from "knex";
 import env from "../../common-backend/env";
 import { BotContext, botIdentifier, buildBotContext } from "../../common-backend/bots/BotContext";
-import { BotDefinition } from "../../common/models/system/BotDefinition";
+import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotImplementation } from "../../common-backend/bots/BotImplementation";
-import { BotInstance } from "../../common/models/system/BotInstance";
-import { BotRun } from "../../common/models/system/BotRun";
+import { BotInstance } from "../../common/models/bots/BotInstance";
+import { BotRun } from "../../common/models/bots/BotRun";
 import { Factory } from "../../common-backend/bots/BotFactory";
 import { GeneticBot } from "../bots/GeneticBot";
 import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
 import { Money } from "../../common/numbers";
-import { Price } from "../../common/models/system/Price";
+import { Price } from "../../common/models/markets/Price";
 import { PriceDataParameters } from "../../common-backend/services/SymbolService";
 import { PriceUpdateMessage } from "../../common-backend/messages/trading";
 import { QueueMessage } from "../../common-backend/messages/QueueMessage";
@@ -19,6 +19,7 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { constants, db, log, mq, strats, sym } from "../../common-backend/includes";
 import { millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
 import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base-genetics";
+import { botFactory } from "../bots/RobotFactory";
 
 
 /**
@@ -95,10 +96,6 @@ export function matchFilter(symbolOrPair: string, filter: string) {
 }
 
 
-// TODO: Extract
-const botFactory = new Factory();
-botFactory.register(DEFAULT_BOT_IMPL, args => new GeneticBot());
-
 /**
  * Ticks a stateful trading bot.
  * @param def 
@@ -107,10 +104,10 @@ botFactory.register(DEFAULT_BOT_IMPL, args => new GeneticBot());
  */
 export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, price: PriceUpdateMessage) {
     const start = Date.now();
-    const run: BotRun = null; // TODO
+    const run: BotRun = await strats.getLatestRunForInstance(instanceRecord.id);
     const ctx = await buildBotContext(def, instanceRecord, run);
 
- 
+
     // TODO: Extract to BotRunner facility
 
     const { genome } = ctx;
@@ -169,7 +166,7 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
 
         // TODO: Consider price pull from API in the case of a gap?
         //  Think about a deployment rollout
-        const prices =  await sym.queryPricesForRange(params);
+        const prices = await sym.queryPricesForRange(params);
         ctx.prices = prices;
 
         const indicators = await instance.computeIndicatorsForTick(ctx, price);

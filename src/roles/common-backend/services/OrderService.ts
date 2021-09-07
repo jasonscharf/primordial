@@ -37,7 +37,7 @@ export class OrderService {
      * @param orderId 
      * @param fills 
      */
-    async updateOrder(orderProps: Partial<Order>): Promise<Order> {
+    async updateOrder(orderProps: Partial<Order>, trx: Knex.Transaction = null): Promise<Order> {
         const { id } = orderProps;
         if (!id) {
             throw new Error(`Missing ID`);
@@ -45,12 +45,12 @@ export class OrderService {
         return query(constants.queries.ORDERS_UPDATE, async db => {
             const [row] = <Order[]>await db(tables.Orders)
                 .where({ id })
-                .update(orderProps)
+                .update(moneytize(orderProps))
                 .returning("*")
                 ;
 
             return OrderEntity.fromRow(row);
-        });
+        }, trx);
     }
 
     /**

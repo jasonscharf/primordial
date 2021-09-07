@@ -1,5 +1,5 @@
-import { Order } from "../../common/models/markets/Order";
-import { PriceUpdateMessage } from "../messages/trading";
+import { Knex } from "knex";
+import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../messages/trading";
 import { BotContext, botIdentifier } from "./BotContext";
 import { BotImplementation } from "./BotImplementation";
 
@@ -50,8 +50,9 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
      * @param ctx 
      * @param order 
      */
-    async handleOrderStatusChange(ctx: BotContext<TState>, order: Order): Promise<Order> {
+    async handleOrderStatusChange(ctx: BotContext<TState>, order: OrderStatusUpdateMessage, trx?: Knex.Transaction): Promise<TState> {
+        const { instance, state } = ctx;
         ctx.log.info(`[BOT] Handles order status change`, order);
-        return null;
+        return state;
     }
 }

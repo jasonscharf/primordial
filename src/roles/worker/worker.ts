@@ -4,6 +4,7 @@ import env from "../common-backend/env";
 import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../common-backend/messages/trading";
 import { QueueMessage } from "../common-backend/messages/QueueMessage";
 import { constants, dbm, log, mq } from "../common-backend/includes";
+import { handleBacktestCommand } from "./commands/HandleBacktestCommand";
 import { handlePriceUpdate } from "./tasks/HandlePriceUpdate";
 import { handleOrderStatusUpdate } from "./tasks/HandleOrderStatusUpdate";
 
@@ -44,21 +45,23 @@ async function shutdown() {
  * Subscribes the worker to the appropriate worker queue.
  */
 export async function subscribeToQueues() {
-    await mq.connect();
+    await mq.connectAsWorker();
 
     log.info(`Worker listening to queue '${constants.queue.CHANNEL_WORKER_HI}'`);
-    await mq.setupConsume(constants.queue.CHANNEL_WORKER_HI);
 
     // Price ticks
     mq.subMessage(constants.queue.CHANNEL_WORKER_HI, constants.events.EVENT_PRICE_UPDATE, (msg: QueueMessage<PriceUpdateMessage>) => {
-        msg.receivedTs = Date.now();
         handlePriceUpdate(msg);
     });
 
-    mq.subMessage(constants.queue.CHANNEL_WORKER_HI, constants.events.EVENT_ORDER_STATUS_UPDATE, (msg: QueueMessage<OrderStatusUpdateMessage>) => {
-        msg.receivedTs = Date.now();
-        handleOrderStatusUpdate(msg);
+    mq.subMessage(constants.queue.CHANNEL_WORKER_HI, constants.events.EVENT_ORDER_STATUS_UPDATE, (msg: OrderStatusUpdateMessage) => {
+        handleOrderStatusUpdate(msg); 
     });
+
+    mq.addCommandHandler(constants.commands.CMD_BOTS_TEST, cmd => {
+        return handleBacktestCommand(cmd);
+    });
+
     /*
     let subscribeToHighPriority = true;
     let subscribeToLowPriority = false;

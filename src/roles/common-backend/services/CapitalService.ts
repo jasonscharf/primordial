@@ -1,17 +1,18 @@
 import { Knex } from "knex";
+import { Allocation } from "../../common/models/capital/Allocation";
 import { AllocationEntity } from "../../common/entities/AllocationEntity";
 import { AllocationItemEntity } from "../../common/entities/AllocationItemEntity";
 import { AllocationTransactionEntity } from "../../common/entities/AllocationTransaction";
-import { Allocation } from "../../common/models/capital/Allocation";
 import { AllocationItem } from "../../common/models/capital/AllocationItem";
 import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
 import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
 import { AssetAmount } from "../../common/models/capital/AssetAmount";
 import { Money } from "../../common/numbers";
-import { botIdentifier } from "../bots/BotContext";
+import { Order } from "../../common/models/markets/Order";
 import { DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT, DEFAULT_ALLOCATION_MAX_WAGER, queries, tables } from "../constants";
-import { db, strats } from "../includes";
-import { query, ref } from "../database/utils";
+import { botIdentifier } from "../bots/BotContext";
+import { db, log, strats } from "../includes";
+import { moneytize, query, ref } from "../database/utils";
 import { sym } from "../services";
 
 
@@ -33,9 +34,9 @@ export interface AllocationLedger {
     transactions: AllocationTransaction[];
 }
 
-export interface WidthdrawalArgs {
-    botInstanceId: string;
-    requestedAmount: Money;
+export interface OrderTransactionResult {
+    order: Order;
+    transaction: AllocationTransaction;
 }
 
 /** 
@@ -139,11 +140,92 @@ export class CapitalService {
     }
 
     /**
-     * Requests a withdrawal for a bot to make a purchase.
+     * Returns allocation item in an allocation for a given symbol.
+     * Throws if an item cannot be found.
+     * @param allocationId 
+     * @param symbol 
      */
-    async requestWithdrawalForBotOrder(args: WidthdrawalArgs): Promise<AllocationTransaction> {
-        const { botInstanceId } = args;
+    async getItemFromAllocationForBot(instanceId: string, symbol: string, trx: Knex.Transaction = null): Promise<AllocationItem> {
+        const res = await query(queries.ALLOCS_GET_ITEM_FOR_BOT, async trx => {
+
+            const [row] = await trx(tables.AllocationItems)
+                .innerJoin(tables.Allocations, ref(tables.AllocationItems, "allocationId"), ref(tables.Allocations))
+                .innerJoin(tables.BotInstances, ref(tables.BotInstances, "allocationId"), ref(tables.Allocations))
+                .where(ref(tables.BotInstances), "=", instanceId)
+                .where(ref(tables.AllocationItems, "symbolId"), "=", symbol)
+                .select(ref(tables.AllocationItems, "*"))
+                .limit(1);
+
+            if (!row) {
+                throw new Error(`No allocation item for symbol '${symbol}' found for bot '${instanceId}'`);
+            }
+            return AllocationItemEntity.fromRow(row);
+        });
+
+        return res;
+    }
+
+    /**
+     * Gets the balance for a particular symbol in an allocation
+     * @param allocationId 
+     * @param symbol 
+     * @param trx 
+     * @returns 
+     */
+    async getBalanceForSymbol(allocationId: string, symbol: string, trx: Knex.Transaction = null) {
         return null;
+    }
+
+    /**
+     * Performs a financial transaction by executing buy/sell logic in a database transaction.
+     * The delegate passed should return a partial (unsaved) transaction.
+     * @param instanceId 
+     * @param order 
+     * @param delegate 
+     * @param trx 
+     * @returns 
+     */
+    async transact(instanceId: string, symbol: string, order: Partial<Order>, delegate: (item: AllocationItem, trx: Knex.Transaction) => Promise<Partial<AllocationTransaction>>, trx: Knex.Transaction = null):
+        Promise<Partial<AllocationTransaction>> {
+        const newTransaction = !trx;
+        trx = trx || await db.transaction();
+
+        try {
+            if (symbol !== order.baseSymbolId && symbol !== order.quoteSymbolId) {
+                throw new Error(`Symbol '${symbol}' doesn't match base or quote of order`);
+            }
+
+            const item = await this.getItemFromAllocationForBot(instanceId, symbol, trx);
+            const transactionCandidate = await delegate(item, trx);
+
+            if (transactionCandidate === null) {
+                throw new Error(`Delegate produced no transaction`);
+            }
+
+            const savedTransaction = await query(queries.TRANSACTIONS_CREATE, async trx => {
+                const { allocationItemId, amount, orderId, typeId } = transactionCandidate;
+                const bindings = {
+                    allocationItemId,
+                    amount: amount.toString(),
+                    orderId,
+                    typeId,
+                };
+
+                const [row] = await trx(tables.AllocationTransactions)
+                    .insert(moneytize(transactionCandidate))
+                    .returning("*");
+
+                return AllocationTransactionEntity.fromRow(row);
+            }, trx);
+
+            await trx.commit();
+            return savedTransaction;
+        }
+        catch (err) {
+            await trx.rollback();
+            log.error(`Error transacting order for ${instanceId}`, err);
+            throw err;
+        }
     }
 
     async cancelWithdrawalForBot(transaction: AllocationTransaction) {
@@ -197,7 +279,7 @@ export class CapitalService {
                         amount: quantity.toString() as any as Money,
                         maxWagerPct: DEFAULT_ALLOCATION_MAX_WAGER,
                         symbolId: symbol.id,
-                        displayName: `${amount} ${symbol}`,
+                        displayName: `${amount.quantity.toString()} ${amount.symbol.id}`,
                     };
 
                     const [newAllocItemRow] = <AllocationItem[]>await db(tables.AllocationItems)

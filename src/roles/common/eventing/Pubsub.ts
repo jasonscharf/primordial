@@ -7,6 +7,10 @@ import { Subscription } from "./Subscription";
 export class Pubsub {
     private _topics: Map<string, Subscription[]> = new Map();
 
+    has(topic: string): boolean {
+        return this._topics.has(topic);
+    }
+    
     /**
      * Subscribes to a particular topic on the pubsub.
      * @param topic The topic to subscribe to
@@ -40,11 +44,12 @@ export class Pubsub {
      * @param topic The topic name, which may be a long-lived identifier or an ephemeral ID, e.g. one in an RPC transaction.
      * @param message The message to send about the topic. Can be anything but must be serializable via `JSON.stringify`. 
      */
-    async publish(topic: string, message: any = {}) {
+    async publish(topic: string, message: any = {}): Promise<unknown[]> {
         const subsInitial = this._topics.get(topic) || [];
         const subs = subsInitial.slice();
         let hasDeadSubs = false;
 
+        const results = [];
         for (let i = 0; i < subs.length; ++i) {
             const sub = subs[i];
             if (!sub.isLive()) {
@@ -52,12 +57,10 @@ export class Pubsub {
                 continue;
             }
 
-            await sub.invokeCallback(message);
+            results.push(await sub.invokeCallback(message));
         }
 
-        if (!hasDeadSubs) {
-            return;
-        }
+        return results;
     }
 
     /**

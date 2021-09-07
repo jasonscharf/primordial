@@ -2,7 +2,7 @@ import ccxt, { Dictionary } from "ccxt";
 import { DateTime } from "luxon";
 import env from "../env";
 import { Money } from "../../common/numbers";
-import { Price } from "../../common/models/system/Price";
+import { Price } from "../../common/models/markets/Price";
 import { PriceEntity } from "../../common/entities/PriceEntity";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
@@ -74,9 +74,9 @@ export class SymbolService {
         // Just temporary standins. Ultimately they should be everything always, from every exchange ever.
         if (env.isDev()) {
             return [
-                "BTC/TUSD",
-                "ETH/BTC",
-                "DOGE/BTC",
+                "BTC/BUSD",
+                "ETH/BUSD",
+                "DOGE/BUSD",
             ];
         }
         else {

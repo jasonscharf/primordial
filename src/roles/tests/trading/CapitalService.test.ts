@@ -1,16 +1,19 @@
+import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
+import { AllocationTransactionEntity } from "../../common/entities/AllocationTransaction";
 import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
-import { CapitalService, WidthdrawalArgs } from "../../common-backend/services/CapitalService";
+import { CapitalService } from "../../common-backend/services/CapitalService";
 import { Money, randomString } from "../../common/utils";
+import { Order, OrderState } from "../../common/models/markets/Order";
 import { Strategy } from "../../common/models/system/Strategy";
-import { TestDataCtx, getTestData, addNewBotDefAndInstance } from "../utils/test-data";
+import { TestDataCtx, getTestData, addNewBotDefAndInstance, makeTestOrder, clearTestData, TEST_DEFAULT_BUDGET } from "../utils/test-data";
 import { User } from "../../common/models";
 import { Workspace } from "../../common/models/system/Workspace";
 import { assert, describe, before, env, it } from "../includes";
 import { assertRejects } from "../utils/async";
 import { beforeEach } from "intern/lib/interfaces/tdd";
-import { bot } from "../../spooler/cli/commands";
-import { strats, sym, users } from "../../common-backend/includes";
-import { DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT } from "../../common-backend/constants";
+import { query } from "../../common-backend/database/utils";
+import { orders, strats, sym, users } from "../../common-backend/includes";
+import { DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT, tables } from "../../common-backend/constants";
 
 
 describe(CapitalService.name, () => {
@@ -32,13 +35,8 @@ describe(CapitalService.name, () => {
     });
 
     describe(cap.createAllocationForBot.name, () => {
-        it("throws on negative initial amount", async => {
-            // TEST
-        });
-
-
         it("creates a new allocation record", async () => {
-            const allocStr = "1000 USD";
+            const allocStr = "1000 TUSD";
             const { def, instance } = await addNewBotDefAndInstance();
             const { alloc, items, transactions } = await cap.createAllocationForBot(defaultStrategy.id, allocStr);
             assert.equal(alloc.strategyId, defaultStrategy.id);
@@ -49,7 +47,7 @@ describe(CapitalService.name, () => {
             const [item] = items;
             assert.equal(item.allocationId, alloc.id);
             assert.equal(item.amount.toString(), "1000");
-            assert.equal(item.symbolId, "USD");
+            assert.equal(item.symbolId, "TUSD");
 
             assert.lengthOf(transactions, 1);
             const [transaction] = transactions;
@@ -68,15 +66,80 @@ describe(CapitalService.name, () => {
 
     });
 
-    describe(cap.requestWithdrawalForBotOrder.name, () => {
-        it("returns a transaction for a valid bot withdrawal", async () => {
-            const amountRaw = "100";
-            const bot = await addNewBotDefAndInstance();
-            const args: WidthdrawalArgs = {
-                botInstanceId: bot.instance.id,
-                requestedAmount: Money(amountRaw),
-            };
-            const transaction = await cap.requestWithdrawalForBotOrder(args);
+    describe(cap.getItemFromAllocationForBot.name, () => {
+        it("does some stuff", async () => {
+        });
+    });
+
+    describe(cap.getBalanceForSymbol.name, () => {
+
+    });
+
+    describe(cap.transact.name, () => {
+        async function addFakeTransaction() {
+            const { instance, run } = await addNewBotDefAndInstance(TEST_DEFAULT_BUDGET, true);
+            const order = makeTestOrder({ botRunId: run.id });
+
+            let delegateExecuted = false;
+            const transaction = await cap.transact(instance.id, "TUSD", order, async (item, trx) => {
+                delegateExecuted = true;
+
+                const savedOrder = await orders.addOrderToDatabase(order);
+                const fakeTransaction: Partial<AllocationTransaction> = {
+                    allocationItemId: item.id,
+                    amount: Money("1"),
+                    orderId: savedOrder.id,
+                    typeId: AllocationTransactionType.DEBIT,
+                };
+
+                return fakeTransaction;
+            });
+
+            return transaction;
+        }
+
+        it("executes the delegate and saves the transaction", async () => {
+            await clearTestData();
+            const { instance, run } = await addNewBotDefAndInstance(TEST_DEFAULT_BUDGET, true);
+            const order = makeTestOrder({ botRunId: run.id });
+
+            let delegateExecuted = false;
+            const transaction = await cap.transact(instance.id, "TUSD", order, async (item, trx) => {
+                delegateExecuted = true;
+                const fakeTransaction: Partial<AllocationTransaction> = {
+                    allocationItemId: item.id,
+                    amount: Money("1"),
+                    orderId: order.id,
+                    typeId: AllocationTransactionType.DEBIT,
+                };
+                return fakeTransaction;
+            });
+        });
+
+        it("throw if the delegate throws", async () => {
+            const { instance, run } = await addNewBotDefAndInstance(TEST_DEFAULT_BUDGET, true);
+            const order = makeTestOrder({ botRunId: run.id });
+
+            await assertRejects(() => cap.transact(instance.id, "TUSD", order, async (item, trx) => {
+                throw new Error(`Something went wrong in the transaction`);
+            }));
+        });
+
+        it("saves a valid transaction", async () => {
+            await clearTestData();
+            const t = await addFakeTransaction();
+
+            const existing = await query("test.saves-a-valid-transaction", async trx => {
+                const [row] = await trx(tables.AllocationTransactions)
+                    .where({ id: t.id });
+
+                return AllocationTransactionEntity.fromRow(row);
+            });
+
+            assert.exists(existing);
+            assert.equal(t.amount.toString(), existing.amount.toString());
+            assert.equal(t.typeId.toString(), existing.typeId.toString());
+            assert.equal(t.allocationItemId.toString(), existing.allocationItemId);
         });
     });
 

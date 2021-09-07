@@ -267,3 +267,19 @@ export function from(str: string) {
 
     return fr.toJSDate();
 }
+
+/**
+ * Converts milliseconds to something more human friendly.
+ * @param ms
+ * @returns 
+ */
+export function human(ms: number) {
+    const seconds = (ms / 1000);
+    const minutes = (ms / (1000 * 60));
+    const hours = (ms / (1000 * 60 * 60));
+    const days = (ms / (1000 * 60 * 60 * 24));
+    if (seconds < 60) return seconds.toFixed(1) + " seconds";
+    else if (minutes < 60) return minutes.toFixed(1) + " minutes";
+    else if (hours < 24) return hours.toFixed(1) + " hours";
+    else return days + " days";
+}

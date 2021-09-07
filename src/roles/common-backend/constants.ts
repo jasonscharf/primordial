@@ -25,6 +25,7 @@ export enum commands {
     CMD_BOTS_PAUSE = "cmd.bots.pause",
     CMD_BOTS_START = "cmd.bots.start",
     CMD_BOTS_STOP = "cmd.bots.stop",
+    CMD_BOTS_TEST = "cmd.bots.test",
 }
 
 /**
@@ -49,6 +50,7 @@ export enum tables {
     BotDefinitions = "bot_definitions",
     BotInstances = "bot_instances",
     BotRuns = "bot_runs",
+    BotTypes = "bot_types",
     Events = "events",
     Exchanges = "exchanges",
     ExchangeAccounts = "exchange_accounts",
@@ -58,6 +60,7 @@ export enum tables {
     Orders = "orders",
     OrderFills = "order_fills",
     OrderStates = "order_states",
+    OrderTypes = "order_types",
     Prices = "prices",
     SpoolerTasks = "spooler_tasks",
     Strategies = "strategies",
@@ -150,5 +153,8 @@ export const limits = {
 export const queue = {
     CHANNEL_WORKER_LO: "worker.lo",
     CHANNEL_WORKER_HI: "worker.hi",
+    CHANNEL_RPC_REQUEST: "rpc.request",
+    CHANNEL_RPC_RESPONSE: "rpc.response",
+    CHANNEL_RPC_RESPONSE_CLI: "rpc.response.cli",
 };
 

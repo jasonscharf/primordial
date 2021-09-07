@@ -1,12 +1,12 @@
 import ccxt from "ccxt";
 import { Order } from "../../common/models/markets/Order";
-import { Price } from "../../common/models/system/Price";
+import { Price } from "../../common/models/markets/Price";
 
 
 /**
  * Represents update to a particular symbol.
  */
-export interface PriceUpdateMessage extends Partial<Price> {
+export interface PriceUpdateMessage extends Price {
 }
 
 
