@@ -36,6 +36,7 @@ export class Genome {
                     copy.value = copy.defaultValue;
                 }
 
+                copy.active = true;
                 return copy;
             }
         }
