@@ -1,4 +1,5 @@
-import { Order } from "../../common/models/markets/Order";
+import { Knex } from "knex";
+import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../messages/trading";
 import { BotContext, botIdentifier } from "./BotContext";
 import { BotImplementation } from "./BotImplementation";
 
@@ -24,21 +25,24 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
 
     /**
      * Computes/updates any active indicators for the current frame, storing their values.
-     * @param ctx 
+     * @param ctx
+     * @param price
      */
-    async computeIndicatorsForTick(ctx: BotContext<TState>): Promise<TState> {
+    async computeIndicatorsForTick(ctx: BotContext<TState>, price: PriceUpdateMessage): Promise<Map<string, unknown>> {
         const { state } = ctx;
-        return state;
+        return new Map<string, unknown>();
     }
 
     /**
      * Ticks a bot.
      * Note that ticks may come at any time, different exchange/symbol combinations are updated at different freqs.
-     * @param ctx 
+     * @param ctx
+     * @param price
      */
-    async tick(ctx: BotContext<TState>) {
-        const { instance } = ctx;
+    async tick(ctx: BotContext<TState>, price: PriceUpdateMessage, indicators: Map<string, unknown>): Promise<TState> {
+        const { instance, state } = ctx;
         ctx.log.debug(`[BOT] ${botIdentifier(instance)} ticks...`);
+        return state;
     }
 
     /**
@@ -46,8 +50,9 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
      * @param ctx 
      * @param order 
      */
-    async handleOrderStatusChange(ctx: BotContext<TState>, order: Order): Promise<Order> {
+    async handleOrderStatusChange(ctx: BotContext<TState>, order: OrderStatusUpdateMessage, trx?: Knex.Transaction): Promise<TState> {
+        const { instance, state } = ctx;
         ctx.log.info(`[BOT] Handles order status change`, order);
-        return null;
+        return state;
     }
 }

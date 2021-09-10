@@ -1,4 +1,4 @@
-import { BotDefinition } from "../models/system/BotDefinition";
+import { BotDefinition } from "../models/bots/BotDefinition";
 import { MutableEntity } from "../models/MutableEntity";
 
 
@@ -24,7 +24,18 @@ export class BotDefinitionEntity extends MutableEntity implements BotDefinition 
         }
     }
 
-    static fromRow(row?: Partial<BotDefinitionEntity>, prefix ="") {
+    static get cols() {
+        return [
+            ...MutableEntity.cols,
+            "workspaceId",
+            "genome",
+            "description",
+            "name",
+            "symbols",
+        ];
+    }
+
+    static fromRow(row?: Partial<BotDefinitionEntity>, prefix = "") {
         return row ? new BotDefinitionEntity(row, prefix) : null;
     }
 }

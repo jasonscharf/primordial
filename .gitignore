@@ -16,4 +16,4 @@ k8s/manifest.yml
 src/roles/web/js/client.ts
 src/api/routes.ts
 src/swagger.json
-
+output.json

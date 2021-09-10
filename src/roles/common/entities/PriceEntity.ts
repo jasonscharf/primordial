@@ -1,5 +1,5 @@
 import { Money } from "../../common/numbers";
-import { Price } from "../models/system/Price";
+import { Price } from "../models/markets/Price";
 
 
 export class PriceEntity implements Price {

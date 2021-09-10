@@ -45,7 +45,7 @@ export class BotStart implements CommandHandler<BotStartArgs> {
             const strat = await strats.getOrCreateDefaultStrategy(workspace.id, requestingUserId, trx);
             const instance = await strats.getBotInstanceByName(workspace.id, name, trx);
             const def = await strats.getBotDefinitionById(workspace.id, instance.definitionId, trx);
-            const [updatedInstance, run] = await strats.startBotInstance(instance.id, trx);
+            const [updatedInstance, run] = await strats.startBotInstance({ id: instance.id }, trx);
 
             await trx.commit();
 

@@ -1,14 +1,16 @@
 import { Allocation } from "../../../common/models/capital/Allocation";
 import { AssetAmount } from "../../../common/models/capital/AssetAmount";
-import { BotDefinition } from "../../../common/models/system/BotDefinition";
+import { BotDefinition } from "../../../common/models/bots/BotDefinition";
 import { BotInstanceDescriptor } from "../../../common/models/BotInstanceDescriptor";
-import { BotRun } from "../../../common/models/system/BotRun";
+import { BotRun } from "../../../common/models/bots/BotRun";
 import { CommandContext } from "../CommandContext";
 import { CommandHandler } from "../CommandHandler";
 import { CommandResult } from "../CommandResult";
 import { CommonArgs } from "../CommonArgs";
 import { CommonBotArgs } from "../CommonArgsBots";
+import { GenomeParser } from "../../genetics/GenomeParser";
 import { PrimoAlreadyExistsError, PrimoMissingArgumentError } from "../../../common/errors/errors";
+import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { Workspace } from "../../../common/models/system/Workspace";
 import { WorkspaceEntity } from "../../../common/entities/WorkspaceEntity";
 import { capital, constants, db, strats } from "../../includes";
@@ -53,7 +55,7 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
         const DEFAULT_ARGS: Partial<BotCreateArgs> = {
             displayName: null,
             name: newRandomName,
-            alloc: "100 TUSD",
+            alloc: "100 TUSD", // TODO: wat
             startInstance: false,
             symbols: null,
             format: "application/json",
@@ -114,15 +116,15 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
             };
 
 
-            // TODO: Normalize genomes for storage
-            const normalizedGenome = genome;
+            const parser = new GenomeParser();
+            const parsedGenomeResults = parser.parse(genome);
+            const normalizedGenome = genome; // TODO
 
             const description = "";
             const workspaceId = workspace.id;
             const DEFAULT_BOT_DEF_PROPS: Partial<BotDefinition> = {
                 description,
                 genome,
-                normalizedGenome,
                 name,
                 symbols,
                 workspaceId,
@@ -150,9 +152,10 @@ export class BotCreate implements CommandHandler<BotCreateArgs> {
                 throw new PrimoMissingArgumentError(`Please specify a budget for this bot, or attach to an existing one.`);
             }
 
-            const instance = await strats.createNewInstanceFromDef(def, name, allocation.id, startInstance, trx);
+            const res = parsedGenomeResults.genome.getGene<TimeResolution>("TIME", "RES").value;
+            const instance = await strats.createNewInstanceFromDef(def, res, name, allocation.id, startInstance, trx);
 
-            const [updatedInstance, run] = await strats.startBotInstance(instance.id, trx);
+            const [updatedInstance, run] = await strats.startBotInstance({ id: instance.id }, trx);
 
             await trx.commit();
 

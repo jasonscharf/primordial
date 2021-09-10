@@ -2,9 +2,9 @@ import "intern";
 import { DateTime } from "luxon";
 import Knex from "knex";
 import { Money, sleep } from "../../common/utils";
-import { Price } from "../../common/models/system/Price";
-import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS } from "../../common-backend/services/SymbolService";
-import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices } from "../utils/test-data";
+import { Price } from "../../common/models/markets/Price";
+import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS, PriceDataParameters } from "../../common-backend/services/SymbolService";
+import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
@@ -18,7 +18,7 @@ describe(SymbolService.name, () => {
 
     // Defaults
     const exchange = env.PRIMO_DEFAULT_EXCHANGE;
-    const symbolPair = "BTC/USD"; // Not even a real thing, just a simple dummy
+    const symbolPair = "BTC/TUSD";
     const res = TimeResolution.ONE_MINUTE;
 
     let ctx: TestDataCtx = null;
@@ -137,7 +137,7 @@ describe(SymbolService.name, () => {
             const priceProps1 = createTestPrice({
                 resId: TimeResolution.ONE_MINUTE,
                 baseSymbolId: "BTC",
-                quoteSymbolId: "USD",
+                quoteSymbolId: "TUSD",
                 ts: sameMinute,
                 close: Money("888"),
             });
@@ -148,7 +148,7 @@ describe(SymbolService.name, () => {
             await sym.addSymbolPrice(priceProps1);
             await sym.addSymbolPrice(priceProps2);
 
-            const prices = await sym.queryPricesForRange({ exchange, start: sameMinute, end: from("2000-01-01T00:01:00.000Z")  });
+            const prices = await sym.queryPricesForRange({ exchange, from: sameMinute, to: from("2000-01-01T00:01:00.000Z") });
             assert.lengthOf(prices, 1);
 
             const [p] = prices;
@@ -163,9 +163,54 @@ describe(SymbolService.name, () => {
     });
 
     describe(sym.queryPricesForRange.name, () => {
-        it("returns empty price", async () => {
-
+        it("returns empty price array for unknown range", async () => {
+            // TEST
         });
+
+        function test(res: TimeResolution, numExpected: number, offsetToCheck: number) {
+            it(`correctly rolls up 1m prices to ${res}`, async () => {
+                await clearTestPrices();
+
+                const symbolPair = `${ctx.testSymbol1.id}/${ctx.testSymbol2.id}`;
+
+                const start = from("2000-01-01T00:00:00");
+                const end = from("2000-01-01T01:00:00");
+
+                await fillRangeWithData(exchange, symbolPair, TimeResolution.ONE_MINUTE, start, end, increasingPriceGenerator);
+
+                // TODO... complete
+
+                const params: PriceDataParameters = {
+                    exchange,
+                    symbolPair,
+                    res: TimeResolution.ONE_MINUTE,
+                    from: start,
+                    to: end,
+                    fillMissing: true,
+                };
+                const pricesAt1m = await sym.queryPricesForRange(params);
+
+                params.res = res;
+                const pricesAtRes = await sym.queryPricesForRange(params);
+
+                const closesAt1m = pricesAt1m.map(p => p.close.toNumber());
+                const closesAtNMinutes = pricesAtRes.map(p => p.close.toNumber());
+
+                assert.lengthOf(pricesAt1m, 60);
+                assert.lengthOf(pricesAtRes, numExpected);
+
+                // Ensure that rollups are based on last value 
+                assert.equal(closesAt1m[offsetToCheck - 1], closesAtNMinutes[0]);
+            });
+        }
+
+        test(TimeResolution.ONE_MINUTE, 60, 1);
+        test(TimeResolution.FIVE_MINUTES, 12, 5);
+        test(TimeResolution.FIFTEEN_MINUTES, 4, 15);
+        test(TimeResolution.ONE_HOUR, 1, 1);
+
+        // TEST ... rollup longer than 1 hour
+
 
         it("matches exchange prices when using TSDB bucketing", async () => {
             // TODO: Ensure 5min data rolled up from TSDB matches 5min data from Binance
@@ -193,15 +238,15 @@ describe(SymbolService.name, () => {
         it("produces the correct range for 1m resolution", async () => {
             await clearTestPrices();
 
-            const symbolPair = `${ctx.testSymbol1.id}/${ctx.testSymbol2.id}`;
+
             const start = from("2000-01-01T00:00:00");
             const end = from("2000-01-01T01:00:00");
             const res = TimeResolution.ONE_MINUTE;
             await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
             const prices = await sym.queryPricesForRange({
                 res,
-                start,
-                end,
+                from: start,
+                to: end,
                 symbolPair,
             });
 
@@ -225,8 +270,8 @@ describe(SymbolService.name, () => {
             await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
             const prices = await sym.queryPricesForRange({
                 res,
-                start,
-                end,
+                from: start,
+                to: end,
                 symbolPair,
             });
 
@@ -262,8 +307,8 @@ describe(SymbolService.name, () => {
                 exchange,
                 symbolPair,
                 res,
-                start,
-                end,
+                from: start,
+                to: end,
                 fillMissing: true,
             });
 
@@ -312,7 +357,7 @@ describe(SymbolService.name, () => {
 
             await fill(startFill, endFill);
 
-            const prices = await sym.queryPricesForRange({ start, end });
+            const prices = await sym.queryPricesForRange({ from: start, to: end });
 
             assert.lengthOf(prices, 1);
         });

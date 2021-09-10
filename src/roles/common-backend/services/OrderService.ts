@@ -1,12 +1,15 @@
-import { FeeEntity } from "../../common/entities/FeeEntity";
-import { FillEntity } from "../../common/entities/FillEntity";
-import { OrderEntity } from "../../common/entities/OrderEntity";
+import { Knex } from "knex";
 import { Fee } from "../../common/models/markets/Fee";
+import { FeeEntity } from "../../common/entities/FeeEntity";
 import { Fill } from "../../common/models/markets/Fill";
+import { FillEntity } from "../../common/entities/FillEntity";
 import { Order } from "../../common/models/markets/Order";
+import { OrderEntity } from "../../common/entities/OrderEntity";
 import { constants } from "../includes";
+import { moneytize, query } from "../database/utils";
 import { tables } from "../constants";
-import { query } from "../database/utils";
+
+
 
 
 /**
@@ -15,18 +18,18 @@ import { query } from "../database/utils";
 export class OrderService {
 
     /**
-     * Adds an order to the database. Performs validation beforehand.
+     * Adds an order to the database.
      * @param orderProps 
      */
-    async addOrderToDatabase(orderProps: Partial<Order>): Promise<Order> {
+    async addOrderToDatabase(orderProps: Partial<Order>, trx: Knex.Transaction = null): Promise<Order> {
         return query(constants.queries.ORDERS_CREATE, async db => {
             const [row] = <Order[]>await db(tables.Orders)
-                .insert(orderProps)
+                .insert(moneytize(orderProps))
                 .returning("*")
                 ;
 
             return OrderEntity.fromRow(row);
-        });
+        }, trx);
     }
 
     /**
@@ -34,7 +37,7 @@ export class OrderService {
      * @param orderId 
      * @param fills 
      */
-    async updateOrder(orderProps: Partial<Order>): Promise<Order> {
+    async updateOrder(orderProps: Partial<Order>, trx: Knex.Transaction = null): Promise<Order> {
         const { id } = orderProps;
         if (!id) {
             throw new Error(`Missing ID`);
@@ -42,12 +45,12 @@ export class OrderService {
         return query(constants.queries.ORDERS_UPDATE, async db => {
             const [row] = <Order[]>await db(tables.Orders)
                 .where({ id })
-                .update(orderProps)
+                .update(moneytize(orderProps))
                 .returning("*")
                 ;
 
             return OrderEntity.fromRow(row);
-        });
+        }, trx);
     }
 
     /**

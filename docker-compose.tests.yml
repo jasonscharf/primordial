@@ -12,7 +12,6 @@ services:
     hostname: db
 
     ports:
-      - "5432:5432"
       - "5433:5432"
     volumes:
       - db_tests:/var/lib/postgresql
@@ -46,7 +45,6 @@ services:
       - ./dist/api:/app/api:delegated
       - ./dist/tests:/app/tests:delegated
       - ./dist/worker:/app/worker:delegated
-      - ./node_modules:/app/node_modules:delegated
       - ./src/roles:/app/src/roles:delegated
       - ./src/roles/tests/intern.json:/app/tests/intern.json
 
@@ -77,7 +75,6 @@ services:
       - ./dist/api:/app/api:delegated
       - ./dist/tests:/app/tests:delegated
       - ./dist/worker:/app/worker:delegated
-      - ./node_modules:/app/node_modules:delegated
       - ./src/roles:/app/src/roles:delegated
       - ./src/roles/tests/intern.json:/app/tests/intern.json
 

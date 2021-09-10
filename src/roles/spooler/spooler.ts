@@ -6,7 +6,7 @@ import * as tasks from "./tasks";
 import { SpoolerTask } from "../common/models/system/SpoolerTask";
 import { UpdateSymbolsState } from "../common-backend/services/SymbolService";
 import { connectToBinanceWebSocket, disconnectBinanceWebSocket } from "./binance-socket";
-import { dbm, log } from "../common-backend/includes";
+import { dbm, log, mq } from "../common-backend/includes";
 import { registerCommandHandlers } from "../common-backend/commands/command-handlers";
 import { shortTime } from "../common-backend/utils/time";
 import { spooler, sym } from "../common-backend/services";
@@ -27,6 +27,7 @@ healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
         log.info(`Spooler startup...`);
 
         await dbm.migrate();
+        await mq.connectAsPublisher();
 
         // IMMEDIATE PRIORITY is to start/resume broadcasting prices to the rest of the cluster ASAP
         await addStreamingPriceWatchers();
@@ -43,6 +44,7 @@ healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
         // Schedule persisted tasks to run
         // Note: This is called by SYSTEM_REFRESH_TASKS to periodically refresh task models
         await refreshTasksForExecution();
+
     }
     catch (err) {
         log.error(`FATAL: Spooler startup error`, err);

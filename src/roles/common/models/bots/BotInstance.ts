@@ -1,7 +1,8 @@
-import { Mode } from "./Strategy";
+
+import { Mode } from "../system/Strategy";
 import { MutableModel } from "../MutableEntity";
-import { RunState } from "./RunState";
 import { TimeResolution } from "../markets/TimeResolution";
+import { RunState } from "../system/RunState";
 
 
 export interface BotInstanceStateInternal {
@@ -12,9 +13,10 @@ export interface BotInstanceStateInternal {
 export interface BotInstance<T = unknown> extends MutableModel {
     allocationId: string;
     definitionId: string;
+    exchangeId: string;
     modeId: Mode;
     resId: TimeResolution;
-    exchangeId: string;
+    typeId: string;
     name: string;
     type: string;
     build: string,

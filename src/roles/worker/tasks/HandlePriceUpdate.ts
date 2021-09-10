@@ -1,14 +1,25 @@
+import { DateTime } from "luxon";
 import { Knex } from "knex";
+import env from "../../common-backend/env";
 import { BotContext, botIdentifier, buildBotContext } from "../../common-backend/bots/BotContext";
-import { BotDefinition } from "../../common/models/system/BotDefinition";
-import { BotImplementationBase } from "../../common-backend/bots/BotImplementationBase";
-import { BotInstance } from "../../common/models/system/BotInstance";
-import { BotRun } from "../../common/models/system/BotRun";
+import { BotDefinition } from "../../common/models/bots/BotDefinition";
+import { BotImplementation } from "../../common-backend/bots/BotImplementation";
+import { BotInstance } from "../../common/models/bots/BotInstance";
+import { BotRun } from "../../common/models/bots/BotRun";
+import { Factory } from "../../common-backend/bots/BotFactory";
+import { GeneticBot } from "../bots/GeneticBot";
+import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
+import { Money } from "../../common/numbers";
+import { Price } from "../../common/models/markets/Price";
+import { PriceDataParameters } from "../../common-backend/services/SymbolService";
 import { PriceUpdateMessage } from "../../common-backend/messages/trading";
 import { QueueMessage } from "../../common-backend/messages/QueueMessage";
-import { constants, db, log, mq, strats } from "../../common-backend/includes";
-import env from "../../common-backend/env";
 import { RunState } from "../../common/models/system/RunState";
+import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { constants, db, log, mq, strats, sym } from "../../common-backend/includes";
+import { millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
+import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base-genetics";
+import { botFactory } from "../bots/RobotFactory";
 
 
 /**
@@ -16,15 +27,32 @@ import { RunState } from "../../common/models/system/RunState";
  * @param msg 
  */
 export function handlePriceUpdate(msg: QueueMessage<PriceUpdateMessage>) {
-    const price = msg.payload;
+    const { payload } = msg;
+
+    const price: Price = {
+        exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
+        baseSymbolId: payload.baseSymbolId,
+        quoteSymbolId: payload.quoteSymbolId,
+        close: Money(payload.close),
+        open: Money(payload.open),
+        low: Money(payload.low),
+        high: Money(payload.high),
+        resId: TimeResolution.ONE_SECOND,
+        ts: DateTime.fromISO(payload.ts as any).toJSDate(),
+        volume: Money(payload.volume),
+        openRaw: "",
+        lowRaw: "",
+        highRaw: "",
+        closeRaw: "",
+    };
 
     // ... for each strategy
 
-    dispatchTicksRunningBots(msg);
+    dispatchTicksRunningBots(price);
 }
 
 
-export async function dispatchTicksRunningBots(msg: QueueMessage<PriceUpdateMessage>) {
+export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
 
     // ... fetch all live strategies and allocations
     // ... grab all bot definitions that match this symbol pair
@@ -33,7 +61,7 @@ export async function dispatchTicksRunningBots(msg: QueueMessage<PriceUpdateMess
 
     // Issue _one_ query to the DB to find all live bots for the strategy
 
-    const price = msg.payload;
+    const price = msg;
     const botFilter = `${price.baseSymbolId}/${price.quoteSymbolId}`;
     const runningBots = await strats.getRunningBotsForFilter(botFilter);
     const botsToInitialize = await strats.getBotsToInitialize(botFilter);
@@ -76,15 +104,24 @@ export function matchFilter(symbolOrPair: string, filter: string) {
  */
 export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, price: PriceUpdateMessage) {
     const start = Date.now();
-    const run: BotRun = null; // TODO
+    const run: BotRun = await strats.getLatestRunForInstance(instanceRecord.id);
     const ctx = await buildBotContext(def, instanceRecord, run);
+
+
+    // TODO: Extract to BotRunner facility
+
+    const { genome } = ctx;
+    const symbolPair = instanceRecord.symbols;
+    const botType = genome.getGene<string>("META", "IMPL").value;
+    const res = genome.getGene<TimeResolution>("TIME", "RES").value;
+    const instance = botFactory.create(botType) as BotImplementation;
 
     // Initialize new bots in a transaction to ensure we don't initialize it multiple times
     if (instanceRecord.runState === RunState.INITIALIZING) {
         let trx = await db.transaction();
         try {
             log.info(`Initializing ${botIdentifier(instanceRecord)}`);
-            const instance = new BotImplementationBase();
+
             const newState = await instance.initialize(ctx);
 
             if (newState) {
@@ -94,28 +131,46 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
             instanceRecord.runState = RunState.ACTIVE;
             instanceRecord.prevTick = new Date();
 
-            await strats.updateBotInstance(instanceRecord);
+            await strats.updateBotInstance(instanceRecord, trx);
             await trx.commit();
         }
         catch (err) {
             log.error(`Error initializing ${botIdentifier(instanceRecord)}. Rolling back...`, err);
 
             instanceRecord.runState = RunState.ERROR;
-            await strats.updateBotInstance(instanceRecord);
-
             await trx.rollback();
+            await strats.updateBotInstance(instanceRecord);
         }
     }
 
 
 
     if (instanceRecord.runState === RunState.ACTIVE) {
+        const maxHistoricals = genome.getGene<number>("TIME", "MI").value;
+        const now = Date.now();
+        const end = normalizePriceTime(res, new Date(now)).getTime();
+        const intervalMs = millisecondsPerResInterval(res);
+        const start = end - (intervalMs * maxHistoricals);
 
-        // TODO: Verify last tick is legit (extra layer)
+        // Update price history. Note: This is *definitely* a case for optimization.
+        // Let's grab the previous N for now, until some sort of caching/progressive solution
+        // can be executed cross-node (b/c bots run on multiple machines)
+        const params: PriceDataParameters = {
+            exchange: env.PRIMO_DEFAULT_EXCHANGE,
+            res,
+            symbolPair,
+            fillMissing: true,
+            from: new Date(start),
+            to: new Date(end - 1),
+        };
 
-        const instance = new BotImplementationBase();
-        await instance.computeIndicatorsForTick(ctx);
-        const tickState = await instance.tick(ctx)
+        // TODO: Consider price pull from API in the case of a gap?
+        //  Think about a deployment rollout
+        const prices = await sym.queryPricesForRange(params);
+        ctx.prices = prices;
+
+        const indicators = await instance.computeIndicatorsForTick(ctx, price);
+        const tickState = await instance.tick(ctx, price, indicators);
 
         if (tickState !== null && instanceRecord.stateJson !== undefined) {
             instanceRecord.stateJson = tickState;

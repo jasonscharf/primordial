@@ -1,0 +1,52 @@
+import { Chromosome } from "../../common/models/genetics/Chromosome";
+import { Gene } from "../../common/models/genetics/Gene";
+import { GeneticValueType } from "../../common/models/genetics/GeneticValueType";
+import { RsiIndicatorChromosome } from "../indicators/RSI";
+import { TimeResolution } from "../../common/models/markets/TimeResolution";
+
+
+/** Do *NOT* change this value! */
+export const DEFAULT_BOT_IMPL = "genetic-bot.vanilla.v1";
+
+export const DEFAULT_PROFIT_TARGET = 0.02;
+export const DEFAULT_STOPLOSS_ABS = -0.01;
+
+export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
+    "META": new Chromosome("META", "Meta", "Phenotype metadata", [
+        new Gene<string>("IMPL", GeneticValueType.STRING, DEFAULT_BOT_IMPL, "Bot implementation variant to use"),
+    ]),
+    "TIME": new Chromosome("TIME", "Time", "Controls time related behaviour, notably time resolution", [
+        new Gene<TimeResolution>("RES", GeneticValueType.TIME_RES, TimeResolution.FIFTEEN_MINUTES, "Specifies the time resolution to trade at, e.g. '1m', '15m', '1h', etc"),
+        new Gene<number>("MI", GeneticValueType.NUMBER, 99, "Specifies the number of previous intervals to consider when computing indicators"),
+    ]),
+    "PROFIT": new Chromosome("PROFIT", "Profit", "Controls profit targets and take-profits", [
+        new Gene<number>("TGTPCT", GeneticValueType.NUMBER, DEFAULT_PROFIT_TARGET, "Controls the default profit target"),
+    ]),
+    "SL": new Chromosome("SL", "Stop-loss", "Controls stop-losses", [
+        new Gene<number>("ABS", GeneticValueType.NUMBER, DEFAULT_STOPLOSS_ABS, "Sets an initial absolute stop-loss when buy orders are placed"),
+    ]),
+    "BUY": new Chromosome("BUY", "Buying", "Controls buying behaviour", [
+        new Gene<number>("T", GeneticValueType.NUMBER, 1, "Threshold at which to consider a buy signal from the weighted average of other indicators"),
+    ]),
+    "SELL": new Chromosome("SELL", "Buying", "Controls selling behaviour", [
+        new Gene<number>("T", GeneticValueType.NUMBER, -1, "Threshold at which to consider a sell signal from the weighted average of other indicators"),
+    ]),
+    "SYM": new Chromosome("SYM", "Symbols", "Controls which symbols to trade", []),
+    "RSI": new RsiIndicatorChromosome("RSI", "RSI", "Behaviour involving the Relative Strength Indictor", [
+        new Gene("L", GeneticValueType.NUMBER, 33, "Lower RSI threshold to use as a buy signal"),
+        new Gene("H", GeneticValueType.NUMBER, 66, "Upper RSI threshold to use as a sell signal"),
+        new Gene("WL", GeneticValueType.NUMBER, 99, "Window length of closed intervals to consider"),
+        new Gene("BW", GeneticValueType.NUMBER, 1, "Weighting for RSI buy signal"),
+        new Gene("SW", GeneticValueType.NUMBER, 1, "Weighting for RSI sell signal"),
+        new Gene("OITP", GeneticValueType.NUMBER, 14, "Opt-in time period for RSI"),
+    ]),
+    "BOLL": new Chromosome("BOLL", "Bollinger Bands", "Behaviour involving Bollinger Bands indicators", [
+        new Gene("BB", GeneticValueType.FLAG, false, "Weighting (0 or 1) for buy signal on a breakout of the lower bound"),
+        new Gene("SB", GeneticValueType.FLAG, false, "Weighting (0 or 1) for sell signal on a breakout of the upper bound"),
+    ]),
+});
+
+Object.keys(DEFAULT_GENETICS)
+    .map(k => DEFAULT_GENETICS[k])
+    .forEach(gene => Object.freeze(gene))
+    ;

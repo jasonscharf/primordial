@@ -1,6 +1,26 @@
 import { Knex } from "knex";
+import { Money } from "../../common/numbers";
 import env from "../env";
 import { db } from "../includes";
+
+
+/**
+ * Creates a shallow clone of a model with Money types stringified for proper database insert.
+ * @param obj 
+ * @returns 
+ */
+export function moneytize(obj: unknown) {
+    const clone = {};
+    for (const k of Object.keys(obj)) {
+        if (obj[k] instanceof Money) {
+            clone[k] = (obj[k] as Money).toString();
+        }
+        else {
+            clone[k] = obj[k];
+        }
+    }
+    return clone;
+}
 
 
 /**
@@ -14,16 +34,19 @@ export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Prom
 
     // TODO: Log level, timing, etc
     // console.log(`Run query '${name}'...`);
+    const start = Date.now();
     let result: T;
     if (trx) {
         result = await fn(trx);
-        //await trx.commit();
     }
     else {
         result = await db.transaction(fn);
     }
 
-    // console.log(`Done query '${name}'`);
+    const end = Date.now();
+    const duration = end - start;
+
+    //console.log(`Done query '${name}' in ${duration}ms`);
 
     return result;
 }

@@ -1,9 +1,10 @@
 import { Command } from "commander";
+import env from "../common-backend/env";
 import { alloc, bot } from "./cli/commands";
 import { banner } from "./cli/banner";
+import { mq } from "../common-backend/includes";
 import { registerCommandHandlers } from "../common-backend/commands/command-handlers";
 import { version } from "../common/version";
-import env from "../common-backend/env";
 
 registerCommandHandlers();
 
@@ -23,5 +24,10 @@ if (process.argv.length <= 2) {
 program.addCommand(alloc);
 program.addCommand(bot);
 
-
-program.parse(process.argv);
+mq.connectAsPublisher(true).then(() => {
+    program.parse(process.argv);
+})
+    .catch(err => {
+        console.error(err);
+        process.exit(-1);
+    });

@@ -9,9 +9,10 @@ import "./system/time.test";
 import "./system/CommandService.test";
 import "./system/SpoolerService.test";
 import "./system/UserService.test";
-import "./trading/CapitalService.test";
+import "./genetics/GeneticParser.test";
 import "./trading/StrategyService.test";
 import "./trading/SymbolService.test";
+import "./trading/CapitalService.test";
 //*/
 
 

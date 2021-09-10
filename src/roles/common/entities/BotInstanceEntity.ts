@@ -1,4 +1,5 @@
-import { BotInstance, BotInstanceStateInternal } from "../models/system/BotInstance";
+import { BotInstance, BotInstanceStateInternal } from "../models/bots/BotInstance";
+import { BotType } from "../models/bots/BotType";
 import { MutableEntity } from "../models/MutableEntity";
 import { Mode } from "../models/system/Strategy";
 import { RunState } from "../models/system/RunState";
@@ -14,6 +15,7 @@ export class BotInstanceEntity<T> extends MutableEntity implements BotInstance<T
     exchangeId: string;
     modeId: Mode;
     resId: TimeResolution;
+    typeId: BotType;
     runState: RunState;
     name: string;
     build: string;
@@ -34,8 +36,9 @@ export class BotInstanceEntity<T> extends MutableEntity implements BotInstance<T
             this.definitionId = row[prefix + "definitionId"];
             this.exchangeId = row[prefix + "exchangeId"];
             this.modeId = row[prefix + "modeId"];
-            this.runState = row[prefix + "runState"];
             this.resId = row[prefix + "resId"];
+            this.typeId = row[prefix + "typeId"];
+            this.runState = row[prefix + "runState"];
             this.name = row[prefix + "name"];
             this.build = row[prefix + "build"];
             this.type = row[prefix + "type"];
@@ -46,6 +49,25 @@ export class BotInstanceEntity<T> extends MutableEntity implements BotInstance<T
             this.stateInternal = row[prefix + "stateInternal"];
             this.stateJson = row[prefix + "stateJson"];
         }
+    }
+
+    static get cols() {
+        return [
+            ...MutableEntity.cols,
+            "allocationId",
+            "definitionId",
+            "currentGenome",
+            "modeId",
+            "resId",
+            "name",
+            "symbols",
+            "type",
+            "prevTick",
+            "build",
+            "runState",
+            "stateJson",
+            "stateInternal",
+        ];
     }
 
     static fromRow<T>(row?: Partial<BotInstance<T>>, prefix = "") {

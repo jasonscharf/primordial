@@ -1,10 +1,12 @@
-import { BotRun } from "../models/system/BotRun";
+import { BotRun } from "../models/bots/BotRun";
 import { MutableEntity } from "../models/MutableEntity";
 
 
 export class BotRunEntity extends MutableEntity implements BotRun {
     instanceId: string;
     active: boolean;
+    from: Date;
+    to: Date;
 
 
     constructor(row?: Partial<BotRun>, prefix = "") {
@@ -13,7 +15,17 @@ export class BotRunEntity extends MutableEntity implements BotRun {
         if (row) {
             this.instanceId = row[prefix + "instanceId"];
             this.active = row[prefix + "active"];
+            this.from = row[prefix + "from"];
+            this.to = row[prefix + "to"];
         }
+    }
+
+    static get cols() {
+        return [
+            ...MutableEntity.cols,
+            "instanceId",
+            "active",
+        ];
     }
 
     static fromRow(row?: Partial<BotRun>, prefix = "") {

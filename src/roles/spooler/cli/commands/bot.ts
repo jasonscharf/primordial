@@ -1,23 +1,24 @@
 import { Command } from "commander";
+import { DateTime } from "luxon";
 import { BotCreateArgs } from "../../../common-backend/commands/bots/create";
 import { BotListArgs } from "../../../common-backend/commands/bots/list";
+import { BotTestArgs, DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../../../common-backend/commands/bots/test";
 import { CommonArgs } from "../../../common-backend/commands/CommonArgs";
 import { CommandResult } from "../../../common-backend/commands/CommandResult";
+import { PrimoMissingArgumentError } from "../../../common/errors/errors";
 import { buildCommandContextForSystemUser, formatResult, handleCommandError, runCommand } from "../cli-utils";
-import { capital, cmds, constants } from "../../../common-backend/includes";
+import { capital, cmds, constants, log, sym } from "../../../common-backend/includes";
 import { isNullOrUndefined } from "../../../common/utils";
 import { randomName } from "../../../common-backend/utils/names";
 import { DEFAULT_OUTPUT_TYPE } from "../defaults";
-import { PrimoMissingArgumentError } from "../../../common/errors/errors";
 
 
 const bot = new Command("bot");
 bot
     .command("create")
-    .option("-g, --genome <genome>", "Genomic material defining the bots behaviour")
+    .option("-g, --genome <genome>", "Genome to realize")
     .option("-n, --name <name>", "Name of the bot definition and instance to create, i.e. \"rsi-macd-bot-test-01\"")
     .option("-s, --symbols <symbols>", "Symbols to run. If multiple are specified, multiple bot instances will be created.")
-    .option("-g, --genome <genome>", "Bot genome to run")
     .option("-b, --budget <budget>", "Size of allocation to create, e.g. \"5 BTC\"")
     .option("-m, --max-wager-pct <budget>", "Max size of budget to wager", "0.01")
     .option("-f, --format <format>", "Output format of the command: json, tsv, csv, or yaml", "json")
@@ -43,7 +44,7 @@ bot
         if (name) {
             options.name = name;
         }
-        return runCommandBotStart({ name });
+        return runCommandBotStart(options);
     });
 
 
@@ -54,9 +55,36 @@ bot
         if (name) {
             options.name = name;
         }
-        return runCommandBotStop({ name });
+        return runCommandBotStop(options);
     });
 
+bot
+    .command("test")
+    .argument("[name]")
+    .option("-f, --from <from>", "When to run the test from")
+    .option("-t, --to <to>", "When to run the test to")
+    .option("-g, --genome <genome>", "Genome to realize")
+    .option("-n, --name <name>", "Name of the bot definition and instance to create, i.e. \"rsi-macd-bot-test-01\"")
+    .option("-s, --symbols <symbols>", "Symbols to run. If multiple are specified, multiple bot instances will be created.")
+    .option("-b, --budget <budget>", "Size of allocation to create, e.g. \"5 BTC\"")
+    .option("-m, --max-wager-pct <budget>", "Max size of budget to wager", "0.01")
+    .option("-f, --format <format>", "Output format of the command: json, tsv, csv, or yaml", "json")
+    .action(async (name, options, command) => {
+        if (name) {
+            options.name = name;
+        }
+        return runCommandBotTest(options);
+    });
+
+
+async function wrap(fn: Function) {
+    try {
+        return await fn();
+    }
+    catch (err) {
+        log.error(`Error running command`, err);
+    }
+}
 
 /**
 * Starts a bot. Resumes it if paused or stopped.
@@ -73,7 +101,7 @@ export async function runCommandBotStart(options) {
         name,
         format,
     };
-    return runCommand(constants.commands.CMD_BOTS_START, options);
+    return wrap(() => runCommand(constants.commands.CMD_BOTS_START, options));
 }
 
 /**
@@ -91,7 +119,7 @@ export async function runCommandBotStop(options) {
         name,
         format,
     };
-    return runCommand(constants.commands.CMD_BOTS_STOP, options);
+    return wrap(() => runCommand(constants.commands.CMD_BOTS_STOP, options));
 }
 
 /**
@@ -103,7 +131,7 @@ export async function runCommandBotList(options) {
     const args: CommonArgs = {
         format,
     };
-    return runCommand(constants.commands.CMD_BOTS_LIST, options);
+    return wrap(() => runCommand(constants.commands.CMD_BOTS_LIST, options));
 }
 
 /**
@@ -129,7 +157,42 @@ export async function runCommandBotCreate(options) {
         startInstance,
     };
 
-    return runCommand(constants.commands.CMD_BOTS_CREATE, args);
+    return wrap(() => runCommand(constants.commands.CMD_BOTS_CREATE, args));
+}
+
+/**
+ * Backtests a bot genome.
+ * @param options
+ */
+export async function runCommandBotTest(options) {
+    const { budget, from, genome, name, format, maxWagerPct, remove, symbols, to } = options;
+
+    if (!symbols) {
+        throw new Error(`Please specify symbols to backtest`);
+    }
+    const [base, quote] = sym.parseSymbolPair(symbols);
+    const defaultBudget = `${DEFAULT_BACKTEST_BUDGET_AMOUNT} ${quote}`;
+    const budgetParsed = await capital.parseAssetAmounts(budget || defaultBudget);
+    const fromParsed = from ? DateTime.fromISO(from).toJSDate() : null;
+    const toParsed = to ? DateTime.fromISO(to).toJSDate() : null;
+
+    const args: Partial<BotTestArgs> = {
+        genome,
+        budget: budgetParsed,
+        maxWagerPct,
+        name: isNullOrUndefined(name) ? randomName() : name,
+        format: format || DEFAULT_OUTPUT_TYPE,
+        symbols,
+        remove,
+    };
+
+    if (fromParsed) {
+        args.from = fromParsed;
+    }
+    if (toParsed) {
+        args.to = toParsed;
+    }
+    return wrap(() => runCommand(constants.commands.CMD_BOTS_TEST, args));
 }
 
 export { bot }

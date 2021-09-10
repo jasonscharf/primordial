@@ -214,7 +214,7 @@ export interface DateRange {
 }
 
 /**
- * Splits a price data range into X sub-ranges of size Y foor .
+ * Splits a price data range into X sub-ranges of size Y.
  * For example, given a range spanning 1000+ minutes, breaks it into chunks of 500 to match
  * request limits.
  * @param res 
@@ -266,4 +266,20 @@ export function from(str: string) {
     }
 
     return fr.toJSDate();
+}
+
+/**
+ * Converts milliseconds to something more human friendly.
+ * @param ms
+ * @returns 
+ */
+export function human(ms: number) {
+    const seconds = (ms / 1000);
+    const minutes = (ms / (1000 * 60));
+    const hours = (ms / (1000 * 60 * 60));
+    const days = (ms / (1000 * 60 * 60 * 24));
+    if (seconds < 60) return seconds.toFixed(1) + " seconds";
+    else if (minutes < 60) return minutes.toFixed(1) + " minutes";
+    else if (hours < 24) return hours.toFixed(1) + " hours";
+    else return Math.ceil(days) + " days";
 }

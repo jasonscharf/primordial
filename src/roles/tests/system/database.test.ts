@@ -1,7 +1,7 @@
 import "intern";
 import Knex from "knex";
 import { Money } from "../../common/numbers";
-import { Price } from "../../common/models/system/Price";
+import { Price } from "../../common/models/markets/Price";
 import { TestDataCtx, getTestData } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { User } from "../../common/models";
