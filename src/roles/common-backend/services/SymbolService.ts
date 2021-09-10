@@ -9,9 +9,9 @@ import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeS
 import { TradeSymbolEntity } from "../../common/entities/TradeSymbolEntity";
 import { cache, db, log } from "../includes";
 import { caching, limits, queries, tables } from "../constants";
-import { getPostgresDatePartForTimeRes, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime } from "../utils/time";
+import { getPostgresDatePartForTimeRes, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../utils/time";
 import { query } from "../database/utils";
-import { randomString } from "../../common/utils";
+import { randomString, sleep } from "../../common/utils";
 import { sym } from "../services";
 
 
@@ -35,17 +35,25 @@ export interface PriceDataParameters {
     exchange: string;
     symbolPair: string;
     res: TimeResolution,
-    start: Date,
-    end?: Date,
+    from: Date,
+    to?: Date,
+    fetchDelay?: number;
     fillMissing?: boolean;
 };
+
+export interface SymbolResultSet {
+    warnings: string[];
+    missingRanges: PriceDataRange[];
+    prices: Price[];
+}
 
 export const DEFAULT_PRICE_DATA_PARAMETERS: Partial<PriceDataParameters> = {
     exchange: env.PRIMO_DEFAULT_EXCHANGE,
     symbolPair: "BTC/TUSD",
     res: TimeResolution.ONE_MINUTE,
-    start: DateTime.fromISO("2010-01-01").toJSDate(),
-    end: new Date(),
+    from: DateTime.fromISO("2010-01-01").toJSDate(),
+    to: new Date(),
+    fetchDelay: 1000,
     fillMissing: true,
 };
 
@@ -148,6 +156,97 @@ export class SymbolService {
      */
     async lastSymbolPricing(res = TimeResolution.ONE_MINUTE) {
         // TODO
+    }
+
+    /**
+     * Gets symbols prices, pulling them in discrete batches from an exchange as needed.
+     * @param params 
+     */
+    async getSymbolPriceData(params: Partial<PriceDataParameters>) {
+        const symbolPairsToUpdate = [params.symbolPair];
+        const appliedParams = Object.assign({}, DEFAULT_PRICE_DATA_PARAMETERS, params);
+
+        const { exchange, fetchDelay, fillMissing, from, to, res, symbolPair } = appliedParams;
+
+
+        const syncRangesForSymbols = new Map<string, PriceDataRange[]>();
+
+        // Deal with specific gaps in Binance data. #exchange
+        function shouldInclude(range: PriceDataRange) {
+            // See: https://www.binance.com/en/support/announcement/849160fe70214641baa6385619595aa1 for likely explanation
+            return !(range.start.toISOString() === "2021-04-25T04:01:00.000Z" && range.end.toISOString() === "2021-04-25T08:44:59.999Z");
+        }
+
+        for (const pair of symbolPairsToUpdate) {
+            const splits: PriceDataRange[] = [];
+
+            // Only pull up the current interval.
+            const end = normalizePriceTime(res, new Date());
+
+            const missingRanges = await sym.getMissingRanges(exchange, pair, res, from, end);
+            if (missingRanges.length === 0) {
+                continue;
+            }
+            else {
+
+                // Split up ranges so we're not requesting more than the candlestick limit
+                splits.push(...missingRanges
+                    .filter(shouldInclude)
+                    .map(range => splitRanges(res, range))
+                    .flat()
+                    .map(range => (<PriceDataRange>{
+                        exchange,
+                        start: range.start,
+                        end: range.end,
+                        symbolPair: pair,
+                    }))
+                );
+            }
+
+            if (splits.length > 0) {
+                console.log(`[SYNC][${pair}] has ${splits.length} ranges left to sync`);
+            }
+
+            // 
+            syncRangesForSymbols.set(pair, splits.reverse());  
+        }
+
+        // Grab N sync operations across the top priority symbols
+        const ops: PriceDataRange[] = [];
+
+        for (const [symbolPairToSync] of syncRangesForSymbols.entries()) {
+
+            const rangesForSymbol = syncRangesForSymbols.get(symbolPairToSync);
+            ops.push(...rangesForSymbol);
+        }
+
+        for (const op of ops) {
+            const { end, exchange, start, symbolPair } = op;
+
+            log.debug(`[SYNC] UPDATE '${symbolPair}' from ${start.toISOString()} to ${end.toISOString()}`);
+            const update = await sym.updateSymbolPrices(exchange, symbolPair, res, start, end);
+
+            //log.debug(`[SYNC] Fetched ${update.length} prices for [${symbolPair}] at resolution ${res}`);
+
+            await sleep(fetchDelay);
+        }
+
+
+        // Re-evaluate missing ranges
+        const missingRanges = await sym.getMissingRanges(exchange, symbolPair, res, from, to);
+        const warnings: string[] = [];
+        if (missingRanges.length > 0) {
+            warnings.push(`Missing 1 or more ranges`);
+        }
+
+        const prices = await sym.queryPricesForRange(params);
+        const sus: SymbolResultSet = {
+            warnings,
+            missingRanges,
+            prices,
+        };
+
+        return sus;
     }
 
     /**
@@ -400,7 +499,7 @@ export class SymbolService {
      */
     async queryPricesForRange(params: Partial<PriceDataParameters>): Promise<Price[]> {
         const appliedParams = Object.assign({}, DEFAULT_PRICE_DATA_PARAMETERS, params);
-        const { exchange, end, fillMissing, res, start, symbolPair } = appliedParams;
+        const { exchange, to: end, fillMissing, res, from: start, symbolPair } = appliedParams;
         const [base, quote] = this.parseSymbolPair(symbolPair);
         const tf = getTimeframeForResolution(res);
 
@@ -422,15 +521,11 @@ export class SymbolService {
                 existing_prices AS (
                     SELECT time_bucket(:res, ts) as ts,
                         last(close, ts) as close,
-                        :exchange as exchangeId,
-                        :res as resId,
                         last(open, ts) as open,
                         last(low, ts) as low,
                         last(high, ts) as high,
                         last(close, ts) as closed, --reserved word
-                        sum(volume) as volume,
-                        :base as "baseSymbolId",
-                        :quote as "quoteSymbolId"
+                        sum(volume) as volume
                     FROM prices
                     WHERE "exchangeId" = :exchange
                     AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
@@ -439,6 +534,10 @@ export class SymbolService {
                     ORDER BY "ts" DESC
                 )
                 SELECT ts,
+                        :base as "baseSymbolId",
+                        :quote as "quoteSymbolId",
+                        :exchange as "exchangeId",
+                        :res as "resId",
                         last(open, ts) as open,
                         last(existing_prices.low, ts) as low,
                         last(existing_prices.high, ts) as high,
@@ -461,7 +560,7 @@ export class SymbolService {
             };
 
             const { rows } = await db.raw(query, bindings);
-            return rows.map(row => PriceEntity.fromRow(row));
+            return rows.map(row => PriceEntity.fromRow(row)); 
         });
     }
 
@@ -485,11 +584,16 @@ export class SymbolService {
         const intervalMs = millisecondsPerResInterval(res);
 
         // Figure out what data needs to be pulled.
-        const ranges = await this.getMissingRanges(exchange, symbolPair, res, start, end);
+        const missingRanges = await this.getMissingRanges(exchange, symbolPair, res, start, end);
 
         const params: ccxt.Params = {};
         const rp = [];
-        for (const r of ranges) {
+        for (const r of missingRanges) {
+
+            // NOTE: Since we're issuing an API request based on missing ranges, there is a worst-case scenario
+            // where every second candle is missing, and we ended up hitting rate-limits as a result of the volume
+            // of API requests. Some sort of cross-exchange API quota mechanism needs to be put in place, ultimately.
+
             try {
                 const limit = Math.min(Math.ceil((r.end.getTime() - r.start.getTime()) / intervalMs), limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES);
 

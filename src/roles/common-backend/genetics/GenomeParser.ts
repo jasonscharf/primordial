@@ -155,6 +155,7 @@ export class GenomeParser {
             newGene.value = parsedValue;
 
             parsingChromo.genes.set(newGene.name, newGene);
+            parsingChromo.active = true;
         }
 
         const baseChromos = Object.keys(base).map(k => base[k]);

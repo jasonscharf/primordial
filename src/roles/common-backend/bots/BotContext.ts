@@ -105,7 +105,8 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
         const t = await capital.transact(instance.id, order.quoteSymbolId, order, async (item, trx) => {
 
             const maxBuyingPower = item.amount.mul(Money(item.maxWagerPct.toString()));
-            const profitTargetPct = genome.getGene<number>("PROFIT", "TGTPCT").value;
+            const profitTargetGene = genome.getGene<number>("PROFIT", "TGTPCT");
+            const stopLossPct = genome.getGene<number>("SL", "ABS").value;
 
             // TODO: Double-check PoC bot
             // TODO: Exchange-based fee structure
@@ -124,6 +125,11 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 amount = purchasePrice.mul(quantity);
             }
 
+            // TODO: Infer a better profit target when none specified. Account for fees.
+            const profitTargetPct = profitTargetGene.active
+                ? profitTargetGene.value
+                : 0.002
+                ;
             const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
 
 
@@ -172,12 +178,14 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 state.prevQuantity = quantity;
                 state.prevPrice = purchasePrice;
                 state.prevOrderId = savedOrder.id;
+                state.stopLossPrice = tick.close.add(tick.close.mul(stopLossPct.toString()));
                 state.targetPrice = targetPrice;
             }
             else {
                 state.prevQuantity = null;
                 state.prevPrice = null;
                 state.prevOrderId = null;
+                state.stopLossPrice = null;
                 state.targetPrice = null;
             }
 

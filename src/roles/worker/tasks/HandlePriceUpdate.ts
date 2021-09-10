@@ -160,8 +160,8 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
             res,
             symbolPair,
             fillMissing: true,
-            start: new Date(start),
-            end: new Date(end - 1),
+            from: new Date(start),
+            to: new Date(end - 1),
         };
 
         // TODO: Consider price pull from API in the case of a gap?

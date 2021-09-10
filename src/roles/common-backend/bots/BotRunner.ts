@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 import knex from "knex";
 //import PA from "portfolio-analytics";
 import env from "../env";
-import { BacktestResults } from "./BacktestResults";
+import { BotResultsSummary } from "./BotSummaryResults";
 import { BacktestRequest } from "../messages/testing";
 import { BotContext, botIdentifier, buildBotContext } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
@@ -43,7 +43,7 @@ export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
  */
 export class BotRunner {
 
-    async run(args: BacktestRequest, ctx: BotContext = null): Promise<BacktestResults> {
+    async run(args: BacktestRequest, ctx: BotContext = null): Promise<BotResultsSummary> {
         const start = Date.now();
         const trx = null;//await db.transaction();
         let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ to } = args;
@@ -56,7 +56,7 @@ export class BotRunner {
             to = DateTime.fromISO(to as string).toJSDate();
         }
 
-        const results: Partial<BacktestResults> = {
+        const results: Partial<BotResultsSummary> = {
         };
 
         let instanceId: string = null;
@@ -85,6 +85,9 @@ export class BotRunner {
             results.to = to;
             results.finish = null;
             results.length = "";
+            results.numCandles = 0;
+            results.firstClose = null;
+            results.lastClose = null;
             results.capital = capitalInvested;
             results.balance = null;
             results.totalGross = Money("0");
@@ -102,6 +105,7 @@ export class BotRunner {
             results.sortino = 0;
             results.durationMs = 0;
             results.error = null;
+            results.missingRanges = [];
             results.trailingOrder = null;
             results.orders = [];
 
@@ -196,15 +200,18 @@ export class BotRunner {
                 exchange: env.PRIMO_DEFAULT_EXCHANGE,
                 res,
                 symbolPair,
+                fetchDelay: 1000,
                 fillMissing: true,
-                start: from,
-                end: new Date(to.getTime() - 1),
+                from: from,
+                to: new Date(to.getTime() - 1),
             };
 
             // TODO: Consider price pull from API in the case of a gap?
             //  Think about a deployment rollout
             const beginLoadPrices = Date.now();
-            const prices = await sym.queryPricesForRange(params);
+
+            const sus = await sym.getSymbolPriceData(params);
+            const { missingRanges, prices, warnings } = sus;
 
             ctx.prices = prices;
             const endLoadPrices = Date.now();
@@ -213,6 +220,7 @@ export class BotRunner {
             // TODO: PERF
 
             results.numCandles = prices.length;
+            results.missingRanges = missingRanges;
 
             // TODO: update prices earlier; perf metrics
 
@@ -242,7 +250,7 @@ export class BotRunner {
             if (instanceId) {
                 await strats.stopBotInstance(instanceId, null, trx);
             }
-            return results as BacktestResults;
+            return results as BotResultsSummary;
         }
         catch (err) {
             log.error(`Error running backtest for '${name}'`, err);
@@ -253,8 +261,10 @@ export class BotRunner {
             }
 
             if (instanceId) {
-                await strats.stopBotInstance(instanceId, err);
+                await strats.stopBotInstance(instanceId, err); 
             }
+
+            throw err;
         }
         finally {
             let orders: Order[] = [];
@@ -285,13 +295,13 @@ export class BotRunner {
             results.totalGrossPct = (results.totalGross.div(capitalInvested).round(4).toNumber());
             results.buyAndHoldGrossPct = lastClose.div(firstClose).minus("1").round(3).toNumber();
             results.balance = capitalInvested.plus(totalGrossProfit);
-            results.orders = orders;
+            results.orders = orders;``
             results.numOrders = orders.length;
             results.numTrades = results.numOrders / 2;
             const testLenMs = results.to.getTime() - results.from.getTime();
             const days = Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY));
             results.avgProfitPerDay = totalGrossProfit.div(days + "").round(2).toNumber();
-            results.avgProfitPctPerDay = parseFloat((results.totalGrossPct / days).toPrecision(3));
+            results.avgProfitPctPerDay = parseFloat(Math.round(results.totalGrossPct / days).toPrecision(3));
             results.length = human(testLenMs);
 
 
@@ -300,7 +310,7 @@ export class BotRunner {
             results.durationMs = duration;
             results.finish = new Date(finish);
             log.info(`Done testing '${name}' in ${duration}ms`);
-            return results as BacktestResults;
+            return results as BotResultsSummary;
         }
     }
 }

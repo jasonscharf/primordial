@@ -28,6 +28,7 @@ export interface GeneticBotState {
     prevQuantity: Money;
     prevPrice: Money;
     prevOrderId: string;
+    stopLossPrice: Money;
     targetPrice: Money;
     verbose?: boolean;
 }
@@ -206,35 +207,37 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         return state;
     }
 
-    async handleSurfLogic(ctx: BotContext<GeneticBotState>, price: PriceUpdateMessage, indicators: Map<string, unknown>) {
+    async handleSurfLogic(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {
         const { genome, instance, log, prices, state } = ctx;
-        const { close } = price;
+        const { close } = tick;
         const { currentGenome } = instance;
         let fsmState = state.fsmState;
 
-        // TEMP STUB - skip the actual surf and initiate the order at the raw entrypoint.
         const profitTarget = state.targetPrice;
+        const stopLossPrice = state.stopLossPrice;
+        const stopLossEnabled = genome.getGene("SL", "ABS").active;
 
         let result = state;
         if (!profitTarget) {
-            result = await this.placeOrder(ctx, price, indicators);
+            result = await this.placeOrder(ctx, tick, indicators);
         }
         else if (fsmState === GeneticBotFsmState.SURF_BUY) {
-            result = await this.placeOrder(ctx, price, indicators);
+            result = await this.placeOrder(ctx, tick, indicators);
         }
-        else if (fsmState === GeneticBotFsmState.SURF_SELL && price.close.gte(profitTarget)) {
-            result = await this.placeOrder(ctx, price, indicators);
+        else if (fsmState === GeneticBotFsmState.SURF_SELL && tick.close.gte(profitTarget)) {
+            result = await this.placeOrder(ctx, tick, indicators);
         }
-        else {
-            // Keep waiting ... 
+        else if (fsmState === GeneticBotFsmState.SURF_SELL && stopLossEnabled && tick.close.lte(stopLossPrice)) {
+            log.info(`Stoploss of ${stopLossPrice} hit. Selling...`);
+            result = await this.placeOrder(ctx, tick, indicators);
         }
 
         return result;
     }
 
-    async waitForTradeEntryOrExit(ctx: BotContext<GeneticBotState>, price: PriceUpdateMessage, indicators: Map<string, unknown>) {
+    async waitForTradeEntryOrExit(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {
         const { genome, instance, log, prices, state } = ctx;
-        const { close } = price;
+        const { close } = tick;
         const { currentGenome } = instance;
 
         let fsmState = state.fsmState;
@@ -260,7 +263,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             let indicatorSummary = "";
             for (const indicator of activeIndicators) {
                 const indicatorValues = indicators.get(indicator.name);
-                const signal = await indicator.computeBuySellSignal(ctx, price as Price, indicatorValues);
+                const signal = await indicator.computeBuySellSignal(ctx, tick as Price, indicatorValues);
                 const [buyWeight, sellWeight] = indicator.getBuySellWeights(ctx);
 
                 const weight = isBuying
@@ -294,7 +297,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
                 ;
 
             if (state.verbose) {
-                console.log(`[BOT] [${instance.name}] [${instance.symbols}] [${state.fsmState}] Buy/sell signal is ${weightedAverage} (T: ${thresholdValue}). ${indicatorSummary} @ ${shortDateAndTime(price.ts)}`);
+                console.log(`[BOT] [${instance.name}] [${instance.symbols}] [${state.fsmState}] Buy/sell signal is ${weightedAverage} (T: ${thresholdValue}). ${indicatorSummary} @ ${shortDateAndTime(tick.ts)}`);
             }
 
             // Make trade!

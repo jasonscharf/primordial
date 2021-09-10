@@ -61,8 +61,8 @@ bot
 bot
     .command("test")
     .argument("[name]")
-    .option("-f, --from", "When to run the test from")
-    .option("-t, --to", "When to run the test to")
+    .option("-f, --from <from>", "When to run the test from")
+    .option("-t, --to <to>", "When to run the test to")
     .option("-g, --genome <genome>", "Genome to realize")
     .option("-n, --name <name>", "Name of the bot definition and instance to create, i.e. \"rsi-macd-bot-test-01\"")
     .option("-s, --symbols <symbols>", "Symbols to run. If multiple are specified, multiple bot instances will be created.")

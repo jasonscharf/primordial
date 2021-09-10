@@ -214,7 +214,7 @@ export interface DateRange {
 }
 
 /**
- * Splits a price data range into X sub-ranges of size Y foor .
+ * Splits a price data range into X sub-ranges of size Y.
  * For example, given a range spanning 1000+ minutes, breaks it into chunks of 500 to match
  * request limits.
  * @param res 
@@ -281,5 +281,5 @@ export function human(ms: number) {
     if (seconds < 60) return seconds.toFixed(1) + " seconds";
     else if (minutes < 60) return minutes.toFixed(1) + " minutes";
     else if (hours < 24) return hours.toFixed(1) + " hours";
-    else return days + " days";
+    else return Math.ceil(days) + " days";
 }

@@ -24,7 +24,6 @@ export class Gene<T = unknown> {
     copy() {
         const gene = new Gene(this.name, this.type, this.defaultValue, this.desc);
         gene.value = this.value;
-        gene.active = true;
         return gene;
     }
 }

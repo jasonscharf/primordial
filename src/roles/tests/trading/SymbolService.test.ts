@@ -148,7 +148,7 @@ describe(SymbolService.name, () => {
             await sym.addSymbolPrice(priceProps1);
             await sym.addSymbolPrice(priceProps2);
 
-            const prices = await sym.queryPricesForRange({ exchange, start: sameMinute, end: from("2000-01-01T00:01:00.000Z") });
+            const prices = await sym.queryPricesForRange({ exchange, from: sameMinute, to: from("2000-01-01T00:01:00.000Z") });
             assert.lengthOf(prices, 1);
 
             const [p] = prices;
@@ -184,8 +184,8 @@ describe(SymbolService.name, () => {
                     exchange,
                     symbolPair,
                     res: TimeResolution.ONE_MINUTE,
-                    start,
-                    end,
+                    from: start,
+                    to: end,
                     fillMissing: true,
                 };
                 const pricesAt1m = await sym.queryPricesForRange(params);
@@ -245,8 +245,8 @@ describe(SymbolService.name, () => {
             await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
             const prices = await sym.queryPricesForRange({
                 res,
-                start,
-                end,
+                from: start,
+                to: end,
                 symbolPair,
             });
 
@@ -270,8 +270,8 @@ describe(SymbolService.name, () => {
             await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
             const prices = await sym.queryPricesForRange({
                 res,
-                start,
-                end,
+                from: start,
+                to: end,
                 symbolPair,
             });
 
@@ -307,8 +307,8 @@ describe(SymbolService.name, () => {
                 exchange,
                 symbolPair,
                 res,
-                start,
-                end,
+                from: start,
+                to: end,
                 fillMissing: true,
             });
 
@@ -357,7 +357,7 @@ describe(SymbolService.name, () => {
 
             await fill(startFill, endFill);
 
-            const prices = await sym.queryPricesForRange({ start, end });
+            const prices = await sym.queryPricesForRange({ from: start, to: end });
 
             assert.lengthOf(prices, 1);
         });

@@ -8,7 +8,8 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 /** Do *NOT* change this value! */
 export const DEFAULT_BOT_IMPL = "genetic-bot.vanilla.v1";
 
-export const DEFAULT_PROFIT_TARGET = 0.01;
+export const DEFAULT_PROFIT_TARGET = 0.02;
+export const DEFAULT_STOPLOSS_ABS = -0.01;
 
 export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
     "META": new Chromosome("META", "Meta", "Phenotype metadata", [
@@ -20,6 +21,9 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
     ]),
     "PROFIT": new Chromosome("PROFIT", "Profit", "Controls profit targets and take-profits", [
         new Gene<number>("TGTPCT", GeneticValueType.NUMBER, DEFAULT_PROFIT_TARGET, "Controls the default profit target"),
+    ]),
+    "SL": new Chromosome("SL", "Stop-loss", "Controls stop-losses", [
+        new Gene<number>("ABS", GeneticValueType.NUMBER, DEFAULT_STOPLOSS_ABS, "Sets an initial absolute stop-loss when buy orders are placed"),
     ]),
     "BUY": new Chromosome("BUY", "Buying", "Controls buying behaviour", [
         new Gene<number>("T", GeneticValueType.NUMBER, 1, "Threshold at which to consider a buy signal from the weighted average of other indicators"),

@@ -1,14 +1,16 @@
 import { AssetAmount } from "../../common/models/capital/AssetAmount";
+import { Money } from "../../common/numbers";
 import { Order } from "../../common/models/markets/Order";
+import { PriceDataRange } from "../services/SymbolService";
 import { SerializablePrimoError } from "../../common/errors/errors";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { Money } from "../../common/numbers";
 
 
 /**
- * Summary results of a backtest.
+ * Summary results for a particular bot instance.
+ * Used for backtesting as well as reporting.
  */
-export interface BacktestResults {
+export interface BotResultsSummary {
     instanceId: string;
     name: string;
     capital: Money;
@@ -38,6 +40,7 @@ export interface BacktestResults {
     genome: string;
     timeRes: TimeResolution;
     error?: SerializablePrimoError;
+    missingRanges: PriceDataRange[];
     orders: Order[];
     trailingOrder?: Order;
 }
