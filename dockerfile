@@ -31,6 +31,10 @@ COPY ./dist/common-backend /app/common-backend
 #
 FROM worker-base as tests
 COPY --from=worker-base /app/ /app/
+
+# https://stackoverflow.com/questions/51115856/docker-failed-to-export-image-failed-to-create-image-failed-to-get-layer
+RUN true
+
 COPY ./dist/tests /app/tests
 COPY ./src/roles/tests/intern.json /app/tests/
 #RUN yarn install --frozen-lockfile
