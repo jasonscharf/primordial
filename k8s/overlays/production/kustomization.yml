@@ -6,8 +6,8 @@ resources:
   - namespace.yml
   - certificate.yml
   - cluster-issuer.yml
+  - secrets.yml
 
 patchesStrategicMerge:
   - api.yml
   - ingress.yml
-  - secrets.yml
