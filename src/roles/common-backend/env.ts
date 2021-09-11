@@ -56,9 +56,9 @@ const funcs = {
     isTest: () => (env.PRIMO_MODE === "test" || env.PRIMO_MODE === ""),
     isDev: () => (env.PRIMO_MODE === "dev" || !env.isStagingOrProduction()),
     isStagingDev: () => env.PRIMO_MODE === "staging-dev",
-    isStaging: () => env.PRIMO_MODE === "staging-production",
-    isStagingOrProduction: () => env.isStaging() || env.isProduction(),
+    isStaging: () => env.PRIMO_MODE === "staging",
     isProduction: () => env.PRIMO_MODE === "production",
+    isStagingOrProduction: () => env.isStaging() || env.isProduction(),
 };
 
 // Pull from actual environment vars, or use the defaults above
