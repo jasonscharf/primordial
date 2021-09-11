@@ -3,7 +3,6 @@ import React, { useEffect } from "react";
 
 const RunScreen = () => {
     useEffect(() => {
-        console.log(`RUN`)
     });
 
     return (

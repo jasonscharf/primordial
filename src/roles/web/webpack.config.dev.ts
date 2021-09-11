@@ -17,8 +17,9 @@ module.exports = {
     plugins: [
         ...basePlugins,
         new HtmlWebpackPlugin({
-            title: "Development",
-        }),
+            filename: "index.html",
+            template: "./src/roles/web/index.template.html",
+          }),
     ],
     output: {
         filename: "[name].bundle.js",

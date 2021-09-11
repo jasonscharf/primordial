@@ -10,19 +10,14 @@ import {
 import "../assets/css/reset.css";
 import "../assets/css/main.css";
 
-import { Splash } from "./components/Splash";
-import { client } from "./includes";
-//import { RunScreen } from "./screens/sandbox/RunScreen";
 
-
-const Loading = (
+const Loading = () => (
     <div>Loading</div>
 );
 
 
-const RunScreen = lazy(() => import("./screens/sandbox/RunScreen"), {
-    fallback: <Loading />
-});
+const RunScreen = lazy(() => import("./screens/sandbox/RunScreen"));
+const Splash = lazy(() => import("./components/Splash"));
 
 
 const app = (
@@ -43,4 +38,4 @@ const app = (
     </Suspense>
 );
 
-render(app, document.getElementsByTagName("body")[0]);
+render(app, document.getElementById("app-container"));
