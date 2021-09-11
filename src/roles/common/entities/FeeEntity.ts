@@ -1,17 +1,17 @@
-import { Fee } from "../models/markets/Fee";
+import { PrimoFee } from "../models/markets/Fee";
 import { Fill } from "../models/markets/Fill";
 import { ImmutableEntity } from "../models/ImmutableEntity";
 import { Money } from "../numbers";
 
 
-export class FeeEntity extends ImmutableEntity implements Fee {
+export class FeeEntity extends ImmutableEntity implements PrimoFee {
     orderId: string;
     assetId: string;
     amount: Money;
     rate: Money;
 
 
-    constructor(row?: Partial<Fee>) {
+    constructor(row?: Partial<PrimoFee>) {
         super(row);
 
         if (row) {

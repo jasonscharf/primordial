@@ -18,7 +18,7 @@ import { PriceDataParameters } from "../services/SymbolService";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { randomString } from "../../common/utils";
-import { capital, db, log, strats, users } from "../includes";
+import { capital, db, log, results, strats, users } from "../includes";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../utils/time";
 import { botFactory } from "../../worker/bots/RobotFactory";
 import { query } from "../database/utils";
@@ -56,7 +56,7 @@ export class BotRunner {
             to = DateTime.fromISO(to as string).toJSDate();
         }
 
-        const results: Partial<BotResultsSummary> = {
+        const tr: Partial<BotResultsSummary> = {
         };
 
         let instanceId: string = null;
@@ -77,37 +77,38 @@ export class BotRunner {
             };
 
             // Note: Properties here being assigned in specific order for presentaiton
-            results.instanceId = "";
-            results.name = ""
-            results.symbols = args.symbols;
-            results.genome = genomeStr;
-            results.from = from;
-            results.to = to;
-            results.finish = null;
-            results.length = "";
-            results.numCandles = 0;
-            results.firstClose = null;
-            results.lastClose = null;
-            results.capital = capitalInvested;
-            results.balance = null;
-            results.totalGross = Money("0");
-            results.totalGrossPct = 0;
-            results.buyAndHoldGrossPct = 0;
-            results.avgProfitPerDay = 0;
-            results.avgProfitPctPerDay = 0;
-            results.numOrders = 0;
-            results.numTrades = 0;
-            results.totalWins = 0;
-            results.totalLosses = 0;
+            tr.instanceId = "";
+            tr.runId = "";
+            tr.name = ""
+            tr.symbols = args.symbols;
+            tr.genome = genomeStr;
+            tr.from = from;
+            tr.to = to;
+            tr.finish = null;
+            tr.length = "";
+            tr.numCandles = 0;
+            tr.firstClose = null;
+            tr.lastClose = null;
+            tr.capital = capitalInvested.round(12).toNumber();
+            tr.balance = null;
+            tr.totalGross = null;
+            tr.totalGrossPct = 0;
+            tr.buyAndHoldGrossPct = 0;
+            tr.avgProfitPerDay = 0;
+            tr.avgProfitPctPerDay = 0;
+            tr.numOrders = 0;
+            tr.numTrades = 0;
+            tr.totalWins = 0;
+            tr.totalLosses = 0;
 
-            results.avgWinRate = 0;
-            results.sharpe = 0;
-            results.sortino = 0;
-            results.durationMs = 0;
-            results.error = null;
-            results.missingRanges = [];
-            results.trailingOrder = null;
-            results.orders = [];
+            tr.avgWinRate = 0;
+            tr.sharpe = 0;
+            tr.sortino = 0;
+            tr.durationMs = 0;
+            tr.error = null;
+            tr.missingRanges = [];
+            tr.trailingOrder = null;
+            tr.orders = [];
 
             const instanceProps: Partial<BotInstance> = {
                 build: version.full,
@@ -156,11 +157,12 @@ export class BotRunner {
             const instanceRecord = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
             const [, backtestRun] = await strats.startBotInstance({ id: instanceRecord.id }, trx);
             run = backtestRun;
-            results.instanceId = instanceRecord.id;
-            results.name = instanceRecord.name;
+            tr.instanceId = instanceRecord.id;
+            tr.runId = run.id;
+            tr.name = instanceRecord.name;
 
             instanceId = instanceRecord.id;
-            results.timeRes = instanceRecord.resId;
+            tr.timeRes = instanceRecord.resId;
 
             // TODO: Contextually correct context (i.e. save records or no)
             if (!ctx) {
@@ -219,8 +221,8 @@ export class BotRunner {
 
             // TODO: PERF
 
-            results.numCandles = prices.length;
-            results.missingRanges = missingRanges;
+            tr.numCandles = prices.length;
+            tr.missingRanges = missingRanges;
 
             // TODO: update prices earlier; perf metrics
 
@@ -250,11 +252,11 @@ export class BotRunner {
             if (instanceId) {
                 await strats.stopBotInstance(instanceId, null, trx);
             }
-            return results as BotResultsSummary;
+            return tr as BotResultsSummary;
         }
         catch (err) {
             log.error(`Error running backtest for '${name}'`, err);
-            results.error = err;
+            tr.error = err;
 
             if (trx) {
                 await trx.rollback();
@@ -281,36 +283,43 @@ export class BotRunner {
             // Disregard the last buy
             if (orders.length > 0 && orders[orders.length - 1].typeId === OrderType.LIMIT_BUY) {
                 const [trailingOrder] = orders.splice(orders.length - 1);
-                results.trailingOrder = trailingOrder;
+                tr.trailingOrder = trailingOrder;
             }
             const firstClose = ctx.prices[0].close;
             const lastClose = ctx.prices[ctx.prices.length - 1].close;
 
             let totalGrossProfit = Money("0");
             orders.forEach(o => totalGrossProfit = totalGrossProfit.add(o.gross));
-            results.totalGross = totalGrossProfit;
-            results.capital = capitalInvested;
-            results.firstClose = firstClose;
-            results.lastClose = lastClose;
-            results.totalGrossPct = (results.totalGross.div(capitalInvested).round(4).toNumber());
-            results.buyAndHoldGrossPct = lastClose.div(firstClose).minus("1").round(3).toNumber();
-            results.balance = capitalInvested.plus(totalGrossProfit);
-            results.orders = orders;``
-            results.numOrders = orders.length;
-            results.numTrades = results.numOrders / 2;
-            const testLenMs = results.to.getTime() - results.from.getTime();
+            tr.totalGross = totalGrossProfit.round(12).toNumber();
+            tr.capital = capitalInvested.round(12).toNumber();
+            tr.firstClose = firstClose.round(12).toNumber();
+            tr.lastClose = lastClose.round(12).toNumber();
+            tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
+            tr.buyAndHoldGrossPct = lastClose.div(firstClose).minus("1").round(3).toNumber();
+            tr.balance = capitalInvested.plus(totalGrossProfit).round(12).toNumber();
+            tr.orders = orders;``
+            tr.numOrders = orders.length;
+            tr.numTrades = tr.numOrders / 2;
+            const testLenMs = tr.to.getTime() - tr.from.getTime();
             const days = Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY));
-            results.avgProfitPerDay = totalGrossProfit.div(days + "").round(2).toNumber();
-            results.avgProfitPctPerDay = parseFloat(Math.round(results.totalGrossPct / days).toPrecision(3));
-            results.length = human(testLenMs);
+            tr.avgProfitPerDay = totalGrossProfit.div(days + "").round(2).toNumber();
+            tr.avgProfitPctPerDay = parseFloat(Math.round(tr.totalGrossPct / days).toPrecision(3));
+            tr.length = human(testLenMs);
 
 
             const finish = Date.now();
             const duration = finish - start;
-            results.durationMs = duration;
-            results.finish = new Date(finish);
+            tr.durationMs = duration;
+            tr.finish = new Date(finish);
             log.info(`Done testing '${name}' in ${duration}ms`);
-            return results as BotResultsSummary;
+
+            try {
+                await results.addResultsForBotRun(tr.runId, tr as BotResultsSummary);
+            }
+            catch (err) {
+                log.error(`An error occurred while saving test results`, err);
+            }
+            return tr as BotResultsSummary;
         }
     }
 }

@@ -8,6 +8,7 @@ module.exports = {
     mode: "development",
     devtool: "inline-source-map",
     devServer: {
+        historyApiFallback: true,
         contentBase: "./dist/web/",
         proxy: {
             "/api": "http://localhost:8000",

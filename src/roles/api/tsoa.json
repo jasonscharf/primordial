@@ -2,7 +2,7 @@
     "entryFile": "./src/roles/api/api.ts",
     "noImplicitAdditionalProperties": "silently-remove-extras",
     "controllerPathGlobs": [
-        "./src/roles/api/controllers/*"
+        "./src/roles/api/controllers/**/**"
     ],
     "spec": {
         "basePath": "/api",

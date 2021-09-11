@@ -2,6 +2,7 @@ body {
     background: black !important;
     display: flex;
     height: 100vh;
+    color: white;
 }
 
 h1, h2, h3 {

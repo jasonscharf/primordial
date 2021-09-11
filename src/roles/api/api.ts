@@ -1,5 +1,6 @@
 import Koa from "koa";
 import KoaBodyParser from "koa-bodyparser";
+import KoaJson from "koa-json";
 import KoaRouter from "koa-router";
 import * as http from "http2";
 import * as ws from "ws";
@@ -97,6 +98,8 @@ async function createServerApp() {
     await configureLogging(app);
     await configureRoutes(app);
     await configureSessions(app);
+
+    app.use(KoaJson());
 
     return app;
 }

@@ -12,10 +12,11 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
  */
 export interface BotResultsSummary {
     instanceId: string;
+    runId: string;
     name: string;
-    capital: Money;
-    balance: Money;
-    totalGross: Money;
+    capital: number;
+    balance: number;
+    totalGross: number;
     totalGrossPct: number;
     buyAndHoldGrossPct: number;
     avgProfitPerDay: number;
@@ -27,8 +28,8 @@ export interface BotResultsSummary {
     totalWins: number;
     totalLosses: number;
     avgWinRate: number;
-    firstClose: Money;
-    lastClose: Money;
+    firstClose: number;
+    lastClose: number;
     sharpe: number;
     sortino: number;
     from: Date;
