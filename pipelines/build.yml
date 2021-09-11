@@ -8,7 +8,7 @@ pool:
 variables:
   artifactName: drop
   isPullRequest: $[eq(variables['Build.Reason'], 'PullRequest')]
-  kubernetesServiceConnection: "development"
+  kubernetesServiceConnection: "production"
   manifestPath: "manifest.yml"
   registryName: primordialimages
   resourceGroup: primo-development
