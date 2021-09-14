@@ -3,7 +3,8 @@ import { DateTime } from "luxon";
 import Knex from "knex";
 import { Money, sleep } from "../../common/utils";
 import { Price } from "../../common/models/markets/Price";
-import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS, PriceDataParameters } from "../../common-backend/services/SymbolService";
+import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
+import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS } from "../../common-backend/services/SymbolService";
 import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
@@ -11,7 +12,7 @@ import { assert, describe, before, env, it } from "../includes";
 import { assertRejects } from "../utils/async";
 import { db, dbm, tables, us } from "../../common-backend/includes";
 import { beforeEach } from "intern/lib/interfaces/tdd";
-import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
+import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 
 
 describe(SymbolService.name, () => {
@@ -167,8 +168,67 @@ describe(SymbolService.name, () => {
             // TEST
         });
 
-        function test(res: TimeResolution, numExpected: number, offsetToCheck: number) {
-            it(`correctly rolls up 1m prices to ${res}`, async () => {
+        it("produces data that matches exchange data at 1m", async () => {
+            const start = from("2021-09-12T00:00:00");
+            const end = from("2021-09-12T00:30:00");
+            const args: PriceDataParameters = {
+                exchange: env.PRIMO_DEFAULT_EXCHANGE,
+                res: TimeResolution.ONE_MINUTE,
+                symbolPair: "BTC/BUSD",
+                from: start,
+                to: end,
+                fetchDelay: 0,
+            };
+            const [, rawPrices] = await sym.fetchPriceDataFromExchange(args);
+            const { missingRanges, prices, warnings } = await sym.getSymbolPriceData(args);
+            assert.lengthOf(missingRanges, 0);
+            assert.lengthOf(warnings, 0);
+            assert.equal(rawPrices.length, prices.length);
+
+            for (let i = 0; i < prices.length; ++i) {
+                const a = prices[i];
+                const b = rawPrices[i] as Price;
+                assert.equal(a.open.toString(), b.open.toString());
+                assert.equal(a.low.toString(), b.low.toString());
+                assert.equal(a.high.toString(), b.high.toString());
+                assert.equal(a.close.toString(), b.close.toString());
+            }
+        });
+
+        it("correctly rolls up 1m data to 15m", async () => {
+            const start = from("2021-09-12T00:00:00");
+            const end = from("2021-09-12T00:30:00");
+            const args: PriceDataParameters = {
+                exchange: env.PRIMO_DEFAULT_EXCHANGE,
+                res: TimeResolution.ONE_MINUTE,
+                symbolPair: "BTC/BUSD",
+                from: start,
+                to: end,
+                fetchDelay: 0,
+            };
+            const [, rawPrices1m] = await sym.fetchPriceDataFromExchange(args);
+
+            args.res = TimeResolution.FIFTEEN_MINUTES;
+            const [, rawPrices15m] = await sym.fetchPriceDataFromExchange(args);
+
+            const rolledUpPrices = await sym.queryPricesForRange(args);
+
+            assert.equal(rolledUpPrices.length, rawPrices15m.length);
+
+
+            for (let i = 0; i < rolledUpPrices.length; ++i) {
+                const a = rolledUpPrices[i];
+                const b = rawPrices15m[i] as Price;
+                assert.equal(a.open.toString(), b.open.toString());
+                assert.equal(a.low.toString(), b.low.toString());
+                assert.equal(a.high.toString(), b.high.toString());
+                assert.equal(a.close.toString(), b.close.toString());
+                assert.equal(a.volume.toString(), b.volume.toString());
+            }
+        });
+
+        function testRollupCounts(res: TimeResolution, numExpected: number, offsetToCheck: number) {
+            it(`produces the correct number of rolled up candles ${res}`, async () => {
                 await clearTestPrices();
 
                 const symbolPair = `${ctx.testSymbol1.id}/${ctx.testSymbol2.id}`;
@@ -177,8 +237,6 @@ describe(SymbolService.name, () => {
                 const end = from("2000-01-01T01:00:00");
 
                 await fillRangeWithData(exchange, symbolPair, TimeResolution.ONE_MINUTE, start, end, increasingPriceGenerator);
-
-                // TODO... complete
 
                 const params: PriceDataParameters = {
                     exchange,
@@ -204,10 +262,10 @@ describe(SymbolService.name, () => {
             });
         }
 
-        test(TimeResolution.ONE_MINUTE, 60, 1);
-        test(TimeResolution.FIVE_MINUTES, 12, 5);
-        test(TimeResolution.FIFTEEN_MINUTES, 4, 15);
-        test(TimeResolution.ONE_HOUR, 1, 1);
+        testRollupCounts(TimeResolution.ONE_MINUTE, 60, 1);
+        testRollupCounts(TimeResolution.FIVE_MINUTES, 12, 5);
+        testRollupCounts(TimeResolution.FIFTEEN_MINUTES, 4, 15);
+        testRollupCounts(TimeResolution.ONE_HOUR, 1, 60);
 
         // TEST ... rollup longer than 1 hour
 
@@ -405,6 +463,16 @@ describe(SymbolService.name, () => {
             assert.equal(after.end.getTime(), endTest.getTime());
         });
 
+        it("does not produce a trailing missing range", async () => {
+            await clearTestPrices();
+
+            // Generate some prices so we can test around them
+            const start = from("2021-09-01T00:00:00");
+            const end = from("2021-09-01T00:30:00");
+            await fill(start, end);
+            const ranges = await getMissingRanges(start, end);
+            assert.lengthOf(ranges, 0);
+        });
         // TEST (more)
     });
 

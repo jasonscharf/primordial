@@ -21,6 +21,19 @@ services:
       POSTGRES_PASSWORD: primo
 
 
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8999:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=user@domain.com
+      - PGADMIN_DEFAULT_PASSWORD=dev
+    depends_on:
+      - db
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+
+
   # For CI / ad-hoc test running
   tests:
     build:
@@ -138,3 +151,7 @@ services:
       - ./dist/common-backend:/app/common-backend/:delegated
       - ./dist/worker:/app/worker/:delegated
       - ./src/roles:/app/src/roles:delegated
+
+
+volumes:
+  pgadmin:

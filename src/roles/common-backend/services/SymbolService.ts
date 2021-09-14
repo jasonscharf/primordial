@@ -3,13 +3,15 @@ import { DateTime } from "luxon";
 import env from "../env";
 import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/markets/Price";
+import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../common/entities/PriceEntity";
+import { SymbolResultSet } from "../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TradeSymbolEntity } from "../../common/entities/TradeSymbolEntity";
 import { cache, db, log } from "../includes";
 import { caching, limits, queries, tables } from "../constants";
-import { getPostgresDatePartForTimeRes, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../utils/time";
+import { getPostgresDatePartForTimeRes, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../../common/utils/time";
 import { query } from "../database/utils";
 import { randomString, sleep } from "../../common/utils";
 import { sym } from "../services";
@@ -29,22 +31,6 @@ export interface PriceDataRange {
     symbolPair: string;
     start: Date;
     end: Date;
-}
-
-export interface PriceDataParameters {
-    exchange: string;
-    symbolPair: string;
-    res: TimeResolution,
-    from: Date,
-    to?: Date,
-    fetchDelay?: number;
-    fillMissing?: boolean;
-};
-
-export interface SymbolResultSet {
-    warnings: string[];
-    missingRanges: PriceDataRange[];
-    prices: Price[];
 }
 
 export const DEFAULT_PRICE_DATA_PARAMETERS: Partial<PriceDataParameters> = {
@@ -162,7 +148,7 @@ export class SymbolService {
      * Gets symbols prices, pulling them in discrete batches from an exchange as needed.
      * @param params 
      */
-    async getSymbolPriceData(params: Partial<PriceDataParameters>) {
+    async getSymbolPriceData(params: Partial<PriceDataParameters>): Promise<SymbolResultSet> {
         const symbolPairsToUpdate = [params.symbolPair];
         const appliedParams = Object.assign({}, DEFAULT_PRICE_DATA_PARAMETERS, params);
 
@@ -181,7 +167,7 @@ export class SymbolService {
             const splits: PriceDataRange[] = [];
 
             // Only pull up the current interval.
-            const end = normalizePriceTime(res, new Date());
+            const end = normalizePriceTime(res, to || new Date());
 
             const missingRanges = await sym.getMissingRanges(exchange, pair, res, from, end);
             if (missingRanges.length === 0) {
@@ -192,7 +178,7 @@ export class SymbolService {
                 // Split up ranges so we're not requesting more than the candlestick limit
                 splits.push(...missingRanges
                     .filter(shouldInclude)
-                    .map(range => splitRanges(res, range))
+                    .map(range => splitRanges(res, range, limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES))
                     .flat()
                     .map(range => (<PriceDataRange>{
                         exchange,
@@ -208,7 +194,7 @@ export class SymbolService {
             }
 
             // 
-            syncRangesForSymbols.set(pair, splits.reverse());  
+            syncRangesForSymbols.set(pair, splits.reverse());
         }
 
         // Grab N sync operations across the top priority symbols
@@ -418,8 +404,8 @@ export class SymbolService {
                                     LAG(LAST(close::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as close,
 
                             COALESCE(
-                                LAST(close::${numType}, ts),
-                                    LAG(LAST(close::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as close,
+                                LAST(low::${numType}, ts),
+                                    LAG(LAST(low::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as low,
 
                             COALESCE(
                                 LAST(high::${numType}, ts),
@@ -503,6 +489,17 @@ export class SymbolService {
         const [base, quote] = this.parseSymbolPair(symbolPair);
         const tf = getTimeframeForResolution(res);
 
+
+        // Passing the time resolution as a bound variable breaks the query, so we have to
+        // sanitize and inject it verbatim, unfortunately :/
+        let safeRes: TimeResolution = null;
+        if (!Object.values(TimeResolution).includes(res)) {
+            throw new Error(`Unknown time resolution '${res}'`);
+        }
+        else {
+            safeRes = res;
+        }
+
         // Note the lack of gap filling here - this is done on data ingestion.
         return query(queries.SYMBOLS_PRICES_QUERY, async db => {
             const pgDatePart = getPostgresDatePartForTimeRes(res);
@@ -515,44 +512,44 @@ export class SymbolService {
                             , :tf::interval) dd
                 ),
                 time_range_buckets AS (
-                    SELECT time_bucket(:res, generated) as generated
+                    SELECT time_bucket('${safeRes}', generated) as generated
                     FROM time_range
                 ),
                 existing_prices AS (
-                    SELECT time_bucket(:res, ts) as ts,
-                        last(close, ts) as close,
-                        last(open, ts) as open,
-                        last(low, ts) as low,
-                        last(high, ts) as high,
-                        last(close, ts) as closed, --reserved word
-                        sum(volume) as volume
+                    SELECT time_bucket('${safeRes}', ts) as ts,
+                        FIRST(open, ts) as open,
+                        MIN(low) as low,
+                        MAX(high) as high,
+                        LAST(close, ts) as closed,
+                        SUM(volume) as volume
                     FROM prices
                     WHERE "exchangeId" = :exchange
                     AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
                     AND ("ts" >= :start AND "ts" < :end)
-                    GROUP BY "ts"
-                    ORDER BY "ts" DESC
+                    GROUP BY time_bucket('${res}', ts)
+                    ORDER BY ts ASC
                 )
-                SELECT ts,
+                SELECT time_bucket('${safeRes}', ts) as ts,
                         :base as "baseSymbolId",
                         :quote as "quoteSymbolId",
                         :exchange as "exchangeId",
-                        :res as "resId",
-                        last(open, ts) as open,
-                        last(existing_prices.low, ts) as low,
-                        last(existing_prices.high, ts) as high,
-                        last(existing_prices.closed, ts) as "close",
-                        sum(volume) as volume
+                        :safeRes as "resId",
+                        LAST(existing_prices.closed, ts) as "close",
+                        FIRST(existing_prices.open, ts) as open,
+                        MIN(existing_prices.low) as low,
+                        MAX(existing_prices.high) as high,
+                        SUM(volume) as volume
                 FROM existing_prices
                 JOIN time_range_buckets ON "ts" = "generated"
                 GROUP BY ts
+                ORDER BY ts ASC
             `;
-
+ 
             const bindings = {
                 tf,
                 pgDatePart,
                 exchange,
-                res,
+                safeRes,
                 base,
                 quote,
                 start,
@@ -560,21 +557,58 @@ export class SymbolService {
             };
 
             const { rows } = await db.raw(query, bindings);
-            return rows.map(row => PriceEntity.fromRow(row)); 
+            return rows.map(row => PriceEntity.fromRow(row));
         });
+    }
+
+    /**
+     * Fetches raw price data from the default exchange.
+     * @param exchange 
+     * @param symbolPair 
+     * @param res 
+     * @param start 
+     * @param end 
+     */
+    async fetchPriceDataFromExchange(args: PriceDataParameters) {
+        const { exchange, from, res, symbolPair, to } = args;
+        const [base, quote] = this.parseSymbolPair(symbolPair);
+        const intervals = (to.getTime() - from.getTime()) / millisecondsPerResInterval(res);
+        const limit = Math.min(Math.ceil(intervals), limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES);
+
+        console.info(`API request for candles `, args);
+        const data = await this._exchange.fetchOHLCV(symbolPair, res, from.getTime(), limit);
+        const prices = data.map(d => {
+            const [ms, openFloat, highFloat, lowFloat, closeFloat, volumeFloat] = d;
+            const price: Partial<Price> = {
+                ts: new Date(ms),
+                exchangeId: exchange,
+                baseSymbolId: base,
+                quoteSymbolId: quote,
+                resId: res,
+                open: Money(openFloat.toString()),
+                low: Money(lowFloat.toString()),
+                high: Money(highFloat.toString()),
+                close: Money(closeFloat.toString()),
+                volume: Money(volumeFloat.toString()),
+            };
+
+            return price;
+        });
+
+        return [data, prices];
     }
 
     /**
      * Updates symbol prices in the database.
      * @param exchange 
      * @param symbolPair 
-     * @param start 
-     * @param end 
+     * @param from 
+     * @param to 
      */
-    async updateSymbolPrices(exchange: string, symbolPair: string, res: TimeResolution, start: Date, end: Date = new Date(), sync = true): Promise<Price[]> {
+    async updateSymbolPrices(exchange: string, symbolPair: string, res: TimeResolution, from: Date, to: Date = new Date(), sync = true): Promise<Price[]> {
         const [base, quote] = this.parseSymbolPair(symbolPair);
         const nowMs = this._exchange.milliseconds();
-        const startMs = start.getTime();
+        const startMs = from.getTime();
 
 
         if (startMs > nowMs) {
@@ -584,7 +618,7 @@ export class SymbolService {
         const intervalMs = millisecondsPerResInterval(res);
 
         // Figure out what data needs to be pulled.
-        const missingRanges = await this.getMissingRanges(exchange, symbolPair, res, start, end);
+        const missingRanges = await this.getMissingRanges(exchange, symbolPair, res, from, to);
 
         const params: ccxt.Params = {};
         const rp = [];
@@ -596,41 +630,22 @@ export class SymbolService {
 
             try {
                 const limit = Math.min(Math.ceil((r.end.getTime() - r.start.getTime()) / intervalMs), limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES);
-
-                // Note: Not all changes support OHLCV and CCXT's docs mention it as experimental :/
-                // https://ccxt.readthedocs.io/en/latest/manual.html#ohlcv-candlestick-charts
-                const data = await this._exchange.fetchOHLCV(symbolPair, res, r.start.getTime(), limit);
-                const prices = data.map(d => {
-                    const [ms, openFloat, highFloat, lowFloat, closeFloat, volumeFloat] = d;
-                    const price: Partial<Price> = {
-                        ts: new Date(ms),
-                        exchangeId: exchange,
-                        baseSymbolId: base,
-                        quoteSymbolId: quote,
-                        resId: res,
-                        open: Money(openFloat.toString()),
-                        low: Money(lowFloat.toString()),
-                        high: Money(highFloat.toString()),
-                        close: Money(closeFloat.toString()),
-                        volume: Money(volumeFloat.toString()),
-
-                        openRaw: openFloat.toString(),
-                        highRaw: highFloat.toString(),
-                        lowRaw: lowFloat.toString(),
-                        closeRaw: closeFloat.toString(),
-                    };
-
-                    return price;
-                });
-
-                await sym.addPriceData(exchange, res, prices);
+                const args: PriceDataParameters = {
+                    exchange,
+                    symbolPair,
+                    res,
+                    from,
+                    to,
+                };
+                const [rawData, prices] = await this.fetchPriceDataFromExchange(args);
+                const result = await sym.addPriceData(exchange, res, prices as Price[]);
             }
             catch (err) {
                 if (err.detail) {
                     log.error(`[SYNC] Error: ${err.detail}`)
                 }
                 else {
-                    log.error(`Error updating '${symbolPair}' for ${start}-${end} from ${exchange}`, err);
+                    log.error(`Error updating '${symbolPair}' for ${from}-${to} from ${exchange}`, err);
                 }
             }
         }
@@ -722,7 +737,7 @@ export class SymbolService {
                 end,
             };
 
-            // Derive continguous empty ranges
+            // Derive contiguous empty ranges
             const { rows } = await db.raw(q, bindings);
             const ranges: PriceDataRange[] = [];
 
@@ -731,7 +746,10 @@ export class SymbolService {
             let inEmptyRange = false;
 
             for (const row of rows) {
-                if (row.ts === null) {
+                if (row.generated >= end) {
+                    continue;
+                }
+                else if (row.ts === null) {
                     if (!inEmptyRange) {
                         inEmptyRange = true;
 
@@ -758,6 +776,7 @@ export class SymbolService {
             if (currRange) {
                 currRange.end = end;
             }
+
             return ranges;
         });
     }
