@@ -13,7 +13,7 @@ export function moneytize(obj: unknown) {
     const clone = {};
     for (const k of Object.keys(obj)) {
         if (obj[k] instanceof Money) {
-            clone[k] = (obj[k] as Money).toString();
+            clone[k] = (obj[k] as Money).round(12).toString();
         }
         else {
             clone[k] = obj[k];

@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
-import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { constants } from "../includes";
+import { TimeResolution } from "../models/markets/TimeResolution";
+
 
 
 /**
@@ -220,9 +220,9 @@ export interface DateRange {
  * @param res 
  * @param range 
  */
-export function splitRanges(res: TimeResolution, range: { start: Date, end: Date }, max = constants.limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES):
+export function splitRanges(res: TimeResolution, range: { start: Date, end: Date }, max):
     DateRange[] {
-    max = Math.min(max, constants.limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES);
+    max = Math.min(max, 1000);
     const { start, end } = range;
 
     const rangeDuration = end.getTime() - start.getTime();

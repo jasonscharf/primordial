@@ -1,4 +1,4 @@
-import { BotResultsSummary } from "../../../common-backend/bots/BotSummaryResults";
+import { BotResultsSummary } from "./BotSummaryResults";
 import { MutableModel } from "../MutableEntity";
 
 

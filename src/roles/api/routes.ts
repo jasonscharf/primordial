@@ -102,6 +102,29 @@ export function RegisterRoutes(router: KoaRouter) {
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/sandbox/prices/:symbolPair',
+            async function Sandbox_getPrices(context: any, next: any) {
+            const args = {
+                    symbolPair: {"in":"path","name":"symbolPair","required":true,"dataType":"string"},
+                    res: {"in":"query","name":"res","dataType":"string"},
+                    from: {"in":"query","name":"from","dataType":"string"},
+                    to: {"in":"query","name":"to","dataType":"string"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new Sandbox();
+
+            const promise = controller.getPrices.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
 
   // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

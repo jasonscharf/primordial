@@ -6,7 +6,8 @@ import { SpoolerTaskHandler } from "../../common-backend/system/SpoolerTaskHandl
 import { TradeSymbol } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { constants, log, sym } from "../../common-backend/includes";
-import { millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../../common-backend/utils/time";
+import { millisecondsPerResInterval, normalizePriceTime, splitRanges } from "../../common/utils/time";
+import { limits } from "../../common-backend/constants";
 
 
 const DEFAULT_STATE: UpdateSymbolsState = {
@@ -117,7 +118,7 @@ export const updateSymbolPricesGlobal: SpoolerTaskHandler<UpdateSymbolsState> = 
             // Split up ranges so we're not requesting more than the candlestick limit
             splits.push(...missingRanges
                 .filter(shouldInclude)
-                .map(range => splitRanges(res, range))
+                .map(range => splitRanges(res, range, limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES))
                 .flat()
                 .map(range => (<PriceDataRange>{
                     exchange,

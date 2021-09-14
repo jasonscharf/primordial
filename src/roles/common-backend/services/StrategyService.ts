@@ -20,7 +20,7 @@ import { botIdentifier } from "../bots/BotContext";
 import { constants, db, log } from "../includes";
 import { queries, tables } from "../constants";
 import { query, ref } from "../database/utils";
-import { shortDateAndTime, shortTime } from "../utils/time";
+import { shortDateAndTime, shortTime } from "../../common/utils/time";
 import { sym } from "../services";
 import { version } from "../../common/version";
 

@@ -11,13 +11,13 @@ import { GeneticBot } from "../bots/GeneticBot";
 import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
 import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/markets/Price";
-import { PriceDataParameters } from "../../common-backend/services/SymbolService";
+import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { PriceUpdateMessage } from "../../common-backend/messages/trading";
 import { QueueMessage } from "../../common-backend/messages/QueueMessage";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { constants, db, log, mq, strats, sym } from "../../common-backend/includes";
-import { millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
+import { millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base-genetics";
 import { botFactory } from "../bots/RobotFactory";
 

@@ -1,5 +1,5 @@
 import { BotResults } from "../models/bots/BotResults";
-import { BotResultsSummary } from "../../common-backend/bots/BotSummaryResults";
+import { BotResultsSummary } from "../models/bots/BotSummaryResults";
 import { MutableEntity } from "../models/MutableEntity";
 
 

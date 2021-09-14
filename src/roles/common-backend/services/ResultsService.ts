@@ -1,7 +1,7 @@
 import env from "../env";
 import { BotResultsEntity } from "../../common/entities/BotResultsEntity";
 import { BotResults } from "../../common/models/bots/BotResults";
-import { BotResultsSummary } from "../bots/BotSummaryResults";
+import { BotResultsSummary } from "../../common/models/bots/BotSummaryResults";
 import { queries, tables } from "../constants";
 import { query, ref } from "../database/utils";
 import { strats } from "../includes";

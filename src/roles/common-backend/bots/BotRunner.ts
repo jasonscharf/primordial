@@ -2,10 +2,10 @@ import { DateTime } from "luxon";
 import knex from "knex";
 //import PA from "portfolio-analytics";
 import env from "../env";
-import { BotResultsSummary } from "./BotSummaryResults";
 import { BacktestRequest } from "../messages/testing";
 import { BotContext, botIdentifier, buildBotContext } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
+import { BotResultsSummary } from "../../common/models/bots/BotSummaryResults";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotImplementation } from "./BotImplementation";
@@ -14,12 +14,12 @@ import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
 import { OrderEntity } from "../../common/entities/OrderEntity";
-import { PriceDataParameters } from "../services/SymbolService";
+import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { randomString } from "../../common/utils";
 import { capital, db, log, results, strats, users } from "../includes";
-import { human, millisecondsPerResInterval, normalizePriceTime } from "../utils/time";
+import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { botFactory } from "../../worker/bots/RobotFactory";
 import { query } from "../database/utils";
 import { sym } from "../services";
@@ -43,6 +43,12 @@ export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
  */
 export class BotRunner {
 
+    /**
+     * Runs a backtest, producing a summary report of the bots performance.
+     * @param args 
+     * @param ctx 
+     * @returns 
+     */
     async run(args: BacktestRequest, ctx: BotContext = null): Promise<BotResultsSummary> {
         const start = Date.now();
         const trx = null;//await db.transaction();
@@ -65,6 +71,7 @@ export class BotRunner {
         try {
             const { genome } = new GenomeParser().parse(genomeStr);
             const symbols = sym.parseSymbolPair(args.symbols);
+            const [base, quote] = symbols;
             const defDisplayName = `Backtest for '${name}'`;
             const normalizedGenome = ""; // TODO
 
@@ -81,11 +88,14 @@ export class BotRunner {
             tr.runId = "";
             tr.name = ""
             tr.symbols = args.symbols;
+            tr.base = base;
+            tr.quote = quote;
             tr.genome = genomeStr;
             tr.from = from;
             tr.to = to;
             tr.finish = null;
             tr.length = "";
+            tr.timeRes = null;
             tr.numCandles = 0;
             tr.firstClose = null;
             tr.lastClose = null;
@@ -96,6 +106,7 @@ export class BotRunner {
             tr.buyAndHoldGrossPct = 0;
             tr.avgProfitPerDay = 0;
             tr.avgProfitPctPerDay = 0;
+            tr.estProfitPerYearCompounded = 0;
             tr.numOrders = 0;
             tr.numTrades = 0;
             tr.totalWins = 0;
@@ -306,6 +317,9 @@ export class BotRunner {
             tr.avgProfitPctPerDay = parseFloat(Math.round(tr.totalGrossPct / days).toPrecision(3));
             tr.length = human(testLenMs);
 
+            // Compounded is calculated per day here.
+            const rate = tr.avgProfitPctPerDay;
+            tr.estProfitPerYearCompounded = capital.calcCompoundingInterest(capitalInvested, rate, 365, 1).round(12).toNumber();
 
             const finish = Date.now();
             const duration = finish - start;

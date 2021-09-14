@@ -9,6 +9,8 @@ import {
 
 import "../assets/css/reset.css";
 import "../assets/css/main.css";
+import "../assets/css/utils.css";
+import "../assets/css/components.css";
 
 
 const Loading = () => (
@@ -17,6 +19,7 @@ const Loading = () => (
 
 
 const RunScreen = lazy(() => import("./screens/sandbox/RunScreen"));
+const BotResults = lazy(() => import("./screens/sandbox/BotResults"));
 const Splash = lazy(() => import("./components/Splash"));
 
 
@@ -29,6 +32,9 @@ const app = (
             <Switch>
                 <Route path="/run">
                     <RunScreen />
+                </Route>
+                <Route path="/results/:instanceId">
+                    <BotResults />
                 </Route>
                 <Route exact path="/">
                     <Splash />

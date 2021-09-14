@@ -285,5 +285,20 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         format: "json",
         ...params,
       }),
+
+    /**
+     * No description
+     *
+     * @name GetPrices
+     * @request GET:/sandbox/prices/{symbolPair}
+     */
+    getPrices: (symbolPair: string, query?: { res?: string; from?: string; to?: string }, params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/sandbox/prices/${symbolPair}`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
   };
 }

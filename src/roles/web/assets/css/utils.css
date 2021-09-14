@@ -1,0 +1,22 @@
+/* Utility styles */
+.primo-negative {
+    color: orange;
+}
+
+.primo-positive { 
+    color: green;
+}
+
+.primo-neutral {
+    color: cyan;
+}
+
+.primo-fullheight {
+    flex: 1;
+}
+
+.primo-fullsize,
+.primo-tv-chart-container {
+    width: 100%;
+    height: 100%;
+}

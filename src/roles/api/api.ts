@@ -104,8 +104,10 @@ async function createServerApp() {
     return app;
 }
 
+
+let wss: ws.Server = null;
 async function createSocketServer() {
-    const wss = new ws.Server({ port: 8010 });
+    wss = new ws.Server({ port: 8010 });
     log.info(`API socket server running on ${8010}`);
 
     wss.on("connection", function (ws) {
@@ -120,7 +122,12 @@ async function createSocketServer() {
 
 console.log("--- API server entrypoint ---");
 
-process.on("SIGTERM", () => console.info("SIGTERM: API"));
+process.on("SIGTERM", () => {
+    console.info("SIGTERM: API");
+    if (wss) {
+        wss.close();
+    }
+});
 
 
 log.info(`API role running migrations (if needed)...`);
@@ -141,7 +148,9 @@ dbm.migrate()
         });
 
         // Note: A health check is required for cluster health
-        const healthCheck = new Koa();
-        healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
-        healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
+        if (!env.isDev()) {
+            const healthCheck = new Koa();
+            healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
+            healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
+        }
     });

@@ -1,9 +1,8 @@
-import { AssetAmount } from "../../common/models/capital/AssetAmount";
-import { Money } from "../../common/numbers";
-import { Order } from "../../common/models/markets/Order";
-import { PriceDataRange } from "../services/SymbolService";
-import { SerializablePrimoError } from "../../common/errors/errors";
-import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { Money } from "../../numbers";
+import { Order } from "../markets/Order";
+import { PriceDataRange } from "../../../common-backend/services/SymbolService";
+import { PrimoSerializableError } from "../../errors/errors";
+import { TimeResolution } from "../markets/TimeResolution";
 
 
 /**
@@ -19,9 +18,13 @@ export interface BotResultsSummary {
     totalGross: number;
     totalGrossPct: number;
     buyAndHoldGrossPct: number;
+    estProfitPerYearCompounded: number;
     avgProfitPerDay: number;
     avgProfitPctPerDay: number;
+    exchange: string;
     symbols: string;
+    base: string;
+    quote: string;
     numCandles: number;
     numOrders: number;
     numTrades: number;
@@ -40,7 +43,7 @@ export interface BotResultsSummary {
     length: string;
     genome: string;
     timeRes: TimeResolution;
-    error?: SerializablePrimoError;
+    error?: PrimoSerializableError;
     missingRanges: PriceDataRange[];
     orders: Order[];
     trailingOrder?: Order;

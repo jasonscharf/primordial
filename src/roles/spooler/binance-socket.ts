@@ -2,13 +2,13 @@ import Binance, { Candle } from "binance-api-node";
 import env from "../common-backend/env";
 import { Money } from "../common/numbers";
 import { Price } from "../common/models/markets/Price";
+import { PriceUpdateMessage } from "../common-backend/messages/trading";
+import { QueueMessage } from "../common-backend/messages/QueueMessage";
 import { TimeResolution } from "../common/models/markets/TimeResolution";
 import { TradeSymbol } from "../common/models/markets/TradeSymbol";
 import { constants, log, mq } from "../common-backend/includes";
-import { normalizePriceTime } from "../common-backend/utils/time";
+import { normalizePriceTime } from "../common/utils/time";
 import { sym } from "../common-backend/services";
-import { PriceUpdateMessage } from "../common-backend/messages/trading";
-import { QueueMessage } from "../common-backend/messages/QueueMessage";
 
 
 const client = Binance({
