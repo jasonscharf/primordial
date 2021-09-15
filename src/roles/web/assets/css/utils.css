@@ -20,3 +20,16 @@
     width: 100%;
     height: 100%;
 }
+
+.primo-modal {
+    position: absolute;
+    display: flex;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.primo-modal > * {
+    flex: 1;
+}

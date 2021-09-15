@@ -1,11 +1,10 @@
 import { DateTime } from "luxon";
 import knex from "knex";
-//import PA from "portfolio-analytics";
 import env from "../env";
 import { BacktestRequest } from "../messages/testing";
-import { BotContext, botIdentifier, buildBotContext } from "./BotContext";
+import { BotContext, botIdentifier, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
-import { BotResultsSummary } from "../../common/models/bots/BotSummaryResults";
+import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotImplementation } from "./BotImplementation";
@@ -20,11 +19,13 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { randomString } from "../../common/utils";
 import { capital, db, log, results, strats, users } from "../includes";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
-import { botFactory } from "../../worker/bots/RobotFactory";
+import { botFactory } from "./RobotFactory";
 import { query } from "../database/utils";
 import { sym } from "../services";
 import { tables } from "../constants";
 import { version } from "../../common/version";
+import { bot } from "../../spooler/cli/commands";
+import { names } from "../genetics/base-genetics";
 
 
 
@@ -38,10 +39,129 @@ export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
 };
 
 
+export interface IndicatorsAndSignals {
+    signals: number[];
+    indicators: Map<string, number[]>;
+}
+
 /**
  * Handles running of bots in backtest mode.
  */
 export class BotRunner {
+
+    /**
+     * Computes signals and indicators for a backtest without executing any ordering logic.
+     * @param args 
+     * @returns 
+     */
+    async calculateIndicatorsAndSignals(args: BacktestRequest): Promise<IndicatorsAndSignals> {
+        let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ to } = args;
+
+        const signals = [];
+        const indicators = new Map<string, number[]>();
+        try {
+            const { genome } = new GenomeParser().parse(args.genome);
+
+            const ctx = await buildBotContextForSignalsComputation(args);
+            const botType = genome.getGene<string>("META", "IMPL").value;
+            const localInstance = botFactory.create(botType) as BotImplementation;
+
+            
+            // Grab the prices + a run-in window of N prices before trading begins.
+            // This is to support indicators with moving windows
+            const intervalMs = millisecondsPerResInterval(args.res);
+            const maxIntervals = genome.getGene<number>(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_MAX_INTERVALS).value;
+            const actualFrom = new Date(from.getTime() - (intervalMs * maxIntervals));
+
+            const params: PriceDataParameters = {
+                exchange: env.PRIMO_DEFAULT_EXCHANGE,
+                res: args.res,
+                symbolPair: args.symbols,
+                fetchDelay: 1000,
+                fillMissing: true,
+                from: actualFrom,
+                to: new Date(to.getTime() - 1),
+            };
+
+            const beginLoadPrices = Date.now();
+
+            const sus = await sym.getSymbolPriceData(params);
+            const { missingRanges, prices, warnings } = sus;
+
+            ctx.prices = prices;
+            const endLoadPrices = Date.now();
+            const loadPricesDuration = endLoadPrices - beginLoadPrices;
+
+
+            // IMPORTANT: We are ticking at the interval level here (e.g. 1min) and not necessarily at true tick-level (e.g. 1s)
+            const window = maxIntervals;
+
+            // Initialize 
+            const newState = await localInstance.initialize(ctx);
+            if (newState) {
+                ctx.state = newState;
+            }
+            else {
+                ctx.state = {};
+            }
+
+            ctx.instance.runState = RunState.ACTIVE;
+            ctx.instance.modeId = Mode.BACK_TEST;
+
+            for (let i = 0; i < prices.length - window; ++i) {
+                ctx.prices = prices.slice(i, i + window);
+                let price = ctx.prices[ctx.prices.length - 1];
+                const botIndicators = await localInstance.computeIndicatorsForTick(ctx, price);
+                const signal = await localInstance.computeSignal(ctx, price, botIndicators);
+                const newState = await localInstance.tick(ctx, price, signal, botIndicators);
+
+                if (newState !== null && ctx.instance.stateJson !== undefined) {
+                    ctx.state = ctx.instance.stateJson = newState;
+                }
+
+                ctx.instance.prevTick = new Date();
+
+                // Store the indicators and current signal
+                signals.push(signal);
+
+                for (const ind of botIndicators.keys()) {
+                    let cators = indicators[ind];
+                    if (!cators) {
+                        cators = indicators[ind] = [];
+                    }
+
+                    const foo = botIndicators.get(ind);
+                    if (foo && Array.isArray(foo)) {
+                        cators.push(foo[foo.length - 1]);
+                    }
+                    else{
+                        cators.push(null);
+                    }
+                }
+
+                //log.info(`Backtest in state ${newState.fsmState}`);
+
+                // SAVE (maybe?)
+                //await strats.updateBotInstance(instanceRecord);
+            }
+
+
+            const result: IndicatorsAndSignals = {
+                signals,
+                indicators,
+            }
+
+            return result;
+        }
+        catch (err) {
+            throw err;
+        }
+
+        return {
+            signals,
+            indicators,
+        };
+    }
 
     /**
      * Runs a backtest, producing a summary report of the bots performance.
@@ -49,7 +169,7 @@ export class BotRunner {
      * @param ctx 
      * @returns 
      */
-    async run(args: BacktestRequest, ctx: BotContext = null): Promise<BotResultsSummary> {
+    async run(args: BacktestRequest, ctx: BotContext = null): Promise<BotRunReport> {
         const start = Date.now();
         const trx = null;//await db.transaction();
         let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ to } = args;
@@ -62,7 +182,7 @@ export class BotRunner {
             to = DateTime.fromISO(to as string).toJSDate();
         }
 
-        const tr: Partial<BotResultsSummary> = {
+        const tr: Partial<BotRunReport> = {
         };
 
         let instanceId: string = null;
@@ -119,6 +239,8 @@ export class BotRunner {
             tr.error = null;
             tr.missingRanges = [];
             tr.trailingOrder = null;
+            tr.indicators = {};
+            //tr.signals = [];
             tr.orders = [];
 
             const instanceProps: Partial<BotInstance> = {
@@ -204,20 +326,28 @@ export class BotRunner {
             const now = Date.now();
             const end = normalizePriceTime(res, new Date(now)).getTime();
             const intervalMs = millisecondsPerResInterval(res);
-            const start = end - (intervalMs * maxHistoricals);
 
-            // Update price history. Note: This is *definitely* a case for optimization.
-            // Let's grab the previous N for now, until some sort of caching/progressive solution
-            // can be executed cross-node (b/c bots run on multiple machines)
+            // Grab the prices + a run-in window of N prices before trading begins.
+            // This is to support indicators with moving windows
+            const maxIntervals = genome.getGene<number>(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_MAX_INTERVALS).value;
+            tr.window = maxIntervals;
+
+            const actualFrom = new Date(from.getTime() - (intervalMs * maxIntervals));
+
             const params: PriceDataParameters = {
                 exchange: env.PRIMO_DEFAULT_EXCHANGE,
                 res,
                 symbolPair,
                 fetchDelay: 1000,
                 fillMissing: true,
-                from: from,
+                from: actualFrom,
                 to: new Date(to.getTime() - 1),
             };
+
+            run.from = params.from;
+            run.to = params.to;
+
+            await strats.updateBotRun(run, trx);
 
             // TODO: Consider price pull from API in the case of a gap?
             //  Think about a deployment rollout
@@ -231,7 +361,6 @@ export class BotRunner {
             const loadPricesDuration = endLoadPrices - beginLoadPrices;
 
             // TODO: PERF
-
             tr.numCandles = prices.length;
             tr.missingRanges = missingRanges;
 
@@ -240,19 +369,23 @@ export class BotRunner {
 
             // IMPORTANT: We are ticking at the interval level here (e.g. 1min) and not necessarily at true tick-level (e.g. 1s)
 
-            const window = genome.getGene<number>("TIME", "MI").value;
 
-            for (let i = 0; i < prices.length - window; ++i) {
-                ctx.prices = prices.slice(i, i + window);
-                let price = ctx.prices[ctx.prices.length - 1];
-                const indicators = await localInstance.computeIndicatorsForTick(ctx, price);
-                const newState = await localInstance.tick(ctx, price, indicators);
+            for (let i = 0; i < prices.length - maxIntervals; ++i) {
+                ctx.prices = prices.slice(i, i + maxIntervals);
+
+                let tick = ctx.prices[ctx.prices.length - 1];
+                const indicators = await localInstance.computeIndicatorsForTick(ctx, tick);
+                const signal = await localInstance.computeSignal(ctx, tick, indicators);
+                const newState = await localInstance.tick(ctx, tick, signal, indicators);
 
                 if (newState !== null && instanceRecord.stateJson !== undefined) {
                     ctx.state = instanceRecord.stateJson = newState;
                 }
 
                 instanceRecord.prevTick = new Date();
+
+                // Store the indicators and current signal
+                //tr.signals.push(signal);
 
                 //log.info(`Backtest in state ${newState.fsmState}`);
 
@@ -263,7 +396,7 @@ export class BotRunner {
             if (instanceId) {
                 await strats.stopBotInstance(instanceId, null, trx);
             }
-            return tr as BotResultsSummary;
+            return tr as BotRunReport;
         }
         catch (err) {
             log.error(`Error running backtest for '${name}'`, err);
@@ -274,7 +407,7 @@ export class BotRunner {
             }
 
             if (instanceId) {
-                await strats.stopBotInstance(instanceId, err); 
+                await strats.stopBotInstance(instanceId, err);
             }
 
             throw err;
@@ -308,7 +441,7 @@ export class BotRunner {
             tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
             tr.buyAndHoldGrossPct = lastClose.div(firstClose).minus("1").round(3).toNumber();
             tr.balance = capitalInvested.plus(totalGrossProfit).round(12).toNumber();
-            tr.orders = orders;``
+            tr.orders = orders;
             tr.numOrders = orders.length;
             tr.numTrades = tr.numOrders / 2;
             const testLenMs = tr.to.getTime() - tr.from.getTime();
@@ -318,8 +451,9 @@ export class BotRunner {
             tr.length = human(testLenMs);
 
             // Compounded is calculated per day here.
-            const rate = tr.avgProfitPctPerDay;
-            tr.estProfitPerYearCompounded = capital.calcCompoundingInterest(capitalInvested, rate, 365, 1).round(12).toNumber();
+            const rate = tr.avgProfitPctPerDay * 7;
+            const periods = 52;
+            tr.estProfitPerYearCompounded = orders.length < 2 ? 0 : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).round(12).toNumber();
 
             const finish = Date.now();
             const duration = finish - start;
@@ -328,12 +462,12 @@ export class BotRunner {
             log.info(`Done testing '${name}' in ${duration}ms`);
 
             try {
-                await results.addResultsForBotRun(tr.runId, tr as BotResultsSummary);
+                await results.addResultsForBotRun(tr.runId, tr as BotRunReport);
             }
             catch (err) {
                 log.error(`An error occurred while saving test results`, err);
             }
-            return tr as BotResultsSummary;
+            return tr as BotRunReport;
         }
     }
 }

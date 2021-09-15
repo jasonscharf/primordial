@@ -287,8 +287,6 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             fsmState === GeneticBotFsmState.WAITING_FOR_SELL_OPP) {
             const isBuying = fsmState === GeneticBotFsmState.WAITING_FOR_BUY_OPP;
 
-
-            console.log(`SIGNAL IS ${signal}`);
             const thresholdValue = isBuying
                 ? genome.getGene<number>("BUY", "T").value
                 : genome.getGene<number>("SELL", "T").value

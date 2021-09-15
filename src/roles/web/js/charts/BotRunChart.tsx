@@ -32,16 +32,19 @@ import {
     withDeviceRatio,
     withSize,
 } from "react-financial-charts";
+import { heikinAshi } from "@react-financial-charts/indicators";
 import { BotRunReport } from "../../../common/models/bots/BotSummaryResults";
 import { OrderEntity } from "../../../common/entities/OrderEntity";
-import { normalizePriceTime } from "../../../common/utils/time";
+import { normalizePriceTime, shortDateAndTime } from "../../../common/utils/time";
 import { Candle, DataPoint, BotChartProps } from "../models";
+import { Order } from "../../../common/models/markets/Order";
+import { BarStyles } from "../components/TradingViewWidget";
 
 
 type BotEvent = any;
 
 class StockChart extends React.Component<BotChartProps> {
-    private margin = { left: 0, right: 48, top: 0, bottom: 24 };
+    private margin = { left: 0, right: 68, top: 8, bottom: 0 };
     private pricesDisplayFormat = format(".2f");
     private xScaleProvider = discontinuousTimeScaleProviderBuilder().inputDateAccessor(
         (d: Candle) => d.date,
@@ -57,13 +60,18 @@ class StockChart extends React.Component<BotChartProps> {
         y: ({ yScale, datum }: any) => yScale(datum.high),
     };
 
-    protected _events = new Map<string, BotEvent[]>();
-
     public render() {
         console.log(`Render bot chart`);
         const { data: initialData, indicators, signals, dateTimeFormat = "%HH:%mm:%ss", height, ratio, summary, width } = this.props;
 
-        const orders = ((summary && summary.orders) ? summary.orders : []).map(o => OrderEntity.fromRow(o))
+        const signalMap = new Map<string, number>();
+        for (let i = 0; i < initialData.length; ++i) {
+            const dp = initialData[i];
+            signalMap.set(dp.date.toISOString(), signals[i]);
+        }
+
+        const orders = ((summary && summary.orders) ? summary.orders : []).map(o => OrderEntity.fromRow(o));
+
         const eventMap = new Map<string, BotEvent[]>();
         for (const e of orders) {
             e.opened = DateTime.fromISO(e.opened + "").toJSDate();
@@ -83,7 +91,7 @@ class StockChart extends React.Component<BotChartProps> {
         };
 
         const { margin, xScaleProvider } = this;
-        const { data, xScale, xAccessor, displayXAccessor } = xScaleProvider(initialData);
+        let { data, xScale, xAccessor, displayXAccessor } = xScaleProvider(initialData);
 
         const max = xAccessor(data[data.length - 1]);
         const min = xAccessor(data[Math.max(0, data.length - 100)]);
@@ -107,15 +115,15 @@ class StockChart extends React.Component<BotChartProps> {
         const barChartOrigin = (_: number, h: number) => [0, h - barChartHeight - signalSubchartHeight + 250];
         const chartHeight = gridHeight - signalSubchartHeight - (numIndicators * indicatorSubchartHeight);
 
-       const indicatorXLabel = name => (date) => {
-           const key = date.toISOString();
-           if (!indicators.has(key)) {
-               return null;
-           }
+        const indicatorXLabel = name => (date) => {
+            const key = date.toISOString();
+            if (!indicators.has(key)) {
+                return null;
+            }
 
-           const cators = indicators.get(key);
-           const cator = cators.get(name);
-           return cator ? `${name}: ${cator.toPrecision(2)}` : null;
+            const cators = indicators.get(key);
+            const cator = cators.get(name);
+            return cator ? `${name}: ${cator.toPrecision(2)}` : null;
         };
 
         const signalDisplayX = (date) => {
@@ -153,6 +161,62 @@ class StockChart extends React.Component<BotChartProps> {
                 );
             });
 
+        const buildTooltip = ({ currentItem, xAccessor }) => {
+            const dt = xAccessor(currentItem);
+            const key = dt.toISOString();
+            const signalAtDt = signalMap.get(dt.toISOString());
+
+            const cators = indicators.get(key);
+            const catorItems = Array.from(cators.entries()).map(([k, v]) => ({
+                label: k.toUpperCase(),
+                value: cators.get(k).toFixed(2),
+            }));
+
+            const events = eventMap.has(key) ? eventMap.get(key) : [];
+            const eventItems = events.map(e => {
+                const o = e as Order;
+                return ({
+                    label: o.typeId.toUpperCase(),
+                    value: o.price.round(8).toString(),
+                });
+            });
+
+            const content = {
+                x: shortDateAndTime(dt),
+                y: [
+                    ...eventItems,
+                    {
+                        label: "signal",
+                        value: signalAtDt,// && this.numberFormat(currentItem.open),
+                    },
+                    ...catorItems,
+                    {
+                        label: "open",
+                        value: currentItem.open,// && this.numberFormat(currentItem.open),
+                    },
+                    {
+                        label: "high",
+                        value: currentItem.high// && this.numberFormat(currentItem.high),
+                    },
+                    {
+                        label: "low",
+                        value: currentItem.low// && this.numberFormat(currentItem.low),
+                    },
+                    {
+                        label: "close",
+                        value: currentItem.close// && this.numberFormat(currentItem.close),
+                    },
+                ]
+            };
+            return content;
+        };
+
+        const useHA = true;
+        if (useHA) {
+            const calculator = heikinAshi();
+            data = calculator(data);
+        }
+
         return (
             <ChartCanvas
                 height={height}
@@ -189,27 +253,7 @@ class StockChart extends React.Component<BotChartProps> {
                     <HoverTooltip
                         yAccessor={this.yEdgeIndicator}
                         tooltip={{
-                            content: ({ currentItem, xAccessor }) => ({
-                                x: xAccessor(currentItem),
-                                y: [
-                                    {
-                                        label: "open",
-                                        value: currentItem.open// && this.numberFormat(currentItem.open),
-                                    },
-                                    {
-                                        label: "high",
-                                        value: currentItem.high// && this.numberFormat(currentItem.high),
-                                    },
-                                    {
-                                        label: "low",
-                                        value: currentItem.low// && this.numberFormat(currentItem.low),
-                                    },
-                                    {
-                                        label: "close",
-                                        value: currentItem.close// && this.numberFormat(currentItem.close),
-                                    },
-                                ],
-                            }),
+                            content: buildTooltip,
                         }}
                     />
                     <OHLCTooltip origin={[8, 16]} />
@@ -218,7 +262,7 @@ class StockChart extends React.Component<BotChartProps> {
                 <Chart id={2} height={barChartHeight} origin={barChartOrigin} yExtents={this.barChartExtents}>
                     <BarSeries fillStyle={this.volumeColor} yAccessor={this.volumeSeries} />
                 </Chart>*/}
-                
+
                 <Chart id={3} height={200} origin={barChartOrigin} yExtents={[0, 100]}>
                     <BarSeries fillStyle={this.volumeColor} yAccessor={this.signalSeries} />
                 </Chart>
@@ -230,7 +274,7 @@ class StockChart extends React.Component<BotChartProps> {
                     origin={elderRayOrigin}
                     padding={{ top: 8, bottom: 8 }}
                 >
-                    <XAxis  showGridLines={true} gridLinesStrokeStyle="#e0e3eb" />
+                    <XAxis showGridLines={true} gridLinesStrokeStyle="#e0e3eb" />
                     <YAxis ticks={4} tickFormat={this.pricesDisplayFormat} />
 
                     <MouseCoordinateX displayFormat={signalDisplayX} />

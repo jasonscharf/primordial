@@ -256,13 +256,17 @@ export function splitRanges(res: TimeResolution, range: { start: Date, end: Date
 
 /**
  * Creates a JavaScript Date object from an ISO-8601 string.
- * @param str 
+ * @param input 
  * @returns 
  */
-export function from(str: string) {
-    const fr = DateTime.fromISO(str);
+export function from(input: string | Date): Date {
+    const fr = typeof input === "string"
+        ? DateTime.fromISO(input)
+        : DateTime.fromISO((input as Date).toISOString())
+        ;
+
     if (!fr.isValid) {
-        throw new Error(`Could not parse invalid test date '${str}'`);
+        throw new Error(`Could not parse invalid test date '${input}'`);
     }
 
     return fr.toJSDate();

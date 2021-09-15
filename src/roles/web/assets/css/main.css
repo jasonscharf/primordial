@@ -1,24 +1,32 @@
 body {
-    display: flex;
-    height: 100vh;
     /*color: white;
     background: black !important;
     */font-family: 'Roboto', sans-serif;
 }
 
 #app-container {
-    width: 100vw;
-    height: 100vh;
 }
 
 h1, h2, h3 {
-    color: white;
 }
 
 h1 {
     flex: 1;
     text-align: center;
     align-self: center;
-    color: white;
     font-size: 200%;
+}
+
+h2 {
+    flex: 1;
+    text-align: center;
+    align-self: center;
+    font-size: 175%;
+}
+
+h3 {
+    flex: 1;
+    text-align: center;
+    align-self: center;
+    font-size: 150%;
 }
