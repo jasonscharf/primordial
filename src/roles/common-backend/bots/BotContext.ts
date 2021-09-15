@@ -3,21 +3,24 @@ import { AllocationTransaction } from "../../common/models/capital/AllocationTra
 import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
 import { BacktestRequest } from "../messages/testing";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
+import { BotDefinitionEntity } from "../../common/entities/BotDefinitionEntity";
 import { BotImplementation } from "./BotImplementation";
 import { BotInstance, BotInstanceStateInternal } from "../../common/models/bots/BotInstance";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { Genome } from "../../common/models/genetics/Genome";
-import { GeneticBotFsmState, GeneticBotState } from "../../worker/bots/GeneticBot";
+import { GeneticBotFsmState, GeneticBotState } from "./GeneticBot";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Logger } from "../../common/utils/Logger";
 import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
+import { NullLogger } from "../../common/utils/NullLogger";
 import { OrderStatusUpdateMessage } from "../messages/trading";
 import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
 import { OrderDelegateArgs } from "./BotOrderDelegate";
 import { Price } from "../../common/models/markets/Price";
 import { capital, constants, log, mq, orders, strats } from "../includes";
 import { moneytize } from "../database/utils";
+import { randomString } from "../utils";
 
 
 
@@ -52,6 +55,51 @@ export function botIdentifier(bot: BotInstance) {
     }
     return `${bot.name} (${bot.id.substr(0, 8)})`;
 }
+
+/**
+ * Builds a no-op context for running signal and indicator generation after the fact.
+ * @param args 
+ * @returns 
+ */
+export async function buildBotContextForSignalsComputation(args: BacktestRequest): Promise<BotContext> {
+    const { genome, from, to } = args;
+    const { genome: parsedGenome } = new GenomeParser().parse(genome);
+    const def: Partial<BotDefinition> = {
+        id: randomString(),
+    };
+    const record: Partial<BotInstance> = {
+        id: randomString(),
+        allocationId: null,
+        build: "",
+        currentGenome: genome,
+        exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
+        definitionId: def.id,
+        modeId: Mode.BACK_TEST,
+        normalizedGenome: genome,
+        prevTick: new Date(from.getTime() - 1),
+    };
+
+    const prices = [];
+    const indicators = new Map<string, number[]>();
+    const ctx: BotContext = {
+        def: def as BotDefinition,
+        instance: record as BotInstance,
+        genome: parsedGenome,
+        state: record.stateJson,
+        stateInternal: record.stateInternal,
+        log: new NullLogger(),
+        runId: null,
+        cancelAllOrders: () => void 0,
+        placeLimitBuyOrder: () => void 0,
+        placeLimitSellOrder: () => void 0,
+        placeStopLoss: () => void 0,
+        prices,
+        indicators,
+    };
+
+    return ctx;
+}
+
 
 /**
  * Builds the appropriate bot context for a bot, e.g. a context for backtesting when backtesting,

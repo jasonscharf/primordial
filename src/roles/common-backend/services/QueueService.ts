@@ -1,8 +1,9 @@
 import amqp from "amqplib";
-import { Pubsub } from "../../common/eventing/Pubsub";
-import { isNullOrUndefined, randomString } from "../../common/utils";
 import env from "../env";
+import { isNullOrUndefined, randomString } from "../../common/utils";
 import { constants, log } from "../includes";
+import { PrimoSerializableError } from "../../common/errors/errors";
+import { Pubsub } from "../../common/eventing/Pubsub";
 import { QueueMessage } from "../messages/QueueMessage";
 
 
@@ -90,7 +91,9 @@ export class QueueService {
             }
             catch (err) {
                 log.error(`Error handling RPC response`, err);
-                ch.nack(msg);
+
+                // IMPORTANT: We ack here to kill off the actual message that caused the error
+                ch.ack(msg);
             }
         }, options);
     }
@@ -120,6 +123,7 @@ export class QueueService {
         });
 
         ch.consume(constants.queue.CHANNEL_RPC_REQUEST, async msg => {
+            const correlationId = msg.properties.correlationId;
             try {
                 const { content } = msg;
                 const messageObject = JSON.parse(content.toString()) as QueueMessage<unknown>;
@@ -138,17 +142,38 @@ export class QueueService {
                 }
 
                 const resultContent = Buffer.from(JSON.stringify(result));
-                const correlationId = msg.properties.correlationId;
                 ch.sendToQueue(msg.properties.replyTo, resultContent, { correlationId });
 
                 ch.ack(msg);
             }
             catch (err) {
                 log.error(`RPC request error`, err);
-                //ch.nack(msg);
 
-                // IMPORTANT: We actually ack the msg here so it doesn't cause an infinite loop.
-                ch.ack(msg);
+                try {
+                    let payload: string = null;
+                    if (err instanceof PrimoSerializableError) {
+                        payload = err.serialize();
+                    }
+                    else {
+                        payload = err.toString();
+                    }
+
+                    const errMsg = {
+                        primoErrorType: "error",
+                        payload,
+                    };
+
+                    const wrapperContent = JSON.stringify(errMsg);
+
+                    // Send the error over
+                    ch.sendToQueue(msg.properties.replyTo, Buffer.from(wrapperContent), { correlationId });
+
+                    //ch.nack(msg);
+                }
+                finally {
+                    // IMPORTANT: We actually ack the msg here so it doesn't cause an infinite loop.
+                    ch.ack(msg);
+                }
             }
         });
     }

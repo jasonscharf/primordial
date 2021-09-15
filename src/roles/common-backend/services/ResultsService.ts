@@ -1,7 +1,7 @@
 import env from "../env";
 import { BotResultsEntity } from "../../common/entities/BotResultsEntity";
 import { BotResults } from "../../common/models/bots/BotResults";
-import { BotResultsSummary } from "../../common/models/bots/BotSummaryResults";
+import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { queries, tables } from "../constants";
 import { query, ref } from "../database/utils";
 import { strats } from "../includes";
@@ -17,9 +17,9 @@ export class ResultsService {
      * Returns the latest result set for a particular instance
      * @param instanceId 
      */
-    async getLatestResultsForBot(instanceId: string): Promise<BotResultsSummary> {
+    async getLatestResultsForBot(instanceId: string): Promise<BotRunReport> {
         const res = await query(queries.RESULTS_GET_FOR_BOT_INSTANCE, async db => {
-            const [row] = <BotResultsSummary[]>await db(tables.Results)
+            const [row] = <BotRunReport[]>await db(tables.Results)
                 .innerJoin(tables.BotRuns, ref(tables.BotRuns), "=", ref(tables.Results, "botRunId"))
                 .orderBy(ref(tables.BotRuns, "created"), "desc")
                 .where({ instanceId })
@@ -42,7 +42,7 @@ export class ResultsService {
      * @param results 
      * @returns 
      */
-    async addResultsForBotRun(botRunId: string, results: BotResultsSummary): Promise<BotResultsSummary> {
+    async addResultsForBotRun(botRunId: string, results: BotRunReport): Promise<BotRunReport> {
         const { from, instanceId, to, symbols, runId } = results;
         if (runId !== botRunId) {
             throw new Error(`Mismatched bot run IDs`);

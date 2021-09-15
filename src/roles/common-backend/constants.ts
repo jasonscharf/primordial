@@ -112,6 +112,7 @@ export const queries = {
     BOTS_RUNS_LATEST_GET: "bots.runs.get-latest",
     BOTS_RUNS_LIST: "bots.runs.list",
     BOTS_RUNS_STOP: "bots.runs.stop",
+    BOT_RUNS_UPDATE: "bots.runs.update",
     ORDERS_CREATE: "orders.create",
     ORDERS_FEES_SAVE: "orders.fees",
     ORDERS_UPDATE: "orders.update",

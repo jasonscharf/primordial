@@ -1,5 +1,5 @@
 import { BotResults } from "../models/bots/BotResults";
-import { BotResultsSummary } from "../models/bots/BotSummaryResults";
+import { BotRunReport } from "../models/bots/BotSummaryResults";
 import { MutableEntity } from "../models/MutableEntity";
 
 
@@ -10,7 +10,7 @@ export class BotResultsEntity extends MutableEntity implements BotResults {
     quoteSymbolId: string;
     from: Date;
     to: Date;
-    results: BotResultsSummary;
+    results: BotRunReport;
 
 
     constructor(row?: Partial<BotResults>, prefix = "") {

@@ -475,6 +475,26 @@ export class StrategyService {
     }
 
     /**
+     * Updates a bot run in the DB by ID.
+     * @param instance 
+     */
+     async updateBotRun(run: Partial<BotRun>, trx: Knex.Transaction = null): Promise<BotRun> {
+        const { id } = run;
+        if (!id) {
+            throw new Error(`Must supply a bot run ID to update it`);
+        }
+        const [updatedBotRun] = <BotRun[]>await query(queries.BOT_RUNS_UPDATE, async db => {
+            return db(tables.BotRuns)
+                .update(run)
+                .where({ id })
+                .returning("*")
+                ;
+        }, trx);
+
+        return updatedBotRun;
+    }
+
+    /**
      * Forks a bot instance, creating a new instance linked to the original
      * definition, and the instance it was forked from.
      * @param instanceId 
@@ -668,7 +688,6 @@ export class StrategyService {
             }
             else if (prevRunState === RunState.PAUSED) {
                 if (noSave) {
-                    debugger;
                     throw new Error(`Nosave not supported yet`);
                     const latestRun = null;
                     return [instance, latestRun];

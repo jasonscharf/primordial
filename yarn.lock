@@ -4968,6 +4968,11 @@ koa-convert@^1.2.0:
     co "^4.6.0"
     koa-compose "^3.0.0"
 
+koa-graceful-shutdown@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/koa-graceful-shutdown/-/koa-graceful-shutdown-1.2.1.tgz#4969d5fd9654632106a60602cc73222a78956d9a"
+  integrity sha512-nwNYW0l2gVcvyX2V5s0tjFQjk/NzEtiHtnA+EWDFFFxM8EMfUQZ48vSPNjEwGiFkSRS+rjrqMqs0R2vpKG1baw==
+
 koa-is-json@1:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/koa-is-json/-/koa-is-json-1.0.0.tgz#273c07edcdcb8df6a2c1ab7d59ee76491451ec14"

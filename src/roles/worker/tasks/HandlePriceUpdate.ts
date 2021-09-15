@@ -7,7 +7,7 @@ import { BotImplementation } from "../../common-backend/bots/BotImplementation";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { Factory } from "../../common-backend/bots/BotFactory";
-import { GeneticBot } from "../bots/GeneticBot";
+import { GeneticBot } from "../../common-backend/bots/GeneticBot";
 import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
 import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/markets/Price";
@@ -19,7 +19,7 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { constants, db, log, mq, strats, sym } from "../../common-backend/includes";
 import { millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base-genetics";
-import { botFactory } from "../bots/RobotFactory";
+import { botFactory } from "../../common-backend/bots/RobotFactory";
 
 
 /**
@@ -170,7 +170,8 @@ export async function tickBot(def: BotDefinition, instanceRecord: BotInstance, p
         ctx.prices = prices;
 
         const indicators = await instance.computeIndicatorsForTick(ctx, price);
-        const tickState = await instance.tick(ctx, price, indicators);
+        const signal = await instance.computeSignal(ctx, price, indicators);
+        const tickState = await instance.tick(ctx, price, signal, indicators);
 
         if (tickState !== null && instanceRecord.stateJson !== undefined) {
             instanceRecord.stateJson = tickState;

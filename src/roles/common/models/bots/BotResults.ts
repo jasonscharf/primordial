@@ -1,4 +1,4 @@
-import { BotResultsSummary } from "./BotSummaryResults";
+import { BotRunReport } from "./BotSummaryResults";
 import { MutableModel } from "../MutableEntity";
 
 
@@ -12,5 +12,5 @@ export interface BotResults extends MutableModel {
     quoteSymbolId: string;
     from: Date;
     to: Date;
-    results: BotResultsSummary;
+    results: BotRunReport;
 }

@@ -276,11 +276,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @name GetBotResults
-     * @request GET:/sandbox/results/{instanceId}
+     * @request GET:/sandbox/results/{instanceIdOrName}
      */
-    getBotResults: (instanceId: string, params: RequestParams = {}) =>
+    getBotResults: (instanceIdOrName: string, params: RequestParams = {}) =>
       this.request<any, any>({
-        path: `/sandbox/results/${instanceId}`,
+        path: `/sandbox/results/${instanceIdOrName}`,
         method: "GET",
         format: "json",
         ...params,

@@ -2,6 +2,7 @@ import Koa from "koa";
 import KoaBodyParser from "koa-bodyparser";
 import KoaJson from "koa-json";
 import KoaRouter from "koa-router";
+import KoaShutdown from "koa-graceful-shutdown";
 import * as http from "http2";
 import * as ws from "ws";
 import { isNullOrUndefined } from "util";
@@ -9,7 +10,10 @@ import env from "../common-backend/env";
 import { instrumentWebAppRequest } from "../common-backend/analytics";
 import * as routes from "./routes";
 import { db, dbm, log } from "../common-backend/includes";
+import { Server } from "http";
 
+let app: Koa;
+let server: http.Http2Server;
 
 async function configureAppInsights(app: Koa) {
     // Enable App Insights HTTP telemetry
@@ -77,7 +81,10 @@ async function configureSessions(app: Koa) {
  * Creates the primary Koa app. See below for server entrypoint.
  */
 async function createServerApp() {
-    const app = new Koa();
+    app = new Koa();
+    server = http.createServer(app.callback());
+
+    app.use(KoaShutdown(server));
 
     // SECURITY: The ability to use multiple keys may allow us to revoke our own private session key
     // in the case of catastrophic key leakage. Note that Koa"s `app.keys` is an array.
@@ -127,6 +134,8 @@ process.on("SIGTERM", () => {
     if (wss) {
         wss.close();
     }
+
+    process.exit();
 });
 
 

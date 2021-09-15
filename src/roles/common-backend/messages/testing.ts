@@ -1,6 +1,7 @@
 import ccxt from "ccxt";
 import { AssetAmount } from "../../common/models/capital/AssetAmount";
 import { Order } from "../../common/models/markets/Order";
+import { TimeResolution } from "../../common/models/markets/TimeResolution";
 
 
 /**
@@ -13,6 +14,7 @@ export interface BacktestRequest {
      genome: string;
      budget: AssetAmount[];
      remove: boolean;
+     res: TimeResolution;
      symbols: string;
      maxWagerPct: number;
 }

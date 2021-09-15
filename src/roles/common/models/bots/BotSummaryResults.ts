@@ -9,7 +9,7 @@ import { TimeResolution } from "../markets/TimeResolution";
  * Summary results for a particular bot instance.
  * Used for backtesting as well as reporting.
  */
-export interface BotResultsSummary {
+export interface BotRunReport {
     instanceId: string;
     runId: string;
     name: string;
@@ -25,6 +25,7 @@ export interface BotResultsSummary {
     symbols: string;
     base: string;
     quote: string;
+    window: number;
     numCandles: number;
     numOrders: number;
     numTrades: number;
@@ -44,6 +45,8 @@ export interface BotResultsSummary {
     genome: string;
     timeRes: TimeResolution;
     error?: PrimoSerializableError;
+    signals: number[];
+    indicators: {};
     missingRanges: PriceDataRange[];
     orders: Order[];
     trailingOrder?: Order;

@@ -64,6 +64,7 @@ export class BotTest<TResultType> implements CommandHandler<BotTestArgs> {
 
         let displayName = appliedArgs.displayName || name;
 
+        
         if (!genome) {
             throw new Error(`Missing argument 'genome'`);
         }
@@ -73,7 +74,6 @@ export class BotTest<TResultType> implements CommandHandler<BotTestArgs> {
         }
 
         const output = await mq.executeWorkerCommand<TResultType>(constants.commands.CMD_BOTS_TEST, appliedArgs) as TResultType;
-
 
         await trx.commit();
 

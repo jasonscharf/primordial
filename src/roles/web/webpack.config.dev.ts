@@ -1,11 +1,8 @@
 import * as path from "path";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import { base, basePlugins } from "./webpack.base";
-const WebpackBundleAnalyzer = require("webpack-bundle-analyzer");
+const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 
-var BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-
-console.log(WebpackBundleAnalyzer);
 module.exports = {
     ...base,
     mode: "development",
@@ -23,11 +20,13 @@ module.exports = {
             filename: "index.html",
             template: "./src/roles/web/index.template.html",
         }),
+        /*
         new BundleAnalyzerPlugin({
-            analyzerMode: 'server',
+            analyzerMode: "server",
             generateStatsFile: true,
-            statsOptions: { source: false }
+            statsOptions: { source: false },
           }),
+        //*/
     ],
     output: {
         filename: "[name].bundle.js",

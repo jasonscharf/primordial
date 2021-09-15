@@ -1,6 +1,6 @@
 const talib = require("talib");
 import { BotContext } from "../bots/BotContext";
-import { GeneticBotState } from "../../worker/bots/GeneticBot";
+import { GeneticBotState } from "../bots/GeneticBot";
 import { IndicatorChromosome } from "../genetics/IndicatorChromosome";
 import { Price } from "../../common/models/markets/Price";
 import { PriceUpdateMessage } from "../messages/trading";
@@ -32,8 +32,8 @@ export class RsiIndicatorChromosome extends IndicatorChromosome {
         let buy = 0;
         let sell = 0;
         const currentRsi = vals[vals.length - 1];
-
         const { close } = price;
+
         if (currentRsi < thresholdLow) {
             buy = 1;
         }

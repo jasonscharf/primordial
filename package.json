@@ -111,6 +111,7 @@
     "knex": "^0.95.8",
     "koa": "^2.13.0",
     "koa-bodyparser": "^4.3.0",
+    "koa-graceful-shutdown": "^1.2.1",
     "koa-json": "^2.0.2",
     "koa-router": "^9.4.0",
     "luxon": "^2.0.1",
