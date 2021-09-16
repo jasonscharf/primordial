@@ -19,7 +19,6 @@ export async function setupAppInsightsTelemetry() {
 }
 
 export function instrumentWebAppRequest(request: http.IncomingMessage, response: http.ServerResponse) {
-    debugger;
     const client = ai.defaultClient;
 
     const ua = request.headers["user-agent"];

@@ -153,7 +153,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
         const t = await capital.transact(instance.id, order.quoteSymbolId, order, async (item, trx) => {
 
             const maxBuyingPower = item.amount.mul(Money(item.maxWagerPct.toString()));
-            const profitTargetGene = genome.getGene<number>("PROFIT", "TGTPCT");
+            const profitTargetGene = genome.getGene<number>("PRF", "TGT");
             const stopLossPct = genome.getGene<number>("SL", "ABS").value;
 
             // TODO: Double-check PoC bot

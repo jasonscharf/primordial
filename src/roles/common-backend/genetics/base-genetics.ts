@@ -17,8 +17,8 @@ export const enum names {
     GENETICS_C_TIME = "TIME",
     GENETICS_C_TIME_G_RES = "RES",
     GENETICS_C_TIME_G_MAX_INTERVALS = "MI",
-    GENETICS_C_PROFIT = "PROFIT",
-    GENETICS_C_PROFIT_G_TARGET = "TGTPCT",
+    GENETICS_C_PROFIT = "PRF",
+    GENETICS_C_PROFIT_G_TARGET = "TGT",
     GENETICS_C_STOPLOSS = "SL",
     GENETICS_C_STOPLOSS_G_ABS = "ABS",
     GENETICS_C_BUY = "BUY",
@@ -67,12 +67,7 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
     [names.GENETICS_C_RSI]: new RsiIndicatorChromosome(names.GENETICS_C_RSI, "RSI", "Behaviour involving the Relative Strength Indictor", [
         new Gene(names.GENETICS_C_RSI_G_L, GeneticValueType.NUMBER, 33, "Lower RSI threshold to use as a buy signal"),
         new Gene(names.GENETICS_C_RSI_G_H, GeneticValueType.NUMBER, 66, "Upper RSI threshold to use as a sell signal"),
-        
-        
-        
         new Gene(names.GENETICS_C_RSI_G_WL, GeneticValueType.NUMBER, 99, "Window length of closed intervals to consider"),
-
-
         new Gene(names.GENETICS_C_RSI_G_BW, GeneticValueType.NUMBER, 1, "Weighting for RSI buy signal"),
         new Gene(names.GENETICS_C_RSI_G_SW, GeneticValueType.NUMBER, 1, "Weighting for RSI sell signal"),
         new Gene(names.GENETICS_C_RSI_G_OITP, GeneticValueType.NUMBER, 14, "Opt-in time period for RSI"),
