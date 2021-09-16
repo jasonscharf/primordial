@@ -188,7 +188,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             order.gross = amount;
 
             order.strike = targetPrice;
-            order.displayName = `${buyOrSell} ${quantity} X ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId} = ${amount.round(8).toString()} ${order.quoteSymbolId}`;
+            order.displayName = `${buyOrSell} ${quantity.round(8)} X ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId} = ${amount.round(8).toString()} ${order.quoteSymbolId}`;
             order.extOrderId = "FAKE";
             order.typeId = buy ? OrderType.LIMIT_BUY : OrderType.LIMIT_SELL;
 

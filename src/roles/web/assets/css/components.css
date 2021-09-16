@@ -1,9 +1,3 @@
-.primo-amount {
-    font-weight: bold;
-    display: inline-block;
-    font-size: 120%;
-}
-
 
 /* Hero image (Splash) */
 .hero-img-wrapper {
@@ -38,4 +32,29 @@
     height: 100%;
     background: url("../img/test.jpg") no-repeat;
     background-size: cover;
+}
+
+
+/* Info table */
+.primo-info-table {
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.primo-info-table-item {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+}
+
+.primo-info-table-item .MuiGrid-item {
+    flex: 1;
+}
+
+/* Amount and Percent */
+.primo-amount, .primo-percent {
+    font-weight: bold;
+    display: inline-block;
+    font-size: 120%;
 }

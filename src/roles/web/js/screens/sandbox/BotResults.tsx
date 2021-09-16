@@ -1,8 +1,6 @@
 
-import { format } from "d3-format";
-import { timeFormat } from "d3-time-format";
-import { utcDay } from "d3-time";
 import * as React from "react";
+import classNames from "classnames";
 import {
     elderRay,
     ema,
@@ -30,35 +28,42 @@ import {
 } from "react-financial-charts";
 
 import { useEffect, useState } from "react";
-import ReactDOM from "react-dom";
+import { Hashicon } from "@emeraldpay/hashicon-react";
+
+import Card from '@material-ui/core/Card';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
 
 import { Amount } from "../../components/primitives/Amount";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
-import { Box, CircularProgress, Grid, TextField } from "@material-ui/core";
-import { BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
+import { Box, Button, CircularProgress, Grid, TextField } from "@material-ui/core";
+import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
 import { DateTime } from "luxon";
 import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../../../common/entities/PriceEntity";
-import StockChart from "../../charts/BotRunChart";
+import BotRunChart from "../../charts/BotRunChart";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
 import TradingViewWidget, { BarStyles, Themes } from "../../components/TradingViewWidget";
 import { useParams } from "react-router";
 import { client } from "../../includes";
 import { isNullOrUndefined } from "../../../../common/utils";
-import { sizing } from '@material-ui/system';
 import { Spinner } from "../../components/primitives/Spinner";
-import { from, shortDateAndTime } from "../../../../common/utils/time";
+import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
+import OrderTable from "../../components/OrderTable";
+import { OrderEntity } from "../../../../common/entities/OrderEntity";
+import { Percent } from "../../components/primitives/Percent";
 
-const BotResultsApiResponse = () => {
+
+
+type BotEvent = any;
+
+
+const BotResults = () => {
     const args = useParams<{ instanceId: string }>();
-    const [results, setReport] = useState<BotRunReport>();
-    const [data, setData] = useState<DataPoint[]>();
-    const [indicators, setIndicators] = useState<IndicatorMap>(new Map<Date, Map<string, number>>());
-    const [signals, setSignals] = useState([]);
+    const [results, setResults] = useState<BotResultsApiResponse>(null);
 
     const imap: IndicatorMap = new Map<Date, Map<string, number>>();
-
 
     useEffect(() => {
         const { instanceId } = args;
@@ -78,6 +83,34 @@ const BotResultsApiResponse = () => {
                         signals,
                         indicators,
                     } = results as BotResultsApiResponse;
+
+
+                    const rawOrders = ((report && report.orders) ? report.orders : []);
+
+                    // Include the trailing order on the chart
+                    if (report.trailingOrder) {
+                        rawOrders.push(report.trailingOrder);
+                    }
+
+                    const orderEntities = rawOrders.map(o => OrderEntity.fromRow(o));
+
+                    const orders: OrderEntity[] = [];
+                    const eventMap = new Map<string, BotEvent[]>();
+                    for (const order of orderEntities) {
+                        order.opened = DateTime.fromISO(order.opened + "").toJSDate();
+                        order.created = DateTime.fromISO(order.created + "").toJSDate();
+                        order.updated = DateTime.fromISO(order.updated + "").toJSDate();
+
+                        const key = normalizePriceTime(report.timeRes, order.opened).toISOString();
+                        const arr = eventMap.has(key) ? eventMap.get(key) : [];
+                        eventMap.set(key, arr);
+
+                        arr.push(order);
+                        orders.push(order);
+                    }
+
+                    results.eventMap = eventMap;
+                    report.orders = orders;
 
                     const args: PriceDataParameters = {
                         exchange: results.exchange,
@@ -114,10 +147,9 @@ const BotResultsApiResponse = () => {
                         data.push(dp);
                     }
 
-                    setReport(report);
-                    setData(data);
-                    setIndicators(imap);
-                    setSignals(signals);
+                    results.indicators = imap;
+                    results.data = data;
+                    setResults(results);
                 })
                 .catch(err => console.error(`Error loading data`, err))
                 ;
@@ -125,54 +157,112 @@ const BotResultsApiResponse = () => {
         }
     }, []);
 
-    if (!results || !data) {
+    if (!results) {
         return (
             <Spinner caption1={"Loading bot results..."} caption2={"This may take a moment"} />
         );
     }
+    const {
+        report,
+        prices,
+        signals,
+        indicators,
+        data,
+        eventMap,
+    } = results as BotResultsApiResponse;
+    const { exchange, instanceId, name, orders, symbols } = report;
 
-    const { exchange, instanceId, name, symbols } = results;
-    results.from = from(results.from);
-    results.to = from(results.to);
+
+    report.from = from(report.from);
+    report.to = from(report.to);
 
     const [base, quote] = symbols.split(/\//);
     const tradingViewSymbol = `${exchange}:${base}${quote}`;
 
-    const interval = getIntervalForTimeRes(results.timeRes);
+    const interval = getIntervalForTimeRes(report.timeRes);
 
     return (
         <Box width={1} height={1}>
-            <Grid container spacing={2} className="primo-fullsize" direction="row" style={{ alignContent: "baseline" }}>
-                <Grid item container style={{ borderBottom: "2px solid #ddd" }}>
+            <Grid container className="primo-fullsize" direction="row" style={{ alignContent: "baseline", margin: 0, padding: 0 }}>
+                <Grid item container style={{ borderBottom: "2px solid #ddd", padding: "12px" }}>
+                    <Grid item className="primo-flex-valign" style={{ marginRight: "8px" }}>
+                        <Hashicon value={instanceId} size={32} />
+                    </Grid>
                     <Grid item>
                         <Grid item>
-                            <b>{results.symbols}</b>
+                            <b>&#127845;&nbsp;{report.symbols}</b>
                         </Grid>
                         <Grid item>
-                            <span><b>{results.genome}</b></span>
+                            <span>&#129516;&nbsp;<b>{report.genome}</b></span>
                         </Grid>
                         <Grid item>
-                            <span>{results.instanceId}</span>
+                            <span>&#129302;&nbsp;{report.instanceId}</span>
                         </Grid>
                         <Grid item>
-                            <span>{results.name}</span>
+                            <span>&#128588;&nbsp;{report.name}</span>
                         </Grid>
                     </Grid>
                     <Grid item style={{ marginLeft: "auto", textAlign: "right" }}>
                         <Grid item>
-                            <b>{shortDateAndTime(results.from)}</b> - <b>{shortDateAndTime(results.to)}</b>
+                            <b>{shortDateAndTime(report.from)}</b> - <b>{shortDateAndTime(report.to)}</b>
                         </Grid>
                         <Grid item>
-                            <span>gross</span>&nbsp;<b><Amount amount={results.totalGross} symbol={quote} /></b>
+                            <span>gross</span>&nbsp;<b><Amount amount={report.totalGross} symbol={quote} /></b>
                         </Grid>
                         <Grid item style={{ textAlign: "right" }}>
-                            <b>{results.length}</b>
+                            <b>{report.length}</b>
                         </Grid>
                     </Grid>
                 </Grid>
 
-                <Grid container item spacing={3}>
-                    <StockChart data={data as any} indicators={indicators} signals={signals} summary={results} />
+                <Grid container item spacing={3} style={{ borderBottom: "2px solid #ddd", margin: 0 }}>
+                    <BotRunChart eventMap={eventMap} summary={report} data={data} signals={signals} indicators={indicators} />
+                </Grid>
+
+                <Grid container item spacing={2}>
+                    <Grid item style={{ height: "325px", overflow: "auto", margin: 0 }}>
+                        <OrderTable orders={orders} />
+                    </Grid>
+                    <Grid item style={{ flex: 1 }}>
+                        <Card>
+                            <CardContent>
+                                <Grid container spacing={1} className={classNames("primo-info-table")}>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Gross</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.totalGross} symbol={report.quote} /></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Gross Percent</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><Percent amount={report.totalGrossPct} /></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Avg. Daily Profit</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.avgProfitPerDay} symbol={report.quote} /></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Avg. Daily Profit %</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><Percent amount={report.avgProfitPctPerDay} /></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Sharpe</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.sharpe.toPrecision(2)} /></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Trailing Order</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><b>{report.trailingOrder ? "yes" : "no"}</b></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Num. Orders</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><b>{report.numOrders}</b></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Num. Candles</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><b>{report.numCandles}</b></Grid>
+                                    </Grid>
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    </Grid>
                 </Grid>
             </Grid>
         </Box >
@@ -214,4 +304,4 @@ export function timeIntervalBarWidth(interval) {
     };
 }
 
-export default BotResultsApiResponse;
+export default BotResults;

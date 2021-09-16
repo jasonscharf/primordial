@@ -1,22 +1,22 @@
 /* Utility styles */
+
 .primo-negative {
     color: orange;
 }
 
-.primo-positive { 
+.primo-positive {
     color: green;
 }
 
 .primo-neutral {
-    color: cyan;
+    color: #333;
 }
 
 .primo-fullheight {
     flex: 1;
 }
 
-.primo-fullsize,
-.primo-tv-chart-container {
+.primo-fullsize, .primo-tv-chart-container {
     width: 100%;
     height: 100%;
 }
@@ -30,6 +30,17 @@
     bottom: 0;
 }
 
-.primo-modal > * {
+.primo-modal>* {
     flex: 1;
+}
+
+.primo-flex-valign {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Cancels */
+.MuiGrid-spacing-xs-2 {
+    margin: 0 !important;
 }

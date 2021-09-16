@@ -39,6 +39,7 @@ import { normalizePriceTime, shortDateAndTime } from "../../../common/utils/time
 import { Candle, DataPoint, BotChartProps } from "../models";
 import { Order } from "../../../common/models/markets/Order";
 import { BarStyles } from "../components/TradingViewWidget";
+import { ResultsService } from "../../../common-backend/services/ResultsService";
 
 
 type BotEvent = any;
@@ -62,27 +63,12 @@ class StockChart extends React.Component<BotChartProps> {
 
     public render() {
         console.log(`Render bot chart`);
-        const { data: initialData, indicators, signals, dateTimeFormat = "%HH:%mm:%ss", height, ratio, summary, width } = this.props;
+        const { data: initialData, eventMap, indicators, signals, dateTimeFormat = "%HH:%mm:%ss", height, ratio, summary, width } = this.props;
 
         const signalMap = new Map<string, number>();
         for (let i = 0; i < initialData.length; ++i) {
             const dp = initialData[i];
             signalMap.set(dp.date.toISOString(), signals[i]);
-        }
-
-        const orders = ((summary && summary.orders) ? summary.orders : []).map(o => OrderEntity.fromRow(o));
-
-        const eventMap = new Map<string, BotEvent[]>();
-        for (const e of orders) {
-            e.opened = DateTime.fromISO(e.opened + "").toJSDate();
-            e.created = DateTime.fromISO(e.created + "").toJSDate();
-            e.updated = DateTime.fromISO(e.updated + "").toJSDate();
-
-            const key = normalizePriceTime(summary.timeRes, e.opened).toISOString();
-            const arr = eventMap.has(key) ? eventMap.get(key) : [];
-            eventMap.set(key, arr);
-
-            arr.push(e);
         }
 
         const when = (d: DataPoint) => {
@@ -110,7 +96,7 @@ class StockChart extends React.Component<BotChartProps> {
 
         const signalSubchartHeight = 100;
         const indicatorSubchartHeight = 100;
-        const elderRayOrigin = (_: number, h: number) => [0, h - signalSubchartHeight * 2];
+        const signalCharOrigin = (_: number, h: number) => [0, h - signalSubchartHeight * 2];
         const barChartHeight = gridHeight / 4;
         const barChartOrigin = (_: number, h: number) => [0, h - barChartHeight - signalSubchartHeight + 250];
         const chartHeight = gridHeight - signalSubchartHeight - (numIndicators * indicatorSubchartHeight);
@@ -211,7 +197,7 @@ class StockChart extends React.Component<BotChartProps> {
             return content;
         };
 
-        const useHA = true;
+        const useHA = false;
         if (useHA) {
             const calculator = heikinAshi();
             data = calculator(data);
@@ -271,7 +257,7 @@ class StockChart extends React.Component<BotChartProps> {
                     id={4}
                     height={signalSubchartHeight}
                     yExtents={[-1, 1]}
-                    origin={elderRayOrigin}
+                    origin={signalCharOrigin}
                     padding={{ top: 8, bottom: 8 }}
                 >
                     <XAxis showGridLines={true} gridLinesStrokeStyle="#e0e3eb" />

@@ -1,6 +1,7 @@
 import "react-dom";
 import React from "react";
 import classes from "classnames";
+import { isNullOrUndefined } from "../../../../common/utils";
 
 
 export enum AmountStyle {
@@ -10,21 +11,29 @@ export enum AmountStyle {
 };
 
 export interface AmountProps {
-    amount?: number;
+    amount?: string | number;
     symbol?: string;
     style?: string;
+    neutral?: boolean;
 }
 
 export const Amount = (props: AmountProps) => {
-    const { amount, style, symbol } = props;
+    let { amount, neutral, style, symbol } = props;
 
     let className: string = "";
+
+    if (isNullOrUndefined(amount)) {
+        neutral = true;
+    }
 
     if (style) {
         className = `primo-${style}`;
     }
     else {
-        if (amount < 0) {
+        if (neutral) {
+            className = "primo-neutral";
+        }
+        else if (amount < 0) {
             className = "primo-negative";
         }
         else if (amount > 0) {
@@ -35,11 +44,11 @@ export const Amount = (props: AmountProps) => {
         }
     }
 
-    let amountStr ="";
+    let amountStr = "";
     const parsedAmount = parseFloat(amount.toString());
 
     // TODO: Rm. Total hack. Need currency info and conversion facilities.
-    if (symbol.indexOf("USD") > -1) {
+    if (symbol && symbol.indexOf("USD") > -1) {
         amountStr = parsedAmount.toFixed(2).toString();
     }
     else {
