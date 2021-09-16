@@ -1,15 +1,18 @@
-import React, { useEffect, useState } from "react";
 import "react-dom";
-import { InfoResponse } from "../../../common/models";
+import React, { useEffect, useState } from "react";
+import { InfoResponse } from "../client";
 import { client } from "../includes";
 
 
-export const Splash = () => {
+const Splash = () => {
     const [info, setInfo] = useState<InfoResponse>(null);
 
-    useEffect(async () => {
-        const { data } = await client.info.getInfo();
-        setInfo(data);
+    useEffect(() => {
+        client.info.getInfo()
+            .then(data => data.data)
+            .then(data => setInfo(data))
+            .catch(console.error)
+            ;
     }, []);
 
     if (!info) {
@@ -34,9 +37,12 @@ export const Splash = () => {
             <div className="hero-img"></div>
             <div className="hero-text">
                 <h1>P R I M O R D I A L</h1>
-                <h2>{infoText}</h2>
-                <h3>{versionText}</h3>
+                <i>{infoText}</i>
+                <i>{versionText}</i>
             </div>
         </div>
     );
 };
+
+export default Splash;
+

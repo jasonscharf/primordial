@@ -2,12 +2,12 @@ import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotImplementation } from "../../common-backend/bots/BotImplementation";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotRun } from "../../common/models/bots/BotRun";
-import { GeneticBotState } from "../bots/GeneticBot";
+import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
 import { Money } from "../../common/numbers";
 import { OrderState } from "../../common/models/markets/Order";
 import { OrderStatusUpdateMessage } from "../../common-backend/messages/trading";
 import { RunState } from "../../common/models/system/RunState";
-import { botFactory } from "../bots/RobotFactory";
+import { botFactory } from "../../common-backend/bots/RobotFactory";
 import { botIdentifier, buildBotContext } from "../../common-backend/bots/BotContext";
 import { log, orders, strats } from "../../common-backend/includes";
 

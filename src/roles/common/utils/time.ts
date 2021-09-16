@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
-import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { constants } from "../includes";
+import { TimeResolution } from "../models/markets/TimeResolution";
+
 
 
 /**
@@ -220,9 +220,9 @@ export interface DateRange {
  * @param res 
  * @param range 
  */
-export function splitRanges(res: TimeResolution, range: { start: Date, end: Date }, max = constants.limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES):
+export function splitRanges(res: TimeResolution, range: { start: Date, end: Date }, max):
     DateRange[] {
-    max = Math.min(max, constants.limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES);
+    max = Math.min(max, 1000);
     const { start, end } = range;
 
     const rangeDuration = end.getTime() - start.getTime();
@@ -256,13 +256,17 @@ export function splitRanges(res: TimeResolution, range: { start: Date, end: Date
 
 /**
  * Creates a JavaScript Date object from an ISO-8601 string.
- * @param str 
+ * @param input 
  * @returns 
  */
-export function from(str: string) {
-    const fr = DateTime.fromISO(str);
+export function from(input: string | Date): Date {
+    const fr = typeof input === "string"
+        ? DateTime.fromISO(input)
+        : DateTime.fromISO((input as Date).toISOString())
+        ;
+
     if (!fr.isValid) {
-        throw new Error(`Could not parse invalid test date '${str}'`);
+        throw new Error(`Could not parse invalid test date '${input}'`);
     }
 
     return fr.toJSDate();

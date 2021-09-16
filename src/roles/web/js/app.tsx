@@ -1,14 +1,47 @@
 import { render } from "react-dom";
-import React from "react";
+import React, { lazy, Suspense } from "react";
+import {
+    BrowserRouter as Router,
+    Link,
+    Route,
+    Switch,
+} from "react-router-dom";
+
 import "../assets/css/reset.css";
 import "../assets/css/main.css";
+import "../assets/css/utils.css";
+import "../assets/css/components.css";
 
-import { Splash } from "./components/Splash";
-import { client } from "./includes";
 
-
-const placeholder = (
-    <Splash />
+const Loading = () => (
+    <div>Loading</div>
 );
 
-render(placeholder, document.getElementsByTagName("body")[0]);
+
+const RunScreen = lazy(() => import("./screens/sandbox/RunScreen"));
+const BotResults = lazy(() => import("./screens/sandbox/BotResults"));
+const Splash = lazy(() => import("./components/Splash"));
+
+
+const app = (
+    <Suspense fallback={<div />}>
+        <Router>
+
+            {/* A <Switch> looks through its children <Route>s and
+                  renders the first one that matches the current URL. */}
+            <Switch>
+                <Route path="/run">
+                    <RunScreen />
+                </Route>
+                <Route path="/results/:instanceId">
+                    <BotResults />
+                </Route>
+                <Route exact path="/">
+                    <Splash />
+                </Route>
+            </Switch>
+        </Router>
+    </Suspense>
+);
+
+render(app, document.getElementById("app-container"));

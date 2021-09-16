@@ -6,7 +6,7 @@ import { SymbolService } from "../../common-backend/services/SymbolService";
 import { TestDataCtx, createTestPrice, getTestData } from "../utils/test-data";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
-import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, shortDateAndTime, splitRanges } from "../../common-backend/utils/time";
+import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, shortDateAndTime, splitRanges } from "../../common/utils/time";
 import { assertEqualTimes } from "../utils/misc";
 
 

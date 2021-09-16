@@ -1,0 +1,60 @@
+
+/* Hero image (Splash) */
+.hero-img-wrapper {
+    flex: 1;
+    display: flex;
+    align-self: center;
+    height: 100vh;
+}
+
+.hero-img {
+    flex: 1;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.hero-text {
+    text-align: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50vh;
+    color: white;
+}
+
+.hero-text h1 { 
+    color: white;
+}
+
+.hero-img {
+    height: 100%;
+    background: url("../img/test.jpg") no-repeat;
+    background-size: cover;
+}
+
+
+/* Info table */
+.primo-info-table {
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.primo-info-table-item {
+    display: flex;
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+}
+
+.primo-info-table-item .MuiGrid-item {
+    flex: 1;
+}
+
+/* Amount and Percent */
+.primo-amount, .primo-percent {
+    font-weight: bold;
+    display: inline-block;
+    font-size: 120%;
+}

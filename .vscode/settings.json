@@ -19,6 +19,7 @@
         "**/env/**": true,
         "**/*.egg-info/**": true,
         "**/temp": true,
+        "**/yarn.lock": true,
     },
     "python.pythonPath": "/usr/bin/python3"
 }

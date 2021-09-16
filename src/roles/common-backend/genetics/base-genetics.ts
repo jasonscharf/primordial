@@ -11,38 +11,70 @@ export const DEFAULT_BOT_IMPL = "genetic-bot.vanilla.v1";
 export const DEFAULT_PROFIT_TARGET = 0.02;
 export const DEFAULT_STOPLOSS_ABS = -0.01;
 
+export const enum names {
+    GENETICS_C_META = "META",
+    GENETICS_C_META_G_IMPL = "IMPL",
+    GENETICS_C_TIME = "TIME",
+    GENETICS_C_TIME_G_RES = "RES",
+    GENETICS_C_TIME_G_MAX_INTERVALS = "MI",
+    GENETICS_C_PROFIT = "PRF",
+    GENETICS_C_PROFIT_G_TARGET = "TGT",
+    GENETICS_C_STOPLOSS = "SL",
+    GENETICS_C_STOPLOSS_G_ABS = "ABS",
+    GENETICS_C_BUY = "BUY",
+    GENETICS_C_BUY_G_THRESHOLD = "T",
+    GENETICS_C_SELL = "SELL",
+    GENETICS_C_SELL_G_THRESHOLD = "T",
+    GENETICS_C_SYM = "SYM",
+    GENETICS_C_RSI = "RSI",
+    GENETICS_C_RSI_G_L = "L",
+    GENETICS_C_RSI_G_H = "H",
+    GENETICS_C_RSI_G_WL = "WL",
+    GENETICS_C_RSI_G_BW = "BW",
+    GENETICS_C_RSI_G_SW = "SW",
+    GENETICS_C_RSI_G_OITP = "OITP",
+    GENETICS_C_BOLL = "BOLL",
+    GENETICS_C_BOLL_G_BUY_BREAKOUTS = "BB",
+    GENETICS_C_BOLL_G_SELL_BREAKOUTS = "SB",
+}
+
+
 export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
-    "META": new Chromosome("META", "Meta", "Phenotype metadata", [
-        new Gene<string>("IMPL", GeneticValueType.STRING, DEFAULT_BOT_IMPL, "Bot implementation variant to use"),
+    [names.GENETICS_C_META]: new Chromosome(names.GENETICS_C_META, "Meta", "Phenotype metadata", [
+        new Gene<string>(names.GENETICS_C_META_G_IMPL, GeneticValueType.STRING, DEFAULT_BOT_IMPL, "Bot implementation variant to use"),
     ]),
-    "TIME": new Chromosome("TIME", "Time", "Controls time related behaviour, notably time resolution", [
-        new Gene<TimeResolution>("RES", GeneticValueType.TIME_RES, TimeResolution.FIFTEEN_MINUTES, "Specifies the time resolution to trade at, e.g. '1m', '15m', '1h', etc"),
-        new Gene<number>("MI", GeneticValueType.NUMBER, 99, "Specifies the number of previous intervals to consider when computing indicators"),
+    [names.GENETICS_C_TIME]: new Chromosome(names.GENETICS_C_TIME, "Time", "Controls time related behaviour, notably time resolution", [
+        new Gene<TimeResolution>(names.GENETICS_C_TIME_G_RES, GeneticValueType.TIME_RES, TimeResolution.FIFTEEN_MINUTES, "Specifies the time resolution to trade at, e.g. '1m', '15m', '1h', etc"),
+
+
+        new Gene<number>(names.GENETICS_C_TIME_G_MAX_INTERVALS, GeneticValueType.NUMBER, 99, "Specifies the number of previous intervals available for indicators to consider"),
+
+
     ]),
-    "PROFIT": new Chromosome("PROFIT", "Profit", "Controls profit targets and take-profits", [
-        new Gene<number>("TGTPCT", GeneticValueType.NUMBER, DEFAULT_PROFIT_TARGET, "Controls the default profit target"),
+    [names.GENETICS_C_PROFIT]: new Chromosome(names.GENETICS_C_PROFIT, "Profit", "Controls profit targets and take-profits", [
+        new Gene<number>(names.GENETICS_C_PROFIT_G_TARGET, GeneticValueType.NUMBER, DEFAULT_PROFIT_TARGET, "Controls the default profit target"),
     ]),
-    "SL": new Chromosome("SL", "Stop-loss", "Controls stop-losses", [
-        new Gene<number>("ABS", GeneticValueType.NUMBER, DEFAULT_STOPLOSS_ABS, "Sets an initial absolute stop-loss when buy orders are placed"),
+    [names.GENETICS_C_STOPLOSS]: new Chromosome(names.GENETICS_C_STOPLOSS, "Stop-loss", "Controls stop-losses", [
+        new Gene<number>(names.GENETICS_C_STOPLOSS_G_ABS, GeneticValueType.NUMBER, DEFAULT_STOPLOSS_ABS, "Sets an initial absolute stop-loss when buy orders are placed"),
     ]),
-    "BUY": new Chromosome("BUY", "Buying", "Controls buying behaviour", [
-        new Gene<number>("T", GeneticValueType.NUMBER, 1, "Threshold at which to consider a buy signal from the weighted average of other indicators"),
+    [names.GENETICS_C_BUY]: new Chromosome(names.GENETICS_C_BUY, "Buying", "Controls buying behaviour", [
+        new Gene<number>(names.GENETICS_C_BUY_G_THRESHOLD, GeneticValueType.NUMBER, 1, "Signal threshold [0, 1] at which to consider a signal buyable"),
     ]),
-    "SELL": new Chromosome("SELL", "Buying", "Controls selling behaviour", [
-        new Gene<number>("T", GeneticValueType.NUMBER, -1, "Threshold at which to consider a sell signal from the weighted average of other indicators"),
+    [names.GENETICS_C_SELL]: new Chromosome(names.GENETICS_C_SELL, "Buying", "Controls selling behaviour", [
+        new Gene<number>(names.GENETICS_C_SELL_G_THRESHOLD, GeneticValueType.NUMBER, -1, "Signal threshold [0, 1] at whicht o consider a signal sellable"),
     ]),
-    "SYM": new Chromosome("SYM", "Symbols", "Controls which symbols to trade", []),
-    "RSI": new RsiIndicatorChromosome("RSI", "RSI", "Behaviour involving the Relative Strength Indictor", [
-        new Gene("L", GeneticValueType.NUMBER, 33, "Lower RSI threshold to use as a buy signal"),
-        new Gene("H", GeneticValueType.NUMBER, 66, "Upper RSI threshold to use as a sell signal"),
-        new Gene("WL", GeneticValueType.NUMBER, 99, "Window length of closed intervals to consider"),
-        new Gene("BW", GeneticValueType.NUMBER, 1, "Weighting for RSI buy signal"),
-        new Gene("SW", GeneticValueType.NUMBER, 1, "Weighting for RSI sell signal"),
-        new Gene("OITP", GeneticValueType.NUMBER, 14, "Opt-in time period for RSI"),
+    [names.GENETICS_C_SYM]: new Chromosome(names.GENETICS_C_SYM, "Symbols", "Controls which symbols to trade", []),
+    [names.GENETICS_C_RSI]: new RsiIndicatorChromosome(names.GENETICS_C_RSI, "RSI", "Behaviour involving the Relative Strength Indictor", [
+        new Gene(names.GENETICS_C_RSI_G_L, GeneticValueType.NUMBER, 33, "Lower RSI threshold to use as a buy signal"),
+        new Gene(names.GENETICS_C_RSI_G_H, GeneticValueType.NUMBER, 66, "Upper RSI threshold to use as a sell signal"),
+        new Gene(names.GENETICS_C_RSI_G_WL, GeneticValueType.NUMBER, 99, "Window length of closed intervals to consider"),
+        new Gene(names.GENETICS_C_RSI_G_BW, GeneticValueType.NUMBER, 1, "Weighting for RSI buy signal"),
+        new Gene(names.GENETICS_C_RSI_G_SW, GeneticValueType.NUMBER, 1, "Weighting for RSI sell signal"),
+        new Gene(names.GENETICS_C_RSI_G_OITP, GeneticValueType.NUMBER, 14, "Opt-in time period for RSI"),
     ]),
-    "BOLL": new Chromosome("BOLL", "Bollinger Bands", "Behaviour involving Bollinger Bands indicators", [
-        new Gene("BB", GeneticValueType.FLAG, false, "Weighting (0 or 1) for buy signal on a breakout of the lower bound"),
-        new Gene("SB", GeneticValueType.FLAG, false, "Weighting (0 or 1) for sell signal on a breakout of the upper bound"),
+    [names.GENETICS_C_BOLL]: new Chromosome(names.GENETICS_C_BOLL, "Bollinger Bands", "Behaviour involving Bollinger Bands indicators", [
+        new Gene(names.GENETICS_C_BOLL_G_BUY_BREAKOUTS, GeneticValueType.FLAG, false, "Emit buy signal on a breakout of the lower bound"),
+        new Gene(names.GENETICS_C_BOLL_G_SELL_BREAKOUTS, GeneticValueType.FLAG, false, "Emit sell signal on a breakout of the upper bound"),
     ]),
 });
 

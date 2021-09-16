@@ -14,7 +14,7 @@ import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeS
 import { User } from "../../common/models";
 import { Workspace } from "../../common/models/system/Workspace";
 import { capital, constants, db, strats, sym, tables, us, users } from "../../common-backend/includes";
-import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common-backend/utils/time";
+import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { query } from "../../common-backend/database/utils";
 import { randomName } from "../../common-backend/utils/names";
 import { randomString } from "../../common/utils";
@@ -155,28 +155,32 @@ export function createTestPrice(props?: Partial<Price>) {
     return Object.assign({}, dummyPriceProps, props);
 }
 
-export async function getTestData() {
+export function makeSymbol(props: Partial<TradeSymbol> = {}) {
+    const defaults: Partial<TradeSymbol> = {
+        typeId: TradeSymbolType.CRYPTO,
+        sign: props.id || randomString(),
+        displayUnits: 8,
+    };
+    return Object.assign({}, defaults, props);
+}
+
+export async function getTestData(): Promise<TestDataCtx> {
 
     // We're dealing a fresh test DB, so we need to add our own currencies for testing
-    const symbolProps1: Partial<TradeSymbol> = {
-        typeId: TradeSymbolType.CRYPTO,
-        id: "BTC",
-        sign: "B",
-        displayUnits: 8,
-    };
+    const symbols = [
+        makeSymbol({ id: "BTC" }),
+        makeSymbol({ id: "TUSD" }),
+        makeSymbol({ id: "BUSD" }),
+        makeSymbol({ id: "ETH" }),
+        makeSymbol({ id: "ADA" }),
+    ];
 
-    const symbolProps2: Partial<TradeSymbol> = {
-        typeId: TradeSymbolType.CRYPTO,
-        id: "TUSD",
-        sign: "U",
-        displayUnits: 8,
-    };
-
-    const symbol1 = await sym.getSymbol(symbolProps1.id);
-    const symbol2 = await sym.getSymbol(symbolProps2.id);
-
-    const testSymbol1 = symbol1 || await sym.addSymbol(symbolProps1);
-    const testSymbol2 = symbol2 || await sym.addSymbol(symbolProps2);
+    for (const s of symbols) {
+        const existing = await sym.getSymbol(s.id);
+        if (!existing) {
+            await sym.addSymbol(s);
+        }
+    }
 
     const user = await us.getSystemUser();
     const workspace = await strats.getDefaultWorkspaceForUser(user.id, user.id);
@@ -185,8 +189,8 @@ export async function getTestData() {
         user,
         workspace,
         strategy,
-        testSymbol1,
-        testSymbol2,
+        testSymbol1: symbols[0] as TradeSymbol,
+        testSymbol2: symbols[1]as TradeSymbol,
     };
 }
 

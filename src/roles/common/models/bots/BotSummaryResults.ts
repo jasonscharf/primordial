@@ -1,34 +1,39 @@
-import { AssetAmount } from "../../common/models/capital/AssetAmount";
-import { Money } from "../../common/numbers";
-import { Order } from "../../common/models/markets/Order";
-import { PriceDataRange } from "../services/SymbolService";
-import { SerializablePrimoError } from "../../common/errors/errors";
-import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { Money } from "../../numbers";
+import { Order } from "../markets/Order";
+import { PriceDataRange } from "../../../common-backend/services/SymbolService";
+import { PrimoSerializableError } from "../../errors/errors";
+import { TimeResolution } from "../markets/TimeResolution";
 
 
 /**
  * Summary results for a particular bot instance.
  * Used for backtesting as well as reporting.
  */
-export interface BotResultsSummary {
+export interface BotRunReport {
     instanceId: string;
+    runId: string;
     name: string;
-    capital: Money;
-    balance: Money;
-    totalGross: Money;
+    capital: number;
+    balance: number;
+    totalGross: number;
     totalGrossPct: number;
     buyAndHoldGrossPct: number;
+    estProfitPerYearCompounded: number;
     avgProfitPerDay: number;
     avgProfitPctPerDay: number;
+    exchange: string;
     symbols: string;
+    base: string;
+    quote: string;
+    window: number;
     numCandles: number;
     numOrders: number;
     numTrades: number;
     totalWins: number;
     totalLosses: number;
     avgWinRate: number;
-    firstClose: Money;
-    lastClose: Money;
+    firstClose: number;
+    lastClose: number;
     sharpe: number;
     sortino: number;
     from: Date;
@@ -39,7 +44,9 @@ export interface BotResultsSummary {
     length: string;
     genome: string;
     timeRes: TimeResolution;
-    error?: SerializablePrimoError;
+    error?: PrimoSerializableError;
+    signals: number[];
+    indicators: {};
     missingRanges: PriceDataRange[];
     orders: Order[];
     trailingOrder?: Order;

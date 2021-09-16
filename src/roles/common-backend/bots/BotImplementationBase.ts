@@ -34,12 +34,26 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
     }
 
     /**
+     * Computes the current buy/sell signal.
+     * @param ctx 
+     * @param tick 
+     * @param indicators 
+     * @returns 
+     */
+    async computeSignal(ctx: BotContext<TState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>): Promise<number> {
+        const { state } = ctx;
+        return 0;
+    }
+
+    /**
      * Ticks a bot.
      * Note that ticks may come at any time, different exchange/symbol combinations are updated at different freqs.
      * @param ctx
-     * @param price
+     * @param tick
+     * @param signal
+     * @param indicators
      */
-    async tick(ctx: BotContext<TState>, price: PriceUpdateMessage, indicators: Map<string, unknown>): Promise<TState> {
+    async tick(ctx: BotContext<TState>, price: PriceUpdateMessage, signal: number, indicators: Map<string, unknown>): Promise<TState> {
         const { instance, state } = ctx;
         ctx.log.debug(`[BOT] ${botIdentifier(instance)} ticks...`);
         return state;

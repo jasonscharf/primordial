@@ -1,15 +1,15 @@
 import { Knex } from "knex";
-import { BotContext, botIdentifier } from "../../common-backend/bots/BotContext";
-import { BotImplementationBase } from "../../common-backend/bots/BotImplementationBase";
-import { IndicatorChromosome } from "../../common-backend/genetics/IndicatorChromosome";
+import { BotContext, botIdentifier } from "./BotContext";
+import { BotImplementationBase } from "./BotImplementationBase";
+import { IndicatorChromosome } from "../genetics/IndicatorChromosome";
 import { Mode } from "../../common/models/system/Strategy";
 import { Order, OrderState } from "../../common/models/markets/Order";
-import { OrderDelegateArgs } from "../../common-backend/bots/BotOrderDelegate";
-import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../../common-backend/messages/trading";
+import { OrderDelegateArgs } from "./BotOrderDelegate";
+import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../messages/trading";
 import { Price } from "../../common/models/markets/Price";
+import { capital, orders } from "../includes";
 import { isNullOrUndefined, Money } from "../../common/utils";
-import { capital, orders } from "../../common-backend/includes";
-import { shortDateAndTime } from "../../common-backend/utils/time";
+import { shortDateAndTime } from "../../common/utils/time";
 
 
 
@@ -83,7 +83,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
                     break;
 
                 case "closed":
-                    debugger;
+                    //debugger;
                     order.gross = Money((exo.amount * exo.cost).toString()); // TODO: VERIFY
                     order.closed = new Date();
                     order.stateId = OrderState.CLOSED;
@@ -137,7 +137,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         return indicators;
     }
 
-    async tick(ctx: BotContext<GeneticBotState>, price: PriceUpdateMessage, indicators: Map<string, unknown>) {
+    async tick(ctx: BotContext<GeneticBotState>, price: PriceUpdateMessage, signal: number, indicators: Map<string, unknown>) {
         const { genome, instance, log, prices, state } = ctx;
         const { close } = price;
         const { currentGenome } = instance;
@@ -151,7 +151,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
 
         if (fsmState === GeneticBotFsmState.WAITING_FOR_BUY_OPP ||
             fsmState === GeneticBotFsmState.WAITING_FOR_SELL_OPP) {
-            newState = await this.waitForTradeEntryOrExit(ctx, price, indicators);
+            newState = await this.waitForTradeEntryOrExit(ctx, price, signal, indicators);
         }
         else if (fsmState === GeneticBotFsmState.SURF_BUY ||
             fsmState === GeneticBotFsmState.SURF_SELL) {
@@ -162,8 +162,47 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         return newState;
     }
 
-    async computeCurrentSignal(ctx: BotContext<GeneticBotState>, price: PriceUpdateMessage, indicators: Map<string, unknown>) {
+    async computeSignal(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {
+        const { genome, instance, log, prices, state } = ctx;
 
+        // Compute buy/sell signals
+        const activeIndicators = ctx.genome.chromosomesEnabled
+            .filter(c => c.active)
+            .filter(c => c instanceof IndicatorChromosome) as IndicatorChromosome[]
+            ;
+
+        const computations: Promise<number>[] = [];
+        const signals = new Map<string, unknown>();
+
+        const { fsmState } = state;
+        const isBuying = (fsmState === GeneticBotFsmState.SURF_BUY || fsmState === GeneticBotFsmState.WAITING_FOR_BUY_OPP);
+
+        // TODO: Parallelize
+        const numIndicators = activeIndicators.length;
+        let weightedAverage = 0;
+        for (const indicator of activeIndicators) {
+            const indicatorValues = indicators.get(indicator.name);
+            const signal = await indicator.computeBuySellSignal(ctx, tick as Price, indicatorValues);
+            const [buyWeight, sellWeight] = indicator.getBuySellWeights(ctx);
+
+            const weight = isBuying
+                ? buyWeight
+                : sellWeight
+                ;
+
+            /*
+            if (isBuying && signal < 0) {
+                continue;
+            }
+            else if (!isBuying && signal > 0) {
+                continue;
+            }*/
+
+            weightedAverage += signal * weight;
+        }
+
+        weightedAverage /= numIndicators;
+        return weightedAverage;
     }
 
     async placeOrder(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {
@@ -235,61 +274,18 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         return result;
     }
 
-    async waitForTradeEntryOrExit(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {
+    async waitForTradeEntryOrExit(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, signal: number, indicators: Map<string, unknown>) {
         const { genome, instance, log, prices, state } = ctx;
         const { close } = tick;
         const { currentGenome } = instance;
 
         let fsmState = state.fsmState;
 
-        // Compute buy/sell signals
-        const activeIndicators = ctx.genome.chromosomesEnabled
-            .filter(c => c.active)
-            .filter(c => c instanceof IndicatorChromosome) as IndicatorChromosome[]
-            ;
 
         // Look for BUY opportunities or SELL opportunities based on the current state
         if (fsmState === GeneticBotFsmState.WAITING_FOR_BUY_OPP ||
             fsmState === GeneticBotFsmState.WAITING_FOR_SELL_OPP) {
             const isBuying = fsmState === GeneticBotFsmState.WAITING_FOR_BUY_OPP;
-
-            // Run indicators in parallel
-            const computations: Promise<number>[] = [];
-            const signals = new Map<string, unknown>();
-
-            // TODO: Parallel
-            const numIndicators = activeIndicators.length;
-            let weightedAverage = 0;
-            let indicatorSummary = "";
-            for (const indicator of activeIndicators) {
-                const indicatorValues = indicators.get(indicator.name);
-                const signal = await indicator.computeBuySellSignal(ctx, tick as Price, indicatorValues);
-                const [buyWeight, sellWeight] = indicator.getBuySellWeights(ctx);
-
-                const weight = isBuying
-                    ? buyWeight
-                    : sellWeight
-                    ;
-
-                /*
-                if (isBuying && signal < 0) {
-                    continue;
-                }
-                else if (!isBuying && signal > 0) {
-                    continue;
-                }*/
-
-                weightedAverage += signal * weight;
-
-                let valStr = "(?)";
-                if (Array.isArray(indicatorValues) && indicatorValues.length > 0) {
-                    valStr = Math.round(indicatorValues[indicatorValues.length - 1]).toString();
-                }
-                indicatorSummary += `${indicator.name}: ${signal} @ ${valStr}`;
-            }
-
-            weightedAverage /= numIndicators;
-
 
             const thresholdValue = isBuying
                 ? genome.getGene<number>("BUY", "T").value
@@ -297,12 +293,12 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
                 ;
 
             if (state.verbose) {
-                console.log(`[BOT] [${instance.name}] [${instance.symbols}] [${state.fsmState}] Buy/sell signal is ${weightedAverage} (T: ${thresholdValue}). ${indicatorSummary} @ ${shortDateAndTime(tick.ts)}`);
+                console.log(`[BOT] [${instance.name}] [${instance.symbols}] [${state.fsmState}] Buy/sell signal is ${signal} (T: ${thresholdValue}) @ ${shortDateAndTime(tick.ts)}`);
             }
 
             // Make trade!
-            if ((isBuying && weightedAverage >= thresholdValue) ||
-                (!isBuying && weightedAverage <= thresholdValue)) {
+            if ((isBuying && signal >= thresholdValue) ||
+                (!isBuying && signal <= thresholdValue)) {
                 const buyOrSell = isBuying ? "BUY" : "SELL";
 
                 // TODO: Surfing control genes

@@ -8,7 +8,7 @@ import { UpdateSymbolsState } from "../common-backend/services/SymbolService";
 import { connectToBinanceWebSocket, disconnectBinanceWebSocket } from "./binance-socket";
 import { dbm, log, mq } from "../common-backend/includes";
 import { registerCommandHandlers } from "../common-backend/commands/command-handlers";
-import { shortTime } from "../common-backend/utils/time";
+import { shortTime } from "../common/utils/time";
 import { spooler, sym } from "../common-backend/services";
 import { systemHealthCheck } from "./tasks/SystemHealthCheck";
 import { updateMarketDefs } from "./tasks/UpdateMarketDefs";

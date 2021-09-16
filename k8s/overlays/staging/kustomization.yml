@@ -7,7 +7,6 @@ resources:
   - certificate.yml
   - cluster-issuer.yml
   - roles.yml
-  - secrets.yml
 
   # Resource quota not being used.
   #- resource-quota.yml
@@ -17,3 +16,4 @@ patchesStrategicMerge:
   - ingress.yml
   - spooler.yml
   - worker.yml
+  - secrets.yml

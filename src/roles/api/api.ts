@@ -1,6 +1,8 @@
 import Koa from "koa";
 import KoaBodyParser from "koa-bodyparser";
+import KoaJson from "koa-json";
 import KoaRouter from "koa-router";
+import KoaShutdown from "koa-graceful-shutdown";
 import * as http from "http2";
 import * as ws from "ws";
 import { isNullOrUndefined } from "util";
@@ -8,7 +10,10 @@ import env from "../common-backend/env";
 import { instrumentWebAppRequest } from "../common-backend/analytics";
 import * as routes from "./routes";
 import { db, dbm, log } from "../common-backend/includes";
+import { Server } from "http";
 
+let app: Koa;
+let server: http.Http2Server;
 
 async function configureAppInsights(app: Koa) {
     // Enable App Insights HTTP telemetry
@@ -76,7 +81,10 @@ async function configureSessions(app: Koa) {
  * Creates the primary Koa app. See below for server entrypoint.
  */
 async function createServerApp() {
-    const app = new Koa();
+    app = new Koa();
+    server = http.createServer(app.callback());
+
+    app.use(KoaShutdown(server));
 
     // SECURITY: The ability to use multiple keys may allow us to revoke our own private session key
     // in the case of catastrophic key leakage. Note that Koa"s `app.keys` is an array.
@@ -98,11 +106,15 @@ async function createServerApp() {
     await configureRoutes(app);
     await configureSessions(app);
 
+    app.use(KoaJson());
+
     return app;
 }
 
+
+let wss: ws.Server = null;
 async function createSocketServer() {
-    const wss = new ws.Server({ port: 8010 });
+    wss = new ws.Server({ port: 8010 });
     log.info(`API socket server running on ${8010}`);
 
     wss.on("connection", function (ws) {
@@ -117,7 +129,14 @@ async function createSocketServer() {
 
 console.log("--- API server entrypoint ---");
 
-process.on("SIGTERM", () => console.info("SIGTERM: API"));
+process.on("SIGTERM", () => {
+    console.info("SIGTERM: API");
+    if (wss) {
+        wss.close();
+    }
+
+    process.exit();
+});
 
 
 log.info(`API role running migrations (if needed)...`);
@@ -138,7 +157,9 @@ dbm.migrate()
         });
 
         // Note: A health check is required for cluster health
-        const healthCheck = new Koa();
-        healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
-        healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
+        if (!env.isDev()) {
+            const healthCheck = new Koa();
+            healthCheck.listen(env.PRIMO_ROLE_HEALTH_PORT);
+            healthCheck.use((ctx, next) => ctx.status = http.constants.HTTP_STATUS_OK);
+        }
     });

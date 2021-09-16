@@ -1,12 +1,13 @@
 import { dbm } from "../common-backend/includes";
 
 
-//import "./trading/CapitalService.test"; /*
+//import "./trading/ResultsService.test"; /*
 
 import "./system/database.test";
 import "./system/numbers.test";
 import "./system/time.test";
 import "./system/CommandService.test";
+import "./system/ResultsService.test";
 import "./system/SpoolerService.test";
 import "./system/UserService.test";
 import "./genetics/GeneticParser.test";

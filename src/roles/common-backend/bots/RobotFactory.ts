@@ -1,6 +1,6 @@
-import { Factory } from "../../common-backend/bots/BotFactory";
+import { Factory } from "./BotFactory";
 import { GeneticBot } from "./GeneticBot";
-import { DEFAULT_BOT_IMPL } from "../../common-backend/genetics/base-genetics";
+import { DEFAULT_BOT_IMPL } from "../genetics/base-genetics";
 
 
 const botFactory = new Factory();

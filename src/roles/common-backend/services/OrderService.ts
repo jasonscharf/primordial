@@ -1,5 +1,5 @@
 import { Knex } from "knex";
-import { Fee } from "../../common/models/markets/Fee";
+import { PrimoFee } from "../../common/models/markets/Fee";
 import { FeeEntity } from "../../common/entities/FeeEntity";
 import { Fill } from "../../common/models/markets/Fill";
 import { FillEntity } from "../../common/entities/FillEntity";
@@ -77,12 +77,12 @@ export class OrderService {
      * @param orderId 
      * @param props 
      */
-    async saveFeeForOrder(orderId: string, fees: Partial<Fee>): Promise<Fee> {
+    async saveFeeForOrder(orderId: string, fees: Partial<PrimoFee>): Promise<PrimoFee> {
         if (!orderId) {
             throw new Error(`Missing order ID`);
         }
         return query(constants.queries.ORDERS_FEES_SAVE, async db => {
-            const [row] = <Fee[]>await db(tables.Fees)
+            const [row] = <PrimoFee[]>await db(tables.Fees)
                 .insert(fees)
                 .returning("*")
                 ;
