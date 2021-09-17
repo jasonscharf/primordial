@@ -7,6 +7,13 @@ import {
     Switch,
 } from "react-router-dom";
 
+/*
+import "../assets/css/reset.css";
+import "../assets/css/main.css";
+import "../assets/css/utils.css";
+import "../assets/css/components.css";
+*/
+
 const Loading = () => (
     <div>Loading</div>
 );

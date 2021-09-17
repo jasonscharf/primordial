@@ -27,7 +27,7 @@ export const base = {
             {
                 test: /\.tsx?$/,
                 use: "ts-loader",
-                
+
             },
             {
                 test: /\.css?$/,
@@ -36,6 +36,10 @@ export const base = {
                     "css-loader",
                 ],
             },
+            {
+                test: /\.(png|jpg|jpeg|gif)$/i,
+                type: 'asset/resource'
+              },
             { test: /\.m?js/, type: "javascript/auto" }
         ],
     },
