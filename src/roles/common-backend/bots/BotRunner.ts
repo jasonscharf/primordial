@@ -198,8 +198,8 @@ export class BotRunner {
                 displayName: defDisplayName,
                 description: defDisplayName,
                 symbols: args.symbols,
+                genome: genomeStr,
                 name,
-                normalizedGenome: genomeStr,
             };
 
             // Note: Properties here being assigned in specific order for presentaiton
@@ -251,9 +251,10 @@ export class BotRunner {
             const appliedDefProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_DEF_PROPS, defProps);
             const appliedInstanceProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS, instanceProps);
 
+            /*
             if (appliedDefProps.normalizedGenome) {
                 delete appliedDefProps.normalizedGenome; // TODO
-            }
+            }*/
             if (!appliedInstanceProps.normalizedGenome) {
                 //appliedInstanceProps.normalizedGenome = appliedInstanceProps.currentGenome;
             }

@@ -77,9 +77,6 @@ export async function addNewBotDefAndInstance(budget = TEST_DEFAULT_BUDGET, star
         if (!appliedInstanceProps.name) {
             appliedInstanceProps.name = appliedInstanceProps.displayName = name;
         }
-        if (!appliedDefProps.normalizedGenome) {
-            appliedDefProps.normalizedGenome = appliedDefProps.genome;
-        }
         if (!appliedInstanceProps.normalizedGenome) {
             appliedInstanceProps.normalizedGenome = appliedInstanceProps.currentGenome;
         }

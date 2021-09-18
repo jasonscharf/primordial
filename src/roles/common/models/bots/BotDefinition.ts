@@ -6,6 +6,5 @@ export interface BotDefinition extends MutableModel {
     name: string;
     symbols: string;
     genome: string;
-    normalizedGenome: string;
     description?: string;
 }
