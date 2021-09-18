@@ -7,6 +7,7 @@ import * as http from "http2";
 import * as ws from "ws";
 import { isNullOrUndefined } from "util";
 import env from "../common-backend/env";
+import { ErrorType, PrimoSerializableError } from "../common/errors/errors";
 import { instrumentWebAppRequest } from "../common-backend/analytics";
 import * as routes from "./routes";
 import { db, dbm, log } from "../common-backend/includes";
@@ -77,12 +78,51 @@ async function configureSessions(app: Koa) {
     // TODO: app.use(KoaSession(koaSessionOptions, app));
 }
 
+export interface ServerErrorResponse {
+    primoErrorType: string;
+    code: number;
+    message: string;
+}
+
 /**
  * Creates the primary Koa app. See below for server entrypoint.
  */
 async function createServerApp() {
     app = new Koa();
     server = http.createServer(app.callback());
+
+    app.use(async (ctx, next) => {
+        try {
+            await next();
+        }
+        catch (err) {
+            err.status = err.statusCode || err.status || 500;
+
+            let errorJson: ServerErrorResponse;
+            if (err instanceof PrimoSerializableError) {
+                errorJson = {
+                    primoErrorType: err.primoErrorType,
+                    code: err.code,
+                    message: err.message,
+                };
+            }
+            else {
+                errorJson = {
+                    primoErrorType: ErrorType.GENERIC,
+                    code: err.status,
+                    message: err.message,
+                };
+            }
+
+            const errWrapperJson = {
+                code: err.status,
+                errors: [
+                    errorJson,
+                ],
+            };
+            ctx.body = errWrapperJson;
+        }
+    });
 
     app.use(KoaShutdown(server));
 
