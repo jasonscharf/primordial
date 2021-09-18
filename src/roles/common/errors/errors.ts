@@ -1,5 +1,5 @@
-
 // PROTOCOL
+
 // Don't rename these values - they are used on the MQ.
 export enum ErrorType {
     GENERIC = "primo.err.generic",
@@ -12,7 +12,16 @@ export enum ErrorType {
 export class PrimoSerializableError extends Error {
 
     // Don't rename this, it's considered protocol, i.e. there may be existing messages on the queue with these values.
-    primoErrorType: ErrorType;
+    primoErrorType = ErrorType.GENERIC;
+    code: number = 500;
+    message: string;
+
+    constructor(type: ErrorType, message: string) {
+        super(message);
+
+        this.primoErrorType = type;
+        this.message = message;
+    }
 
     serialize(): string {
         return this.toString();

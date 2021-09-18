@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useState } from "react";
-import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField } from "@mui/material";
+import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert } from "@mui/material";
 import DateAdapter from "@mui/lab/AdapterLuxon";
 import DateTimePicker from "@mui/lab/DateTimePicker";
 import { ApiBacktestRequest, ApiTimeResolution } from "../../client";
@@ -90,13 +90,30 @@ const RunScreen = () => {
             window.open(newUrl);
         }
         catch (err) {
+            let errMessage = "";
+            let errorTexts: string[] = []
+            if (err instanceof Response) {
+                const errJson = (err as any).error;
+                if (typeof errJson === "string") {
+                    errorTexts = [errJson];
+                }
+                else if (typeof errJson === "object" && Array.isArray(errJson.errors)) {
+                    errorTexts = errJson.errors.map(e => e.message);
+                }
+                else {
+                    errorTexts = errJson.errors.map(e => e.message);
+                }
+            }
+            else {
+                errorTexts = [(err as Error).message];
+            }
+
             setIsRunning(false);
-            const errString = err.toString();
-            setErrors([...errors, errString]);
+            setErrors([...errors, ...errorTexts]);
         }
     }, [from, genome, symbolPairs, to]);
 
-    let showRunner = true;
+
     return (
         <Box width={1} height={1} className="primo-screen-runner" style={{
             textAlign: "center",
@@ -114,7 +131,6 @@ const RunScreen = () => {
                     isRunning
                         ? (<Spinner caption1="Running bot..." caption2="This may take a while..." />)
                         : (
-
                             <Card elevation={15}>
                                 <CardContent style={{ padding: "32px" }}>
                                     <form noValidate autoComplete="off">
@@ -164,7 +180,7 @@ const RunScreen = () => {
                                     </form>
                                     <Grid item >
                                         {errors.map((err, i) => (
-                                            <div key={i}><b>ERROR:</b>&nbsp;<span>{err}</span></div>
+                                            <Alert key={i} severity="error">{err}</Alert>
                                         ))}
                                     </Grid>
                                     <Grid item container spacing={2}>
@@ -183,34 +199,34 @@ const RunScreen = () => {
 export default RunScreen;
 
 /*
-                                    <Autocomplete
-                                        id="autocomplete-symbols"
-                                        sx={{ width: 300 }}
-                                        open={open}
-                                        onOpen={() => {
-                                            setOpen(true);
-                                        }}
-                                        onClose={() => {
-                                            setOpen(false);
-                                        }}
-                                        isOptionEqualToValue={(option, value) => option.title === value.title}
-                                        getOptionLabel={(option) => option.title}
-                                        options={options}
-                                        loading={loading}
-                                        renderInput={(params) => (
-                                            <TextField
-                                                {...params}
-                                                label="Asynchronous"
-                                                InputProps={{
-                                                    ...params.InputProps,
-                                                    endAdornment: (
-                                                        <React.Fragment>
-                                                            {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                                                            {params.InputProps.endAdornment}
-                                                        </React.Fragment>
-                                                    ),
-                                                }}
-                                            />
-                                        )}
-                                        />
-                                    */
+<Autocomplete
+    id="autocomplete-symbols"
+    sx={{ width: 300 }}
+    open={open}
+    onOpen={() => {
+        setOpen(true);
+    }}
+    onClose={() => {
+        setOpen(false);
+    }}
+    isOptionEqualToValue={(option, value) => option.title === value.title}
+    getOptionLabel={(option) => option.title}
+    options={options}
+    loading={loading}
+    renderInput={(params) => (
+        <TextField
+            {...params}
+            label="Asynchronous"
+            InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                    <React.Fragment>
+                        {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                    </React.Fragment>
+                ),
+            }}
+        />
+    )}
+    />
+*/
