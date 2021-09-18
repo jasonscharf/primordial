@@ -1,26 +1,64 @@
 import Koa from "koa";
 import { DateTime } from "luxon";
 import env from "../../../common-backend/env";
+import { Body, Get, Post, Query, Request, Route } from "tsoa";
+import { ApiBacktestRequest } from "../../../common/messages/trading";
+import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { ControllerBase } from "../ControllerBase";
-import { Get, Query, Request, Route } from "tsoa";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
 import { BotRunner } from "../../../common-backend/bots/BotRunner";
 import { BotRunReport } from "../../../common/models/bots/BotSummaryResults";
 import { BuildInfo, EnvInfo, InfoResponse } from "../../../common/api";
 import { Money } from "../../../common/numbers";
+import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
 import { SymbolResultSet } from "../../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { version } from "../../../common/version";
 import { capital, orders, results, strats, sym } from "../../../common-backend/includes";
 import { millisecondsPerResInterval } from "../../../common/utils/time";
-import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
 import { moneytize } from "../../../common-backend/database/utils";
 import { us } from "../../../common-backend/includes";
-import { BotInstance } from "../../../common/models/bots/BotInstance";
+import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../../../common-backend/commands/bots/test";
+import { isNullOrUndefined } from "../../../common/utils";
+import { randomName } from "../../../common-backend/utils/names";
 
 
 @Route("sandbox")
 export class Sandbox extends ControllerBase {
+
+    @Post("/run")
+    async runBacktest(@Body() req: ApiBacktestRequest): Promise<any> {
+        const { from, genome, maxWagerPct, name, symbols, to } = req;
+        const [base, quote] = sym.parseSymbolPair(symbols);
+        const defaultBudget = `${DEFAULT_BACKTEST_BUDGET_AMOUNT} ${quote}`;
+        const fromParsed = from ? DateTime.fromISO(from).toJSDate() : null;
+        const toParsed = to ? DateTime.fromISO(to).toJSDate() : null;
+
+        let budget = `10000 ${quote}`;
+        const budgetParsed = await capital.parseAssetAmounts(budget || defaultBudget);
+
+        const res = req.res as TimeResolution;
+
+        // TODO: Validation
+
+        const args: BacktestRequest = {
+            genome: req.genome,
+            budget: budgetParsed,
+            maxWagerPct,
+            name: isNullOrUndefined(name) ? randomName() : name,
+            res,
+            symbols,
+            remove: false,
+            from: fromParsed,
+            to: toParsed,
+        };
+
+
+        const runner = new BotRunner();
+        const results = await runner.run(args);
+
+        return results;
+    }
 
     @Get("/results/{instanceIdOrName}")
     async getBotResults(instanceIdOrName: string): Promise<any> {

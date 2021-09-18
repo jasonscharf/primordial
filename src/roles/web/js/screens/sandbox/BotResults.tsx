@@ -30,13 +30,9 @@ import {
 import { useEffect, useState } from "react";
 import { Hashicon } from "@emeraldpay/hashicon-react";
 
-import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
-import CardContent from '@material-ui/core/CardContent';
-
+import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField } from "@mui/material";
 import { Amount } from "../../components/primitives/Amount";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
-import { Box, Button, CircularProgress, Grid, TextField } from "@material-ui/core";
 import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
 import { DateTime } from "luxon";
 import { Price } from "../../../../common/models/markets/Price";
@@ -226,7 +222,7 @@ const BotResults = () => {
                     <Grid item style={{ flex: 1 }}>
                         <Card>
                             <CardContent>
-                                <Grid container spacing={1} className={classNames("primo-info-table")}>
+                                <Grid container spacing={1} flexDirection="column" className={classNames("primo-info-table")}>
                                     <Grid item container className="primo-info-table-item">
                                         <Grid item>Gross</Grid>
                                         <Grid item style={{ textAlign: "right" }}><Amount amount={report.totalGross} symbol={report.quote} /></Grid>

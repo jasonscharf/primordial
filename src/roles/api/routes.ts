@@ -52,6 +52,26 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApiTimeResolution": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["5m"]},{"dataType":"enum","enums":["15m"]},{"dataType":"enum","enums":["1h"]},{"dataType":"enum","enums":["4h"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApiBacktestRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "from": {"dataType":"string","required":true},
+            "to": {"dataType":"string","required":true},
+            "genome": {"dataType":"string","required":true},
+            "res": {"ref":"ApiTimeResolution","required":true},
+            "symbols": {"dataType":"string","required":true},
+            "maxWagerPct": {"dataType":"double"},
+            "remove": {"dataType":"boolean"},
+            "name": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
 const validationService = new ValidationService(models);
 
@@ -79,6 +99,26 @@ export function RegisterRoutes(router: KoaRouter) {
             const controller = new InfoController();
 
             const promise = controller.getInfo.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.post('/api/sandbox/run',
+            async function Sandbox_runBacktest(context: any, next: any) {
+            const args = {
+                    req: {"in":"body","name":"req","required":true,"ref":"ApiBacktestRequest"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new Sandbox();
+
+            const promise = controller.runBacktest.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

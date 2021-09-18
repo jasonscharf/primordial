@@ -1,6 +1,4 @@
-import ccxt from "ccxt";
 import { AssetAmount } from "../../common/models/capital/AssetAmount";
-import { Order } from "../../common/models/markets/Order";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 
 
