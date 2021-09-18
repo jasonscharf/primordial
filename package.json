@@ -26,7 +26,7 @@
     "release:build-images": "DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -p primo build",
     "tail": "yarn logs -f",
     "ex": "docker exec -it core_server_1 sh",
-    "up": "yarn build && yarn dc up -d",
+    "up": "yarn dc up -d --build",
     "down": "yarn dc down",
     "up-kube": "yarn dev:build && yarn dev:build-images && yarn kube:apply && yarn kube:restart",
     "up:debug": "yarn up",
