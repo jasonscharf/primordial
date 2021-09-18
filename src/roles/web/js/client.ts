@@ -38,6 +38,29 @@ export interface InfoResponse {
   user: User;
 }
 
+export enum ApiTimeResolution {
+  Type5M = "5m",
+  Type15M = "15m",
+  Type1H = "1h",
+  Type4H = "4h",
+}
+
+/**
+ * Mirrors BacktestRequest
+ */
+export interface ApiBacktestRequest {
+  from: string;
+  to: string;
+  genome: string;
+  res: ApiTimeResolution;
+  symbols: string;
+
+  /** @format double */
+  maxWagerPct?: number;
+  remove?: boolean;
+  name?: string;
+}
+
 export type QueryParamsType = Record<string | number, any>;
 export type ResponseFormat = keyof Omit<Body, "body" | "bodyUsed">;
 
@@ -272,6 +295,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       }),
   };
   sandbox = {
+    /**
+     * No description
+     *
+     * @name RunBacktest
+     * @request POST:/sandbox/run
+     */
+    runBacktest: (data: ApiBacktestRequest, params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/sandbox/run`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
     /**
      * No description
      *

@@ -32,3 +32,14 @@ h3 {
     align-self: center;
     font-size: 150%;
 }
+
+/** Screens - Runner */
+.primo-screen-runner {
+    height: 100%;
+    background: url("../img/hero-moose-shake.jpg") no-repeat;
+    background-size: cover;
+}
+
+.primo-screen-runner .primo-spinner {
+    color: white;
+}

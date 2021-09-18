@@ -18,14 +18,13 @@ import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { randomString } from "../../common/utils";
 import { capital, db, log, results, strats, users } from "../includes";
-import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { botFactory } from "./RobotFactory";
+import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
+import { names } from "../genetics/base-genetics";
 import { query } from "../database/utils";
 import { sym } from "../services";
 import { tables } from "../constants";
 import { version } from "../../common/version";
-import { bot } from "../../spooler/cli/commands";
-import { names } from "../genetics/base-genetics";
 
 
 

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CircularProgress, Grid } from "@material-ui/core"
+import { CircularProgress, Grid } from "@mui/material"
 
 
 export interface SpinnerProps {
@@ -20,7 +20,7 @@ export const Spinner = (props: SpinnerProps) => {
             <h5>{caption2}</h5>
         );
     return (
-        <Grid item container alignItems="center" alignContent="stretch" style={{ height: "100vh", textAlign: "center" }}>
+        <Grid item container className="primo-spinner" alignItems="center" alignContent="stretch" style={{ height: "100vh", textAlign: "center" }}>
             <Grid item style={{ flex: 1 }}>
                 <CircularProgress style={{ width: "100px", height: "100px" }} />
                 {maybeCaption}

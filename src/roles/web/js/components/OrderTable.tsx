@@ -7,7 +7,7 @@ import {
     TableHead,
     TableRow,
     Paper,
-} from "@material-ui/core";
+} from "@mui/material";
 import { Amount } from "./primitives/Amount";
 import { Order } from "../../../common/models/markets/Order";
 

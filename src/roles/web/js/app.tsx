@@ -1,4 +1,3 @@
-import { render } from "react-dom";
 import React, { lazy, Suspense } from "react";
 import {
     BrowserRouter as Router,
@@ -6,6 +5,10 @@ import {
     Route,
     Switch,
 } from "react-router-dom";
+import { render } from "react-dom";
+import DateAdapter from "@mui/lab/AdapterLuxon";
+import { LocalizationProvider } from "@mui/lab";
+
 
 const Loading = () => (
     <div>Loading</div>
@@ -18,6 +21,7 @@ const Splash = lazy(() => import("./components/Splash"));
 
 
 const app = (
+    <LocalizationProvider dateAdapter={DateAdapter}>
     <Suspense fallback={<div />}>
         <Router>
 
@@ -36,6 +40,7 @@ const app = (
             </Switch>
         </Router>
     </Suspense>
+    </LocalizationProvider>
 );
 
 render(app, document.getElementById("app-container"));
