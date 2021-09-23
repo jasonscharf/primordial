@@ -27,14 +27,14 @@ bot
         if (name) {
             options.name = name;
         }
-        return runCommandBotCreate(options);
+        return wrap(() => runCommandBotCreate(options));
     });
 
 bot
     .command("list")
     .option("-f, --format <format>", "Output format of the command: json, tsv, csv, or yaml", "json")
     .action(async (name, options, command) => {
-        return runCommandBotList(options);
+        return wrap(() => runCommandBotList(options));
     });
 
 bot
@@ -44,7 +44,7 @@ bot
         if (name) {
             options.name = name;
         }
-        return runCommandBotStart(options);
+        return wrap(() => runCommandBotStart(options));
     });
 
 
@@ -55,7 +55,7 @@ bot
         if (name) {
             options.name = name;
         }
-        return runCommandBotStop(options);
+        return wrap(() => runCommandBotStop(options));
     });
 
 bot
@@ -73,7 +73,7 @@ bot
         if (name) {
             options.name = name;
         }
-        return runCommandBotTest(options);
+        return wrap(() => runCommandBotTest(options));
     });
 
 
@@ -83,6 +83,7 @@ async function wrap(fn: Function) {
     }
     catch (err) {
         log.error(`Error running command`, err);
+        process.exit(-1);
     }
 }
 
@@ -101,7 +102,7 @@ export async function runCommandBotStart(options) {
         name,
         format,
     };
-    return wrap(() => runCommand(constants.commands.CMD_BOTS_START, options));
+    return runCommand(constants.commands.CMD_BOTS_START, options);
 }
 
 /**
@@ -119,7 +120,7 @@ export async function runCommandBotStop(options) {
         name,
         format,
     };
-    return wrap(() => runCommand(constants.commands.CMD_BOTS_STOP, options));
+    return runCommand(constants.commands.CMD_BOTS_STOP, options);
 }
 
 /**
@@ -131,7 +132,7 @@ export async function runCommandBotList(options) {
     const args: CommonArgs = {
         format,
     };
-    return wrap(() => runCommand(constants.commands.CMD_BOTS_LIST, options));
+    return runCommand(constants.commands.CMD_BOTS_LIST, options);
 }
 
 /**
@@ -157,7 +158,7 @@ export async function runCommandBotCreate(options) {
         startInstance,
     };
 
-    return wrap(() => runCommand(constants.commands.CMD_BOTS_CREATE, args));
+    return runCommand(constants.commands.CMD_BOTS_CREATE, args);
 }
 
 /**
@@ -192,7 +193,7 @@ export async function runCommandBotTest(options) {
     if (toParsed) {
         args.to = toParsed;
     }
-    return wrap(() => runCommand(constants.commands.CMD_BOTS_TEST, args));
+    return runCommand(constants.commands.CMD_BOTS_TEST, args);
 }
 
 export { bot }
