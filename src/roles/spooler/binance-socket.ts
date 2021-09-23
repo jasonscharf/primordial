@@ -73,62 +73,67 @@ function lookupSymbolPair(pair: string) {
  * @param candle 
  */
 export function handleCandle(symbolPair: string, res: TimeResolution, candle: Candle) {
-    if (env.isDev()) {
-        console.log(`Handle candle for ${symbolPair} @ ${new Date().toISOString()}`);
-    }
-
-    const receivedTs = candle.eventTime;
-    const startTime = normalizePriceTime(res, new Date(candle.startTime));
-    const eventTime = new Date(candle.eventTime);
-    const [baseSymbol, quoteSymbol] = lookupSymbolPair(symbolPair);
-    const resId = candle.isFinal ? res : TimeResolution.TWO_SECONDS;
-
-    const open = Money(candle.open);
-    const low = Money(candle.low);
-    const high = Money(candle.high);
-    const close = Money(candle.close);
-    const volume = Money(candle.volume);
-
-    const openRaw = candle.open;
-    const lowRaw = candle.low;
-    const closeRaw = candle.close;
-    const highRaw = candle.high;
-
-    const price: Partial<Price> = {
-        exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
-        baseSymbolId: baseSymbol.id,
-        quoteSymbolId: quoteSymbol.id,
-        resId: TimeResolution.ONE_SECOND,
-        ts: startTime,
-        open,
-        low,
-        high,
-        close,
-        volume,
-        openRaw,
-        lowRaw,
-        closeRaw,
-        highRaw,
-    };
-
-
-    const sentTs = Date.now();
-    const msg: QueueMessage<PriceUpdateMessage> = {
-        name: constants.events.EVENT_PRICE_UPDATE,
-        receivedTs,
-        sentTs,
-        payload: {
-            ...price as Price,
+    try {
+        if (env.isDev()) {
+            console.log(`Handle candle for ${symbolPair} @ ${new Date().toISOString()}`);
         }
-    };
 
-    // Fire and forget price update to both queues
-    mq.addWorkerMessageHi(constants.events.EVENT_PRICE_UPDATE, msg);
+        const receivedTs = candle.eventTime;
+        const startTime = normalizePriceTime(res, new Date(candle.startTime));
+        const eventTime = new Date(candle.eventTime);
+        const [baseSymbol, quoteSymbol] = lookupSymbolPair(symbolPair);
+        const resId = candle.isFinal ? res : TimeResolution.TWO_SECONDS;
 
-    if (candle.isFinal) {
-        sym.addPriceData(env.PRIMO_DEFAULT_EXCHANGE, res, [price])
-            .then(() => log.debug(`Updated ${symbolPair} from Binance WebSocket. P: ${price.close.toString()} L/H: ${price.low.toString()}/${price.high.toString()} V: ${price.volume}`))
-            .catch(err => log.error(`Error saving price for '${baseSymbol.id}/${quoteSymbol.id}' @ ${price.ts.toISOString()}`, err))
-            ;
+        const open = Money(candle.open);
+        const low = Money(candle.low);
+        const high = Money(candle.high);
+        const close = Money(candle.close);
+        const volume = Money(candle.volume);
+
+        const openRaw = candle.open;
+        const lowRaw = candle.low;
+        const closeRaw = candle.close;
+        const highRaw = candle.high;
+
+        const price: Partial<Price> = {
+            exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
+            baseSymbolId: baseSymbol.id,
+            quoteSymbolId: quoteSymbol.id,
+            resId: TimeResolution.ONE_SECOND,
+            ts: startTime,
+            open,
+            low,
+            high,
+            close,
+            volume,
+            openRaw,
+            lowRaw,
+            closeRaw,
+            highRaw,
+        };
+
+
+        const sentTs = Date.now();
+        const msg: QueueMessage<PriceUpdateMessage> = {
+            name: constants.events.EVENT_PRICE_UPDATE,
+            receivedTs,
+            sentTs,
+            payload: {
+                ...price as Price,
+            }
+        };
+
+        // Fire and forget price update to both queues
+        mq.addWorkerMessageHi(constants.events.EVENT_PRICE_UPDATE, msg);
+
+        if (candle.isFinal) {
+            sym.addPriceData(env.PRIMO_DEFAULT_EXCHANGE, res, [price])
+                .then(() => log.debug(`Updated ${symbolPair} from Binance WebSocket. P: ${price.close.toString()} L/H: ${price.low.toString()}/${price.high.toString()} V: ${price.volume}`))
+                .catch(err => log.error(`Error saving price for '${baseSymbol.id}/${quoteSymbol.id}' @ ${price.ts.toISOString()}`, err))
+                ;
+        }
+    }
+    catch (err) {
+        log.error(`Handle candle for '${symbolPair}' failed`, err);
     }
 };
