@@ -3,6 +3,7 @@
 export interface TimeSeriesCacheEntry<T> {
     from: Date;
     to: Date;
+    lastUpdated: Date;
     items: T[];
     gaps: boolean;
 }
@@ -36,7 +37,7 @@ export class TimeSeriesCache<T> {
      * @returns 
      */
     getCachedRange(key: string, from: Date, to: Date): T[] {
-        if (!this._cache.has(key)) { 
+        if (!this._cache.has(key)) {
             return [];
         }
 
@@ -95,16 +96,18 @@ export class TimeSeriesCache<T> {
      */
     append(key: string, item: (T | T[])): void {
         const items = Array.isArray(item) ? item as Array<T> : [item];
-        let entry: TimeSeriesCacheEntry<T> = null;
         const firstItemTs = this._args.accessor(items[0]);
         const lastItemTs = this._args.accessor(items[items.length - 1]);
         const time = firstItemTs.getTime();
+
+        let entry: TimeSeriesCacheEntry<T> = null;
         if (!this._cache.has(key)) {
             entry = {
                 from: firstItemTs,
                 to: lastItemTs,
                 gaps: false,
                 items: items,
+                lastUpdated: new Date(),
             };
 
             this._cache.set(key, entry);
@@ -125,6 +128,31 @@ export class TimeSeriesCache<T> {
             }
             if (time > entry.to.getTime()) {
                 entry.to = firstItemTs;
+            }
+
+            entry.lastUpdated = new Date();
+        }
+
+
+        // Prune this entry
+        if (entry.items.length > this._args.maxItemsPerKey) {
+            entry.items.splice(0, entry.items.length - this._args.maxItemsPerKey);
+        }
+
+        // Prune entries themselves
+        if (this._cache.size > this._args.maxKeys) {
+            let oldestEntry: string = null;
+            let oldestEntryTs: number = Number.MAX_VALUE;
+            for (const e of Array.from(this._cache.entries())) {
+                const [key, entry] = e;
+                if (entry.lastUpdated.getTime() < oldestEntryTs) {
+                    oldestEntry = key;
+                    oldestEntryTs = entry.lastUpdated.getTime();
+                }
+            }
+
+            if (oldestEntry !== null) {
+                this._cache.delete(oldestEntry);
             }
         }
     }

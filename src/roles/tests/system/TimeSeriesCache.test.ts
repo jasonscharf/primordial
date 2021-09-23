@@ -5,6 +5,7 @@ import { TimeSeriesCache, TimeSeriesCacheArgs } from "../../common-backend/syste
 import { assert, describe, before, env, it } from "../includes";
 import { from } from "../../common/utils/time";
 import { generateTestPrices, getTestData, TestDataCtx } from "../utils/test-data";
+import { sleep } from "../../common/utils";
 
 
 describe(TimeSeriesCache.name, () => {
@@ -12,7 +13,7 @@ describe(TimeSeriesCache.name, () => {
     let tscArgs: TimeSeriesCacheArgs = {
         accessor: (p: Price) => p.ts,
         maxKeys: 100,
-        maxItemsPerKey: 1000,
+        maxItemsPerKey: 100,
         checkForGaps: false,
     };
 
@@ -50,6 +51,39 @@ describe(TimeSeriesCache.name, () => {
             const entry = tsc.getEntry(key);
             assert.isNotNull(entry);
             assert.equal(items.length, entry.items.length);
+        });
+
+        it("removes items when maxItemsPerKey is exceeded", async () => {
+            const start = from("2021-01-01T00:00:00");
+            const end = from("2021-01-01T02:00:00");
+            const key = "ETH/BTC@1m";
+            const items: Partial<Price>[] = await generateTestPrices(env.PRIMO_DEFAULT_EXCHANGE, symbols, TimeResolution.ONE_MINUTE, start, end);
+            assert.ok(items.length > tscArgs.maxItemsPerKey);
+            tsc.append(key, items);
+
+            const entry = tsc.getEntry(key);
+            assert.isNotNull(entry);
+            assert.equal(items.length, tscArgs.maxItemsPerKey);
+        });
+
+        it("removes oldest entry when maxKeys is exceeded", async () => {
+            const start = from("2021-01-01T00:00:00");
+            const end = from("2021-01-01T02:00:00");
+
+            const items: Partial<Price>[] = await generateTestPrices(env.PRIMO_DEFAULT_EXCHANGE, symbols, TimeResolution.ONE_MINUTE, start, end);
+
+            for (let i = 0; i < tscArgs.maxKeys; ++i) {
+                tsc.append(i + "", items);
+                await sleep(1);
+            }
+
+            const firstEntryExisting = tsc.getEntry("0");
+            assert.exists(firstEntryExisting);
+
+            tsc.append(tscArgs.maxKeys + "", items);
+            
+            const firstEntryNoLongerExisting = tsc.getEntry("0");
+            assert.isNull(firstEntryNoLongerExisting);
         });
     });
 
