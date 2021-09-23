@@ -4,8 +4,8 @@ import env from "../env";
 import { BacktestRequest } from "../messages/testing";
 import { BotContext, botIdentifier, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
-import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotRun } from "../../common/models/bots/BotRun";
+import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotImplementation } from "./BotImplementation";
 import { GenomeParser } from "../genetics/GenomeParser";
@@ -13,10 +13,12 @@ import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
 import { OrderEntity } from "../../common/entities/OrderEntity";
+import { Price } from "../../common/models/markets/Price";
 import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
+import { PriceEntity } from "../../common/entities/PriceEntity";
+import { PriceUpdateMessage } from "../messages/trading";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { randomString } from "../../common/utils";
 import { capital, db, log, results, strats, users } from "../includes";
 import { botFactory } from "./RobotFactory";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
@@ -25,6 +27,7 @@ import { query } from "../database/utils";
 import { sym } from "../services";
 import { tables } from "../constants";
 import { version } from "../../common/version";
+import { TimeSeriesCache, TimeSeriesCacheArgs } from "../system/TimeSeriesCache";
 
 
 
@@ -43,10 +46,122 @@ export interface IndicatorsAndSignals {
     indicators: Map<string, number[]>;
 }
 
+const DEFAULT_CACHE_ARGS: TimeSeriesCacheArgs = {
+    accessor: (price: Price) => price.ts,
+    maxItemsPerKey: 1000,
+    maxKeys: 100,
+    checkForGaps: false,
+};
+
 /**
- * Handles running of bots in backtest mode.
+ * Handles running of bots.
  */
 export class BotRunner {
+    protected static _tsc = new TimeSeriesCache<Price>(DEFAULT_CACHE_ARGS);
+
+    /**
+     * Ticks a stateful trading bot.
+     * @param def 
+     * @param instanceRecord 
+     * @param price 
+     */
+    async tickBot(def: BotDefinition, instanceRecord: BotInstance, price: PriceUpdateMessage) {
+        const start = Date.now();
+        const run: BotRun = await strats.getLatestRunForInstance(instanceRecord.id);
+        const ctx = await buildBotContext(def, instanceRecord, run);
+
+
+        // TODO: Extract to BotRunner facility
+
+        const { genome } = ctx;
+        const symbolPair = instanceRecord.symbols;
+        const botType = genome.getGene<string>("META", "IMPL").value;
+        const res = genome.getGene<TimeResolution>("TIME", "RES").value;
+        const instance = botFactory.create(botType) as BotImplementation;
+
+        // Initialize new bots in a transaction to ensure we don't initialize it multiple times
+        if (instanceRecord.runState === RunState.INITIALIZING) {
+            let trx = await db.transaction();
+            try {
+                log.info(`Initializing ${botIdentifier(instanceRecord)}`);
+
+                const newState = await instance.initialize(ctx);
+
+                if (newState) {
+                    instanceRecord.stateJson = newState;
+                }
+
+                instanceRecord.runState = RunState.ACTIVE;
+                instanceRecord.prevTick = new Date();
+
+                await strats.updateBotInstance(instanceRecord, trx);
+                await trx.commit();
+            }
+            catch (err) {
+                log.error(`Error initializing ${botIdentifier(instanceRecord)}. Rolling back...`, err);
+
+                instanceRecord.runState = RunState.ERROR;
+                await trx.rollback();
+                await strats.updateBotInstance(instanceRecord);
+            }
+        }
+
+        if (instanceRecord.runState === RunState.ACTIVE) {
+            const maxHistoricals = genome.getGene<number>("TIME", "MI").value;
+            const now = Date.now();
+            const end = normalizePriceTime(res, new Date(now)).getTime();
+            const intervalMs = millisecondsPerResInterval(res);
+            const start = end - (intervalMs * maxHistoricals);
+
+            // Update price history. Note: This is *definitely* a case for optimization.
+            // Let's grab the previous N for now, until some sort of caching/progressive solution
+            // can be executed cross-node (b/c bots run on multiple machines)
+            const params: PriceDataParameters = {
+                exchange: env.PRIMO_DEFAULT_EXCHANGE,
+                res,
+                symbolPair,
+                fillMissing: true,
+                from: new Date(start),
+                to: new Date(end - 1),
+            };
+
+            // Pull prices from the cache / update cache
+            const key = `${symbolPair}@${res}`;
+            const entry = BotRunner._tsc.getEntry(key);
+            let prices: Price[];
+
+            // No entry? Pull and cache.
+            if (!entry) {
+                prices = await sym.queryPricesForRange(params);
+                BotRunner._tsc.append(key, prices);
+            }
+            else {
+                prices = BotRunner._tsc.getCachedRange(key, params.from, new Date(end));
+                const normalizedPriceTime = normalizePriceTime(res, price.ts);
+                if (prices[prices.length - 1].ts.getTime() !== normalizedPriceTime.getTime()) {
+                    BotRunner._tsc.append(key, PriceEntity.fromRow(price));
+                }
+            }
+
+            ctx.prices = prices;
+
+            const indicators = await instance.computeIndicatorsForTick(ctx, price);
+            const signal = await instance.computeSignal(ctx, price, indicators);
+            const tickState = await instance.tick(ctx, price, signal, indicators);
+
+            if (tickState !== null && instanceRecord.stateJson !== undefined) {
+                instanceRecord.stateJson = tickState;
+            }
+
+            instanceRecord.prevTick = new Date();
+            //log.debug(`Updating ${botIdentifier(instanceRecord)} in the DB...`);
+
+            await strats.updateBotInstance(instanceRecord);
+        }
+
+        const duration = Date.now() - start;
+        //log.debug(`Done ticking ${botIdentifier(instanceRecord)} in ${duration}ms`);
+    }
 
     /**
      * Computes signals and indicators for a backtest without executing any ordering logic.
@@ -65,7 +180,7 @@ export class BotRunner {
             const botType = genome.getGene<string>("META", "IMPL").value;
             const localInstance = botFactory.create(botType) as BotImplementation;
 
-            
+
             // Grab the prices + a run-in window of N prices before trading begins.
             // This is to support indicators with moving windows
             const intervalMs = millisecondsPerResInterval(args.res);
@@ -133,7 +248,7 @@ export class BotRunner {
                     if (foo && Array.isArray(foo)) {
                         cators.push(foo[foo.length - 1]);
                     }
-                    else{
+                    else {
                         cators.push(null);
                     }
                 }

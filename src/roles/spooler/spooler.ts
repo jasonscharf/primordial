@@ -116,8 +116,10 @@ async function createDefaultTasksIfNoneExist() {
     };
 
     await spooler.addTask(updateMarketDefsTask);
-    await spooler.addTask(updateSymbolPricesGlobalTask);
     await spooler.addTask(systemHealthCheckTask);
+
+    // Note: Not currently being used (deleted by hand in DB)
+    await spooler.addTask(updateSymbolPricesGlobalTask);
 }
 
 

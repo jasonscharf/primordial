@@ -175,6 +175,9 @@ process.on("SIGTERM", () => {
         wss.close();
     }
 
+    if (server) {
+        server.close();
+    }
     process.exit();
 });
 

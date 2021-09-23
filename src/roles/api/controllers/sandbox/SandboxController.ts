@@ -1,26 +1,21 @@
 import Koa from "koa";
 import { DateTime } from "luxon";
-import env from "../../../common-backend/env";
 import { Body, Get, Post, Query, Request, Route } from "tsoa";
+import env from "../../../common-backend/env";
 import { ApiBacktestRequest } from "../../../common/messages/trading";
 import { BotInstance } from "../../../common/models/bots/BotInstance";
-import { ControllerBase } from "../ControllerBase";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
 import { BotRunner } from "../../../common-backend/bots/BotRunner";
-import { BotRunReport } from "../../../common/models/bots/BotSummaryResults";
-import { BuildInfo, EnvInfo, InfoResponse } from "../../../common/api";
-import { Money } from "../../../common/numbers";
+import { ControllerBase } from "../ControllerBase";
 import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
 import { SymbolResultSet } from "../../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { capital, orders, results, strats, sym } from "../../../common-backend/includes";
+import { isNullOrUndefined } from "../../../common/utils";
 import { millisecondsPerResInterval } from "../../../common/utils/time";
-import { moneytize } from "../../../common-backend/database/utils";
+import { randomName } from "../../../common-backend/utils/names";
 import { us } from "../../../common-backend/includes";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../../../common-backend/commands/bots/test";
-import { isNullOrUndefined } from "../../../common/utils";
-import { randomName } from "../../../common-backend/utils/names";
-import { ErrorType, PrimoSerializableError } from "../../../common/errors/errors";
 
 
 @Route("sandbox")
@@ -34,7 +29,7 @@ export class Sandbox extends ControllerBase {
         const fromParsed = from ? DateTime.fromISO(from).toJSDate() : null;
         const toParsed = to ? DateTime.fromISO(to).toJSDate() : null;
 
-        let budget = `10000 ${quote}`;
+        const budget = `10000 ${quote}`;
         const budgetParsed = await capital.parseAssetAmounts(budget || defaultBudget);
 
         const res = req.res as TimeResolution;
@@ -53,7 +48,6 @@ export class Sandbox extends ControllerBase {
             to: toParsed,
         };
 
-
         const runner = new BotRunner();
         const results = await runner.run(args);
 
@@ -66,15 +60,17 @@ export class Sandbox extends ControllerBase {
         // NOTE: Actually returns a BotSummaryResults, but the type doesn't play nice with TSOA/Swagger
 
         const user = this.currentSession?.user || null;
-
         let instance: BotInstance = null;
 
         try {
             instance = await strats.getBotInstanceById(instanceIdOrName);
         }
         catch (err) {
-
+            // The suppression of error here is because we accept we are searching
+            // IDs or names, and the "get by ID" operation fails (by design)
+            // TODO: Improve the catch here.
         }
+
         if (!instance) {
             const { id } = await us.getSystemUser();
             const workspace = await strats.getDefaultWorkspaceForUser(id, id);
@@ -103,8 +99,8 @@ export class Sandbox extends ControllerBase {
             symbols: instance.symbols,
         };
 
-        const sus = <SymbolResultSet>await this.getPrices(args.symbols, instance.resId, run.from.toISOString(), run.to.toISOString());
-        const { missingRanges, prices, warnings } = sus;
+        const srs = <SymbolResultSet>await this.getPrices(args.symbols, instance.resId, run.from.toISOString(), run.to.toISOString());
+        const { missingRanges, prices, warnings } = srs;
         const { signals, indicators } = await runner.calculateIndicatorsAndSignals(args);
         return {
             report,
