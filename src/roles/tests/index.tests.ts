@@ -9,6 +9,7 @@ import "./system/time.test";
 import "./system/CommandService.test";
 import "./system/ResultsService.test";
 import "./system/SpoolerService.test";
+import "./system/TimeSeriesCache.test";
 import "./system/UserService.test";
 import "./genetics/GeneticParser.test";
 import "./trading/StrategyService.test";

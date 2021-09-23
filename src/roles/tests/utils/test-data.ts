@@ -307,7 +307,7 @@ export async function generateTestPrices(exchange: string, pair: string, res: Ti
             volume,
         });
 
-        dt = new Date(dt.getTime() + millisecondsPerResInterval(res) + 1);
+        dt = new Date(dt.getTime() + millisecondsPerResInterval(res));
         prices.push(p);
     }
 

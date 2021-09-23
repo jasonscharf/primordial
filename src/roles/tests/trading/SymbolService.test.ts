@@ -168,7 +168,11 @@ describe(SymbolService.name, () => {
             // TEST
         });
 
-        it("produces data that matches exchange data at 1m", async () => {
+        it("produces data that matches exchange data at 1m", async (ctx) => {
+
+            // Skipped to avoid spamming Binance
+            ctx.skip();
+
             const start = from("2021-09-12T00:00:00");
             const end = from("2021-09-12T00:30:00");
             const args: PriceDataParameters = {
@@ -195,7 +199,11 @@ describe(SymbolService.name, () => {
             }
         });
 
-        it("correctly rolls up 1m data to 15m", async () => {
+        it("correctly rolls up 1m data to 15m", async (ctx) => {
+
+            // Skipped to avoid spamming Binance
+            ctx.skip();
+
             const start = from("2021-09-12T00:00:00");
             const end = from("2021-09-12T00:30:00");
             const args: PriceDataParameters = {

@@ -1,31 +1,6 @@
 
 import * as React from "react";
 import classNames from "classnames";
-import {
-    elderRay,
-    ema,
-    discontinuousTimeScaleProviderBuilder,
-    Chart,
-    ChartCanvas,
-    CurrentCoordinate,
-    BarSeries,
-    CandlestickSeries,
-    ElderRaySeries,
-    LineSeries,
-    MovingAverageTooltip,
-    OHLCTooltip,
-    SingleValueTooltip,
-    lastVisibleItemBasedZoomAnchor,
-    XAxis,
-    YAxis,
-    CrossHairCursor,
-    EdgeIndicator,
-    MouseCoordinateX,
-    MouseCoordinateY,
-    ZoomButtons,
-    withDeviceRatio,
-    withSize,
-} from "react-financial-charts";
 
 import { useEffect, useState } from "react";
 import { Hashicon } from "@emeraldpay/hashicon-react";

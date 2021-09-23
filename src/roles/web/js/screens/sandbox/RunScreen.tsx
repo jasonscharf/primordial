@@ -87,6 +87,7 @@ const RunScreen = () => {
 
             const { name } = results;
             const newUrl = `/results/${name}`;
+
             window.open(newUrl);
         }
         catch (err) {
@@ -171,7 +172,7 @@ const RunScreen = () => {
                                                     value={genome}
                                                     label="Genome"
                                                     variant="outlined"
-                                                    placeholder="BTC/BUSD"
+                                                    placeholder="BTC/USDT"
                                                     onChange={evt => handleChangeGenome(evt.target.value)}
                                                 />
                                             </Grid>
