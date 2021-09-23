@@ -115,11 +115,11 @@ async function createDefaultTasksIfNoneExist() {
         frequencySeconds: tasks.freq[tasks.names.SYSTEM_CHECK_HEALTH],
     };
 
-    await spooler.addTask(updateMarketDefsTask);
-    await spooler.addTask(systemHealthCheckTask);
-
     // Note: Not currently being used (deleted by hand in DB)
     await spooler.addTask(updateSymbolPricesGlobalTask);
+
+    await spooler.addTask(updateMarketDefsTask);
+    await spooler.addTask(systemHealthCheckTask);
 }
 
 
