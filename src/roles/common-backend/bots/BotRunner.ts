@@ -4,8 +4,8 @@ import env from "../env";
 import { BacktestRequest } from "../messages/testing";
 import { BotContext, botIdentifier, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
-import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotRun } from "../../common/models/bots/BotRun";
+import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotImplementation } from "./BotImplementation";
 import { GenomeParser } from "../genetics/GenomeParser";
@@ -13,11 +13,12 @@ import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
 import { OrderEntity } from "../../common/entities/OrderEntity";
+import { Price } from "../../common/models/markets/Price";
 import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
+import { PriceEntity } from "../../common/entities/PriceEntity";
 import { PriceUpdateMessage } from "../messages/trading";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { randomString } from "../../common/utils";
 import { capital, db, log, results, strats, users } from "../includes";
 import { botFactory } from "./RobotFactory";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
@@ -26,6 +27,7 @@ import { query } from "../database/utils";
 import { sym } from "../services";
 import { tables } from "../constants";
 import { version } from "../../common/version";
+import { TimeSeriesCache, TimeSeriesCacheArgs } from "../system/TimeSeriesCache";
 
 
 
@@ -44,10 +46,18 @@ export interface IndicatorsAndSignals {
     indicators: Map<string, number[]>;
 }
 
+const DEFAULT_CACHE_ARGS: TimeSeriesCacheArgs = {
+    accessor: (price: Price) => price.ts,
+    maxItemsPerKey: 1000,
+    maxKeys: 100,
+    checkForGaps: false,
+};
+
 /**
  * Handles running of bots.
  */
 export class BotRunner {
+    protected static _tsc = new TimeSeriesCache<Price>(DEFAULT_CACHE_ARGS);
 
     /**
      * Ticks a stateful trading bot.
@@ -115,9 +125,24 @@ export class BotRunner {
                 to: new Date(end - 1),
             };
 
-            // TODO: Consider price pull from API in the case of a gap?
-            //  Think about a deployment rollout
-            const prices = await sym.queryPricesForRange(params);
+            // Pull prices from the cache / update cache
+            const key = `${symbolPair}@${res}`;
+            const entry = BotRunner._tsc.getEntry(key);
+            let prices: Price[];
+
+            // No entry? Pull and cache.
+            if (!entry) {
+                prices = await sym.queryPricesForRange(params);
+                BotRunner._tsc.append(key, prices);
+            }
+            else {
+                prices = BotRunner._tsc.getCachedRange(key, params.from, new Date(end));
+                const normalizedPriceTime = normalizePriceTime(res, price.ts);
+                if (prices[prices.length - 1].ts.getTime() !== normalizedPriceTime.getTime()) {
+                    BotRunner._tsc.append(key, PriceEntity.fromRow(price));
+                }
+            }
+
             ctx.prices = prices;
 
             const indicators = await instance.computeIndicatorsForTick(ctx, price);

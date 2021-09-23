@@ -7,11 +7,11 @@ export interface TimeSeriesCacheEntry<T> {
     gaps: boolean;
 }
 
-export interface TimeSeriesCacheArgs {
+export interface TimeSeriesCacheArgs<T = unknown> {
     checkForGaps: boolean;
     maxKeys: number;
     maxItemsPerKey: number;
-    accessor: (item) => Date;
+    accessor: (item: T) => Date;
 }
 
 /**
@@ -21,7 +21,7 @@ export interface TimeSeriesCacheArgs {
  * No sorting or checking for duplicate entries is performed.
  */
 export class TimeSeriesCache<T> {
-    protected _args: TimeSeriesCacheArgs;
+    protected _args: TimeSeriesCacheArgs<T>;
     protected _cache = new Map<string, TimeSeriesCacheEntry<T>>();
 
     constructor(args: TimeSeriesCacheArgs) {
