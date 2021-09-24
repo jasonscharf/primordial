@@ -68,9 +68,9 @@ export class SymbolService {
         // Just temporary standins. Ultimately they should be everything always, from every exchange ever.
         if (env.isDev()) {
             return [
-                "BTC/BUSD",
-                "ETH/BUSD",
-                "DOGE/BUSD",
+                "BTC/USDT",
+                "ETH/USDT",
+                "DOGE/USDT",
                 "BTC/USDT",
             ];
         }
@@ -466,6 +466,7 @@ export class SymbolService {
      * @returns 
      */
     async addSymbol(props: Partial<TradeSymbol>): Promise<TradeSymbol> {
+        console.log(`Adding symbpol with props`, props);
         return query(queries.SYMBOLS_ADD, async trx => {
             const [row] = <TradeSymbol[]>await trx(tables.TradeSymbols)
                 .insert(props)
