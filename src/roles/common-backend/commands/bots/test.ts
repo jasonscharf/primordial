@@ -48,7 +48,6 @@ export class BotTest<TResultType> implements CommandHandler<BotTestArgs> {
      */
     async execute(ctx: CommandContext<BotTestArgs>): Promise<CommandResult<TResultType>> { 
         const start = Date.now();
-        const trx = await db.transaction();
 
         // Collect arguments
         const { args } = ctx;
@@ -74,8 +73,6 @@ export class BotTest<TResultType> implements CommandHandler<BotTestArgs> {
         }
 
         const output = await mq.executeWorkerCommand<TResultType>(constants.commands.CMD_BOTS_TEST, appliedArgs) as TResultType;
-
-        await trx.commit();
 
         const end = Date.now();
         const duration = end - start;

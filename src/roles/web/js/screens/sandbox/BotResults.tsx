@@ -18,12 +18,13 @@ import { TimeResolution } from "../../../../common/models/markets/TimeResolution
 import TradingViewWidget, { BarStyles, Themes } from "../../components/TradingViewWidget";
 import { useParams } from "react-router";
 import { client } from "../../includes";
-import { isNullOrUndefined } from "../../../../common/utils";
+import { isNullOrUndefined, sleep } from "../../../../common/utils";
 import { Spinner } from "../../components/primitives/Spinner";
 import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
 import OrderTable from "../../components/OrderTable";
 import { OrderEntity } from "../../../../common/entities/OrderEntity";
 import { Percent } from "../../components/primitives/Percent";
+import { RunState } from "../../client";
 
 
 
@@ -31,100 +32,122 @@ type BotEvent = any;
 
 
 const BotResults = () => {
-    const args = useParams<{ instanceId: string }>();
+    const args = useParams<{ instanceIdOrName: string }>();
     const [results, setResults] = useState<BotResultsApiResponse>(null);
 
     const imap: IndicatorMap = new Map<Date, Map<string, number>>();
 
-    useEffect(() => {
-        const { instanceId } = args;
+    async function waitForCompletion(id: string) {
+        let hasCompletionOrError = false;
+        while (!hasCompletionOrError) {
+            const status = await client.sandbox.getBotResultsStatus(id);
+            const data = await status.data;
+            const { runState } = data;
+            if (runState === RunState.Stopped || runState === RunState.Error) {
+                return true;
+            }
 
-        console.log(`Fetching bot results for '${instanceId}'...`);
-
-        if (!instanceId) {
-            //throw new Error("Specify an instance ID");
+            console.log(`Waiting for bot results for ${id}...`);
+            await sleep(1000);
         }
-        else {
-            client.sandbox.getBotResults(instanceId)
-                .then(response => response.data)
-                .then(results => {
-                    const {
-                        report,
-                        prices,
-                        signals,
-                        indicators,
-                    } = results as BotResultsApiResponse;
+    }
+
+    useEffect(() => {
+        try {
+            const { instanceIdOrName: instanceId } = args;
+
+            console.log(`Fetching bot results for '${instanceId}'...`);
+
+            if (!instanceId) {
+                //throw new Error("Specify an instance ID");
+            }
+            else {
+                waitForCompletion(instanceId)
+                    .then(() => {
+                        client.sandbox.getBotResults(instanceId)
+                            .then(response => response.data)
+                            .then(results => {
+                                const {
+                                    report,
+                                    prices,
+                                    signals,
+                                    indicators,
+                                } = results as BotResultsApiResponse;
 
 
-                    const rawOrders = ((report && report.orders) ? report.orders : []);
+                                const rawOrders = ((report && report.orders) ? report.orders : []);
 
-                    // Include the trailing order on the chart
-                    if (report.trailingOrder) {
-                        rawOrders.push(report.trailingOrder);
-                    }
+                                // Include the trailing order on the chart
+                                if (report.trailingOrder) {
+                                    rawOrders.push(report.trailingOrder);
+                                }
 
-                    const orderEntities = rawOrders.map(o => OrderEntity.fromRow(o));
+                                const orderEntities = rawOrders.map(o => OrderEntity.fromRow(o));
 
-                    const orders: OrderEntity[] = [];
-                    const eventMap = new Map<string, BotEvent[]>();
-                    for (const order of orderEntities) {
-                        order.opened = DateTime.fromISO(order.opened + "").toJSDate();
-                        order.created = DateTime.fromISO(order.created + "").toJSDate();
-                        order.updated = DateTime.fromISO(order.updated + "").toJSDate();
+                                const orders: OrderEntity[] = [];
+                                const eventMap = new Map<string, BotEvent[]>();
+                                for (const order of orderEntities) {
+                                    order.opened = DateTime.fromISO(order.opened + "").toJSDate();
+                                    order.created = DateTime.fromISO(order.created + "").toJSDate();
+                                    order.updated = DateTime.fromISO(order.updated + "").toJSDate();
 
-                        const key = normalizePriceTime(report.timeRes, order.opened).toISOString();
-                        const arr = eventMap.has(key) ? eventMap.get(key) : [];
-                        eventMap.set(key, arr);
+                                    const key = normalizePriceTime(report.timeRes, order.opened).toISOString();
+                                    const arr = eventMap.has(key) ? eventMap.get(key) : [];
+                                    eventMap.set(key, arr);
 
-                        arr.push(order);
-                        orders.push(order);
-                    }
+                                    arr.push(order);
+                                    orders.push(order);
+                                }
 
-                    results.eventMap = eventMap;
-                    report.orders = orders;
+                                results.eventMap = eventMap;
+                                report.orders = orders;
 
-                    const args: PriceDataParameters = {
-                        exchange: results.exchange,
-                        from: DateTime.fromISO(report.from.toString()).toJSDate(),
-                        to: DateTime.fromISO(report.to.toString()).toJSDate(),
-                        res: report.timeRes,
-                        symbolPair: report.symbols.replace("/", "_"),
-                        fetchDelay: 1000,
-                        fillMissing: true,
-                    };
+                                const args: PriceDataParameters = {
+                                    exchange: results.exchange,
+                                    from: DateTime.fromISO(report.from.toString()).toJSDate(),
+                                    to: DateTime.fromISO(report.to.toString()).toJSDate(),
+                                    res: report.timeRes,
+                                    symbolPair: report.symbols.replace("/", "_"),
+                                    fetchDelay: 1000,
+                                    fillMissing: true,
+                                };
 
-                    const window = report.window || 99;
-                    const data: DataPoint[] = [];
-                    for (let i = 0; i < prices.length; ++i) {
-                        const price = PriceEntity.fromRow(prices[i]);
-                        const indicatorsForTick = new Map<string, number>();
-                        Object.keys(indicators).forEach(k => {
-                            indicatorsForTick.set(k, indicators[k][i]);
-                        });
+                                const window = report.window || 99;
+                                const data: DataPoint[] = [];
+                                for (let i = 0; i < prices.length; ++i) {
+                                    const price = PriceEntity.fromRow(prices[i]);
+                                    const indicatorsForTick = new Map<string, number>();
+                                    Object.keys(indicators).forEach(k => {
+                                        indicatorsForTick.set(k, indicators[k][i]);
+                                    });
 
-                        imap.set(price.ts, indicatorsForTick);
-                        const dp: DataPoint = {
-                            ts: DateTime.fromISO(price.ts.toString()).toJSDate(),
-                            date: DateTime.fromISO(price.ts.toString()).toJSDate(),
-                            open: price.open.round(12).toNumber(),
-                            low: price.low.round(12).toNumber(),
-                            high: price.high.round(12).toNumber(),
-                            close: price.close.round(12).toNumber(),
-                            volume: price.volume.round(12).toNumber(),
-                            indicators: Object.fromEntries(indicatorsForTick),
-                            signal: signals[i],
-                        };
+                                    imap.set(price.ts, indicatorsForTick);
+                                    const dp: DataPoint = {
+                                        ts: DateTime.fromISO(price.ts.toString()).toJSDate(),
+                                        date: DateTime.fromISO(price.ts.toString()).toJSDate(),
+                                        open: price.open.round(12).toNumber(),
+                                        low: price.low.round(12).toNumber(),
+                                        high: price.high.round(12).toNumber(),
+                                        close: price.close.round(12).toNumber(),
+                                        volume: price.volume.round(12).toNumber(),
+                                        indicators: Object.fromEntries(indicatorsForTick),
+                                        signal: signals[i],
+                                    };
 
-                        data.push(dp);
-                    }
+                                    data.push(dp);
+                                }
 
-                    results.indicators = imap;
-                    results.data = data;
-                    setResults(results);
-                })
-                .catch(err => console.error(`Error loading data`, err))
-                ;
-
+                                results.indicators = imap;
+                                results.data = data;
+                                setResults(results);
+                            })
+                            .catch(err => console.error(`Error loading data`, err))
+                            ;
+                    });
+            }
+        }
+        catch (err) {
+            console.error(err);
         }
     }, []);
 

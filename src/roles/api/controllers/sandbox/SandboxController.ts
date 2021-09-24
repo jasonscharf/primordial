@@ -7,7 +7,9 @@ import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
 import { BotRunner } from "../../../common-backend/bots/BotRunner";
 import { ControllerBase } from "../ControllerBase";
+import { Mode } from "../../../common/models/system/Strategy";
 import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
+import { RunState } from "../../../common/models/system/RunState";
 import { SymbolResultSet } from "../../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { capital, orders, results, strats, sym } from "../../../common-backend/includes";
@@ -23,7 +25,7 @@ export class Sandbox extends ControllerBase {
 
     @Post("/run")
     async runBacktest(@Body() req: ApiBacktestRequest): Promise<any> {
-        const { from, genome, maxWagerPct, name, symbols, to } = req;
+        const { from, genome, maxWagerPct, name, returnEarly, symbols, to } = req;
         const [base, quote] = sym.parseSymbolPair(symbols);
         const defaultBudget = `${DEFAULT_BACKTEST_BUDGET_AMOUNT} ${quote}`;
         const fromParsed = from ? DateTime.fromISO(from).toJSDate() : null;
@@ -46,12 +48,46 @@ export class Sandbox extends ControllerBase {
             remove: false,
             from: fromParsed,
             to: toParsed,
+            returnEarly,
         };
 
         const runner = new BotRunner();
         const results = await runner.run(args);
 
         return results;
+    }
+
+    @Get("/results/status/{instanceIdOrName}")
+    async getBotResultsStatus(instanceIdOrName: string): Promise<{ runState: RunState }> {
+        // ... const user = this.currentSession?.user || null;
+        let instance: BotInstance = null;
+
+        try {
+            instance = await strats.getBotInstanceById(instanceIdOrName);
+        }
+        catch (err) {
+            // The suppression of error here is because we accept we are searching
+            // IDs or names, and the "get by ID" operation fails (by design)
+            // TODO: Improve the catch here.
+        }
+
+        if (!instance) {
+            const { id } = await us.getSystemUser();
+            const workspace = await strats.getDefaultWorkspaceForUser(id, id);
+            instance = await strats.getBotInstanceByName(workspace.id, instanceIdOrName);
+            instanceIdOrName = instance.id;
+        }
+
+        if (instance.modeId === Mode.BACK_TEST && instance.runState === RunState.ACTIVE) {
+            return {
+                runState: RunState.ACTIVE,
+            };
+        }
+        else {
+            return {
+                runState: instance.runState,
+            }
+        }
     }
 
     @Get("/results/{instanceIdOrName}")

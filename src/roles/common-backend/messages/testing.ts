@@ -1,4 +1,5 @@
 import { AssetAmount } from "../../common/models/capital/AssetAmount";
+import { BotInstance } from "../../common/models/bots/BotInstance";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 
 
@@ -15,4 +16,5 @@ export interface BacktestRequest {
      res: TimeResolution;
      symbols: string;
      maxWagerPct: number;
+     returnEarly?: boolean;
 }

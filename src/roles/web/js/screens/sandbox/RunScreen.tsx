@@ -70,6 +70,7 @@ const RunScreen = () => {
                 from: from.toISO(),
                 to: to.toISO(),
                 genome,
+                returnEarly: true,
             };
 
             // ... validate
@@ -82,13 +83,16 @@ const RunScreen = () => {
 
 
             setIsRunning(true);
-            const results = await (await client.sandbox.runBacktest(args)).data;
+            const response = await client.sandbox.runBacktest(args);
+            const data = await response.data;
+            const results = data;
             setIsRunning(false);
 
+            // Note: Can be results, or early return result - both bear "name" prop but not the poly here
             const { name } = results;
             const newUrl = `/results/${name}`;
 
-            window.open(newUrl);
+            window.location.href = newUrl;
         }
         catch (err) {
             let errMessage = "";
