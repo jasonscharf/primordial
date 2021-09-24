@@ -8,7 +8,7 @@ import { TimeResolution } from "../../../../common/models/markets/TimeResolution
 import { client } from "../../includes";
 import { Spinner } from "../../components/primitives/Spinner";
 
-const DEFAULT_SYMBOLS = "BTC/BUSD";
+const DEFAULT_SYMBOLS = "BTC/USDT";
 const DEFAULT_GENOME = "RSI-L=33|RSI-H=66";
 
 const RunScreen = () => {

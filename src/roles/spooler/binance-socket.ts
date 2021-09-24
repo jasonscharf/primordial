@@ -26,11 +26,13 @@ const lookup = new Map<string, [TradeSymbol, TradeSymbol]>();
  */
 export async function connectToBinanceWebSocket() {
     const symbolPairs = await sym.getGlobalWatchlistSymbolPairs();
+
     const res = TimeResolution.ONE_MINUTE;
-
+    
     // ... extract
-
+    
     log.debug(`Building symbol lookup table for socket messages...`);
+    console.info(`Symbol Pairs`, symbolPairs);
     const tradeSymbols = await sym.getKnownSymbols();
     for (const symbol of tradeSymbols) {
         symbolDefs.set(symbol.id, symbol);
@@ -42,7 +44,7 @@ export async function connectToBinanceWebSocket() {
         const quote = symbolDefs.get(quoteId);
         const joined = baseId + quoteId;
         lookup.set(joined, [base, quote]);
-    }
+    }  
 
     console.log(`Connecting to Binance WebSocket...`, symbolPairs);
     client.ws.candles(symbolPairs.map(s => s.replace(/[\/_]/, "")), res, c => handleCandle(c.symbol, res, c));
@@ -84,7 +86,7 @@ export function handleCandle(symbolPair: string, res: TimeResolution, candle: Ca
         const [baseSymbol, quoteSymbol] = lookupSymbolPair(symbolPair);
         const resId = candle.isFinal ? res : TimeResolution.TWO_SECONDS;
 
-        const open = Money(candle.open);
+        const open = Money(candle.open); 
         const low = Money(candle.low);
         const high = Money(candle.high);
         const close = Money(candle.close);

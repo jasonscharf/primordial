@@ -68,9 +68,9 @@ export class SymbolService {
         // Just temporary standins. Ultimately they should be everything always, from every exchange ever.
         if (env.isDev()) {
             return [
-                "BTC/BUSD",
-                "ETH/BUSD",
-                "DOGE/BUSD",
+                "BTC/USDT",
+                "ETH/USDT",
+                "DOGE/USDT",
                 "BTC/USDT",
             ];
         }

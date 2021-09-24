@@ -32,7 +32,7 @@ export const updateSymbolPricesGlobal: SpoolerTaskHandler<UpdateSymbolsState> = 
         filteredMarkets: 0,
         numSymbols: 0,
         newSymbols: [],
-    };
+    }; 
 
     // NOTE: In the future, this will support multiple exchanges. Assume a loop below.
     const exchange = env.PRIMO_DEFAULT_EXCHANGE;
@@ -47,8 +47,11 @@ export const updateSymbolPricesGlobal: SpoolerTaskHandler<UpdateSymbolsState> = 
     const { filterByBase, filterByQuote } = state;
     const filteredMarkets = markets
         .map(k => marketsForExchange[k])
-        .filter(m => filterByBase ? new RegExp(filterByBase).test(m.base) : true)
-        .filter(m => filterByQuote ? new RegExp(filterByQuote).test(m.quote) : true)
+
+
+        // NOTE: Symbol filters disabled for now. We pull all symbols defs.
+        //.filter(m => filterByBase ? new RegExp(filterByBase).test(m.base) : true)
+        //.filter(m => filterByQuote ? new RegExp(filterByQuote).test(m.quote) : true)
         ;
     metrics.filteredMarkets = filteredMarkets.length;
 
