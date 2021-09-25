@@ -28,9 +28,9 @@ export async function connectToBinanceWebSocket() {
     const symbolPairs = await sym.getGlobalWatchlistSymbolPairs();
 
     const res = TimeResolution.ONE_MINUTE;
-    
+
     // ... extract
-    
+
     log.debug(`Building symbol lookup table for socket messages...`);
     console.info(`Symbol Pairs`, symbolPairs);
     const tradeSymbols = await sym.getKnownSymbols();
@@ -44,7 +44,7 @@ export async function connectToBinanceWebSocket() {
         const quote = symbolDefs.get(quoteId);
         const joined = baseId + quoteId;
         lookup.set(joined, [base, quote]);
-    }  
+    }
 
     console.log(`Connecting to Binance WebSocket...`, symbolPairs);
     client.ws.candles(symbolPairs.map(s => s.replace(/[\/_]/, "")), res, c => handleCandle(c.symbol, res, c));
@@ -84,9 +84,18 @@ export function handleCandle(symbolPair: string, res: TimeResolution, candle: Ca
         const startTime = normalizePriceTime(res, new Date(candle.startTime));
         const eventTime = new Date(candle.eventTime);
         const [baseSymbol, quoteSymbol] = lookupSymbolPair(symbolPair);
+
+        if (!baseSymbol) {
+            throw new Error(`Unknown base symbol for '${symbolPair}'`);
+        }
+
+        if (!quoteSymbol) {
+            throw new Error(`Unknonw quote symbol for '${symbolPair}'`);
+        }
+
         const resId = candle.isFinal ? res : TimeResolution.TWO_SECONDS;
 
-        const open = Money(candle.open); 
+        const open = Money(candle.open);
         const low = Money(candle.low);
         const high = Money(candle.high);
         const close = Money(candle.close);
