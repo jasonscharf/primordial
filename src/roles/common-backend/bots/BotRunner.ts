@@ -49,7 +49,12 @@ export interface IndicatorsAndSignals {
 }
 
 const DEFAULT_CACHE_ARGS: TimeSeriesCacheArgs = {
-    accessor: (price: Price) => price.ts,
+    accessor: (price: Price) => {
+        if (!price) {
+            debugger;
+        }
+        return price.ts;
+    },
     maxItemsPerKey: 1000,
     maxKeys: 100,
     checkForGaps: false,
@@ -79,6 +84,7 @@ export class BotRunner {
         const botType = genome.getGene<string>("META", "IMPL").value;
         const res = genome.getGene<TimeResolution>("TIME", "RES").value;
         const instance = botFactory.create(botType) as BotImplementation;
+
 
         // Initialize new bots in a transaction to ensure we don't initialize it multiple times
         if (instanceRecord.runState === RunState.INITIALIZING) {
@@ -127,17 +133,21 @@ export class BotRunner {
             };
 
             // Pull prices from the cache / update cache
-            const key = `${symbolPair}@${res}`;
+            const key = instanceRecord.id;
             const entry = BotRunner._tsc.getEntry(key);
             let prices: Price[];
 
             // No entry? Pull and cache.
             if (!entry) {
-                prices = await sym.queryPricesForRange(params);
+                const sus = await sym.getSymbolPriceData(params);
+
+                // TODO: Missing ranges
+
+                prices = sus.prices;
                 BotRunner._tsc.append(key, prices);
             }
             else {
-                prices = BotRunner._tsc.getCachedRange(key, params.from, new Date(end));
+                prices = BotRunner._tsc.getCachedRange(key, params.from, new Date(end)).slice();
                 const normalizedPriceTime = normalizePriceTime(res, price.ts);
                 if (prices[prices.length - 1].ts.getTime() !== normalizedPriceTime.getTime()) {
                     BotRunner._tsc.append(key, PriceEntity.fromRow(price));

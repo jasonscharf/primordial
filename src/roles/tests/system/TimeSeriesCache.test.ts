@@ -116,7 +116,7 @@ describe(TimeSeriesCache.name, () => {
             const last = subrange[subrange.length - 1];
 
             assert.equal(first.ts.getTime(), srFrom.getTime());
-            assert.equal(last.ts.getTime(), srTo.getTime());
+            assert.equal(last.ts.getTime(), from("2021-01-07").getTime());
         });
     });
 
