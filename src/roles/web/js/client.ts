@@ -59,6 +59,19 @@ export interface ApiBacktestRequest {
   maxWagerPct?: number;
   remove?: boolean;
   name?: string;
+  returnEarly?: boolean;
+}
+
+/**
+ * Describes the run state of a strategy or bot.
+ */
+export enum RunState {
+  New = "new",
+  Initializing = "initializing",
+  Active = "active",
+  Paused = "paused",
+  Stopped = "stopped",
+  Error = "error",
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -307,6 +320,20 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetBotResultsStatus
+     * @request GET:/sandbox/results/status/{instanceIdOrName}
+     */
+    getBotResultsStatus: (instanceIdOrName: string, params: RequestParams = {}) =>
+      this.request<{ runState: RunState }, any>({
+        path: `/sandbox/results/status/${instanceIdOrName}`,
+        method: "GET",
         format: "json",
         ...params,
       }),

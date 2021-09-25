@@ -45,7 +45,7 @@ export class TimeSeriesCache<T> {
         const fetched: T[] = [];
         for (const item of entry.items) {
             const ts = this._args.accessor(item);
-            if (ts >= from && ts <= to) {
+            if (ts >= from && ts < to) {
                 fetched.push(item);
             }
         }

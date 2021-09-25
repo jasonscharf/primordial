@@ -71,7 +71,6 @@ export class SymbolService {
                 "BTC/USDT",
                 "ETH/USDT",
                 "DOGE/USDT",
-                "BTC/USDT",
             ];
         }
         else {

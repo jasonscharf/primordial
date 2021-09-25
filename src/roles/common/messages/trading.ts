@@ -15,6 +15,7 @@ import { TimeResolution } from "../models/markets/TimeResolution";
     maxWagerPct?: number;
     remove?: boolean;
     name?: string;
+    returnEarly?: boolean;
 }
 
 // FUN: TSOA capitalizes enum value names in keys for some silly reason, so "1m" and "1M" conflict...
@@ -32,4 +33,9 @@ export interface ApiBacktestResponse {
 export interface ApiAssetAmount {
     amount: number;
     symbol: string;
+}
+
+export interface ApiBacktestHandle {
+    id: string;
+    name: string;
 }

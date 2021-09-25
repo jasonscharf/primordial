@@ -31,7 +31,7 @@ const app = (
                 <Route path="/run">
                     <RunScreen />
                 </Route>
-                <Route path="/results/:instanceId">
+                <Route path="/results/:instanceIdOrName">
                     <BotResults />
                 </Route>
                 <Route exact path="/">
