@@ -18,6 +18,7 @@ import { millisecondsPerResInterval } from "../../../common/utils/time";
 import { randomName } from "../../../common-backend/utils/names";
 import { us } from "../../../common-backend/includes";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../../../common-backend/commands/bots/test";
+import { PrimoSerializableError } from "../../../common/errors/errors";
 
 
 @Route("sandbox")

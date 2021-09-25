@@ -15,12 +15,14 @@ export class PrimoSerializableError extends Error {
     primoErrorType = ErrorType.GENERIC;
     code: number = 500;
     message: string;
+    stack: string;
 
     constructor(message: string) {
         super(message);
 
         this.primoErrorType = ErrorType.GENERIC;
         this.message = message;
+        this.stack = (new Error()).stack;
     }
 
     serialize(): string {

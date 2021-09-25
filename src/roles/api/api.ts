@@ -96,6 +96,7 @@ async function createServerApp() {
             await next();
         }
         catch (err) {
+            console.error(err);
             err.status = err.statusCode || err.status || 500;
 
             let errorJson: ServerErrorResponse;
