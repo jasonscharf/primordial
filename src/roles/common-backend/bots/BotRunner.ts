@@ -412,6 +412,7 @@ export class BotRunner {
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
         const instanceRecord = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
         const [, backtestRun] = await strats.startBotInstance({ id: instanceRecord.id }, trx);
+        let allPrices: Price[] = [];
 
         const runPromise: Promise<BotRunReport> = new Promise(async (res, rej) => {
             try {
@@ -483,11 +484,12 @@ export class BotRunner {
                 const { missingRanges, prices, warnings } = sus;
 
                 ctx.prices = prices;
+                allPrices = prices;
                 const endLoadPrices = Date.now();
                 const loadPricesDuration = endLoadPrices - beginLoadPrices;
 
                 // TODO: PERF
-                tr.numCandles = prices.length;
+                tr.numCandles = allPrices.length;
                 tr.missingRanges = missingRanges;
 
                 // TODO: update prices earlier; perf metrics
@@ -560,8 +562,8 @@ export class BotRunner {
                     const [trailingOrder] = orders.splice(orders.length - 1);
                     tr.trailingOrder = trailingOrder;
                 }
-                const firstClose = ctx.prices.length > 0 ? ctx.prices[0].close : Money("0");
-                const lastClose = ctx.prices.length > 0 ? ctx.prices[ctx.prices.length - 1].close : Money("0");
+                const firstClose = allPrices.length > 0 ? allPrices[0].close : Money("0");
+                const lastClose = allPrices.length > 0 ? allPrices[allPrices.length - 1].close : Money("0");
 
                 let totalGrossProfit = Money("0");
                 orders.forEach(o => totalGrossProfit = totalGrossProfit.add(o.gross));
@@ -570,7 +572,7 @@ export class BotRunner {
                 tr.firstClose = firstClose.round(12).toNumber();
                 tr.lastClose = lastClose.round(12).toNumber();
                 tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
-                tr.buyAndHoldGrossPct = lastClose.div(firstClose).minus("1").round(3).toNumber();
+                tr.buyAndHoldGrossPct = Money("1").minus(firstClose.div(lastClose)).round(3).toNumber();
                 tr.balance = capitalInvested.plus(totalGrossProfit).round(12).toNumber();
                 tr.orders = orders;
                 tr.numOrders = orders.length;
