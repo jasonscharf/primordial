@@ -153,10 +153,16 @@ class StockChart extends React.Component<BotChartProps> {
             const signalAtDt = signalMap.get(dt.toISOString());
 
             const cators = indicators.get(key);
-            const catorItems = Array.from(cators.entries()).map(([k, v]) => ({
-                label: k.toUpperCase(),
-                value: cators.get(k).toFixed(2),
-            }));
+            const catorItems = Array.from(cators.entries()).map(([k, v]) => {
+
+                // TODO: Diagnose why cator is null here sometimes
+                const cator = cators.get(k);
+                const value = cator ? cator.toFixed(2) : 0;
+                return {
+                    label: k.toUpperCase(),
+                    value,
+                }
+            });
 
             const events = eventMap.has(key) ? eventMap.get(key) : [];
             const eventItems = events.map(e => {

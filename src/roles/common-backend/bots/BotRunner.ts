@@ -583,9 +583,13 @@ export class BotRunner {
                 tr.length = human(testLenMs);
 
                 // Compounded is calculated per week here.
-                const rate = tr.avgProfitPctPerDay * 7;
+                const rate = tr.avgProfitPctPerDay * 365;
                 const periods = 52;
-                tr.estProfitPerYearCompounded = orders.length < 2 ? 0 : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).round(12).toNumber();
+                const roundTo = /USD/.test(quote) ? 2 : 4;
+                tr.estProfitPerYearCompounded = orders.length < 2
+                    ? 0
+                    : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).sub(capitalInvested).round(roundTo).toNumber()
+                    ;
 
                 const finish = Date.now();
                 const duration = finish - start;
