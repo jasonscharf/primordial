@@ -33,7 +33,7 @@ export class ResultsService {
             return BotResultsEntity.fromRow(row);
         });
 
-        return res.results;
+        return res ? res.results : null;
     }
 
     /**
