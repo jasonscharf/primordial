@@ -235,10 +235,14 @@ export class BotRunner {
 
             for (let i = 0; i < prices.length - window; ++i) {
                 ctx.prices = prices.slice(i, i + window);
-                const price = ctx.prices[ctx.prices.length - 1];
-                const botIndicators = await localInstance.computeIndicatorsForTick(ctx, price);
-                const signal = await localInstance.computeSignal(ctx, price, botIndicators);
-                const newState = await localInstance.tick(ctx, price, signal, botIndicators);
+                const tick = ctx.prices[ctx.prices.length - 1];
+                if (this.isGapTick(tick)) {
+                    continue;
+                }
+
+                const botIndicators = await localInstance.computeIndicatorsForTick(ctx, tick);
+                const signal = await localInstance.computeSignal(ctx, tick, botIndicators);
+                const newState = await localInstance.tick(ctx, tick, signal, botIndicators);
 
                 if (newState !== null && ctx.instance.stateJson !== undefined) {
                     ctx.state = ctx.instance.stateJson = newState;
@@ -501,8 +505,10 @@ export class BotRunner {
 
                 for (let i = 0; i < prices.length - maxIntervals; ++i) {
                     ctx.prices = prices.slice(i, i + maxIntervals);
-
-                    let tick = ctx.prices[ctx.prices.length - 1];
+                    const tick = ctx.prices[ctx.prices.length - 1];
+                    if (this.isGapTick(tick)) {
+                        continue;
+                    }
                     const indicators = await localInstance.computeIndicatorsForTick(ctx, tick);
                     const signal = await localInstance.computeSignal(ctx, tick, indicators);
                     const newState = await localInstance.tick(ctx, tick, signal, indicators);
@@ -620,5 +626,21 @@ export class BotRunner {
             const results = await runPromise;
             return results;
         }
+    }
+
+    /**
+     * Runs a simple heuristic check to detect if a tick is part of a gap.
+     * @param tick 
+     * @returns 
+     */
+    isGapTick(tick: Price) {
+        if (tick.volume.toNumber() == 0 &&
+            tick.open.toNumber() == 0 &&
+            tick.close.toNumber() == 0) {
+            console.log(`Skip gap @ ${tick.ts.toISOString()}`);
+            return true;
+        }
+
+        return false;
     }
 }
