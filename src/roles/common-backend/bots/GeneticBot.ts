@@ -221,8 +221,8 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             throw new Error(`FATAL: Bot was in test mode but requested a withdrawal from a LIVE allocation`);
         }
 
-        const isBuying = fsmState === GeneticBotFsmState.SURF_BUY;
-        const isSelling = fsmState === GeneticBotFsmState.SURF_SELL;
+        const isBuying = fsmState === GeneticBotFsmState.SURF_BUY || fsmState === GeneticBotFsmState.WAITING_FOR_BUY_OPP;
+        const isSelling = fsmState === GeneticBotFsmState.SURF_SELL || fsmState === GeneticBotFsmState.WAITING_FOR_SELL_OPP;
 
         const order: OrderDelegateArgs = {
             exchange: instance.exchangeId,
@@ -240,7 +240,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             await ctx.placeLimitSellOrder(ctx, order, tick, this);
         }
         else {
-            throw new Error(`Tried to place order in invalid state`);
+            throw new Error(`Tried to place order in invalid state '${state.fsmState}'`);
         }
 
         return state;
@@ -256,22 +256,22 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         const stopLossPrice = state.stopLossPrice;
         const stopLossEnabled = genome.getGene("SL", "ABS").active;
 
-        let result = state;
+        let newState = state;
         if (!profitTarget) {
-            result = await this.placeOrder(ctx, tick, indicators);
+            newState = await this.placeOrder(ctx, tick, indicators);
         }
         else if (fsmState === GeneticBotFsmState.SURF_BUY) {
-            result = await this.placeOrder(ctx, tick, indicators);
+            newState = await this.placeOrder(ctx, tick, indicators);
         }
         else if (fsmState === GeneticBotFsmState.SURF_SELL && tick.close.gte(profitTarget)) {
-            result = await this.placeOrder(ctx, tick, indicators);
+            newState = await this.placeOrder(ctx, tick, indicators);
         }
         else if (fsmState === GeneticBotFsmState.SURF_SELL && stopLossEnabled && tick.close.lte(stopLossPrice)) {
             log.info(`Stoploss of ${stopLossPrice} hit. Selling...`);
-            result = await this.placeOrder(ctx, tick, indicators);
+            newState = await this.placeOrder(ctx, tick, indicators);
         }
 
-        return result;
+        return newState;
     }
 
     async waitForTradeEntryOrExit(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, signal: number, indicators: Map<string, unknown>) {
@@ -280,6 +280,16 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         const { currentGenome } = instance;
 
         let fsmState = state.fsmState;
+        let newState = state;
+
+        const stopLossPrice = state.stopLossPrice;
+        const stopLossEnabled = genome.getGene("SL", "ABS").active;
+
+        if (fsmState == GeneticBotFsmState.WAITING_FOR_SELL_OPP && stopLossEnabled && tick.close.lte(stopLossPrice)) {
+            log.info(`Stoploss of ${stopLossPrice} hit. Selling...`);
+            newState = await this.placeOrder(ctx, tick, indicators);
+            return newState;
+        }
 
 
         // Look for BUY opportunities or SELL opportunities based on the current state
@@ -309,6 +319,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             }
         }
 
-        return Object.assign({}, state, { fsmState });
+        newState.fsmState = fsmState;
+        return newState;
     }
 }

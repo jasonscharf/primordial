@@ -242,13 +242,6 @@ export class BotRunner {
 
                 const botIndicators = await localInstance.computeIndicatorsForTick(ctx, tick);
                 const signal = await localInstance.computeSignal(ctx, tick, botIndicators);
-                const newState = await localInstance.tick(ctx, tick, signal, botIndicators);
-
-                if (newState !== null && ctx.instance.stateJson !== undefined) {
-                    ctx.state = ctx.instance.stateJson = newState;
-                }
-
-                ctx.instance.prevTick = new Date();
 
                 // Store the indicators and current signal
                 signals.push(signal);
