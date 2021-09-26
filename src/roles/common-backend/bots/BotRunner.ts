@@ -579,10 +579,10 @@ export class BotRunner {
                 const testLenMs = tr.to.getTime() - tr.from.getTime();
                 const days = Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY));
                 tr.avgProfitPerDay = totalGrossProfit.div(days + "").round(2).toNumber();
-                tr.avgProfitPctPerDay = parseFloat(Math.round(tr.totalGrossPct / days).toPrecision(3));
+                tr.avgProfitPctPerDay = parseFloat((tr.totalGrossPct / days).toPrecision(3));
                 tr.length = human(testLenMs);
 
-                // Compounded is calculated per day here.
+                // Compounded is calculated per week here.
                 const rate = tr.avgProfitPctPerDay * 7;
                 const periods = 52;
                 tr.estProfitPerYearCompounded = orders.length < 2 ? 0 : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).round(12).toNumber();

@@ -25,7 +25,7 @@ describe(CapitalService.name, () => {
 
     before(async () => {
         ctx = await getTestData();
-        systemUser = await users.getSystemUser();
+        systemUser = await users.getSystemUser(); 
         defaultWorkspace = await strats.getDefaultWorkspaceForUser(systemUser.id, systemUser.id);
         defaultStrategy = await strats.getOrCreateDefaultStrategy(defaultWorkspace.id, systemUser.id);
     });
@@ -33,6 +33,38 @@ describe(CapitalService.name, () => {
     beforeEach(async () => {
         cap = new CapitalService();
     });
+
+    // Control: http://www.moneychimp.com/calculator/compound_interest_calculator.htm
+    describe(cap.calcCompoundingInterest.name, () => {
+        const initial = Money("10000");
+        const yearlyRate = 0.10;
+
+        it("correctly computes yearly compounding interest", async () => { 
+            const compounded = cap.calcCompoundingInterest(initial, yearlyRate, 1); 
+            assert.equal(compounded.round(2).toString(), "11000");
+        });
+
+        it("correctly computes monthly compounding interest", async () => {
+            const compounded = cap.calcCompoundingInterest(initial, yearlyRate, 12);
+            assert.equal(compounded.round(2).toString(), "11047.13");
+        });
+
+        it("correctly computes weekly compounding interest", async () => {
+            const compounded = cap.calcCompoundingInterest(initial, yearlyRate, 52);
+            assert.equal(compounded.round(2).toString(), "11050.65");
+        });
+
+        it("correctly computes daily compounding interest", async () => {
+            const compounded = cap.calcCompoundingInterest(initial, yearlyRate, 365);
+            assert.equal(compounded.round(2).toString(), "11051.56");
+        });
+    });
+
+    /* TODO
+    describe(cap.calcCompoundingAnnualGrowthRate.name, () => {
+
+    })
+    */
 
     describe(cap.createAllocationForBot.name, () => {
         it("creates a new allocation record", async () => {

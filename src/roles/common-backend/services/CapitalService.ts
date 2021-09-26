@@ -232,10 +232,10 @@ export class CapitalService {
         // ...
     }
 
-    calcCompoundingInterest(initial: Money, rate: number, periodsPerYear: number, years: number): Money {
+    calcCompoundingInterest(initial: Money, yearlyRate: number, periodsPerYear: number, years = 1): Money {
         return initial.mul(
             Money(
-                ((1 + (rate / periodsPerYear)) ^ (periodsPerYear * years)).toString()
+                Math.pow((1 + (yearlyRate / periodsPerYear)), (periodsPerYear * years)).toString()
             )
         );
     }
