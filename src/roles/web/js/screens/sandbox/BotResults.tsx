@@ -120,6 +120,8 @@ const BotResults = () => {
                                 const data: DataPoint[] = [];
                                 for (let i = 0; i < prices.length; ++i) {
                                     const price = PriceEntity.fromRow(prices[i]);
+                                    price.ts = DateTime.fromISO(price.ts as any as string).toJSDate();
+
                                     const indicatorsForTick = new Map<string, number>();
                                     Object.keys(indicators).forEach(k => {
                                         indicatorsForTick.set(k, indicators[k][i]);
@@ -127,8 +129,7 @@ const BotResults = () => {
 
                                     imap.set(price.ts, indicatorsForTick);
                                     const dp: DataPoint = {
-                                        ts: DateTime.fromISO(price.ts.toString()).toJSDate(),
-                                        date: DateTime.fromISO(price.ts.toString()).toJSDate(),
+                                        ts: price.ts,
                                         open: price.open.round(12).toNumber(),
                                         low: price.low.round(12).toNumber(),
                                         high: price.high.round(12).toNumber(),

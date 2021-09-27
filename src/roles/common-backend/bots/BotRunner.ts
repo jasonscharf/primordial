@@ -244,6 +244,7 @@ export class BotRunner {
                 const signal = await localInstance.computeSignal(ctx, tick, botIndicators);
 
                 // Store the indicators and current signal
+
                 signals.push(signal);
 
                 for (const ind of botIndicators.keys()) {
@@ -260,6 +261,7 @@ export class BotRunner {
                         cators.push(null);
                     }
                 }
+
 
                 //log.info(`Backtest in state ${newState.fsmState}`);
 
@@ -448,10 +450,7 @@ export class BotRunner {
 
                 // SAVE
                 await strats.updateBotInstance(instanceRecord);
-
-                const maxHistoricals = genome.getGene<number>("TIME", "MI").value;
                 const now = Date.now();
-                const end = normalizePriceTime(res, new Date(now)).getTime();
                 const intervalMs = millisecondsPerResInterval(res);
 
                 // Grab the prices + a run-in window of N prices before trading begins.
@@ -468,10 +467,10 @@ export class BotRunner {
                     fetchDelay: 1000,
                     fillMissing: true,
                     from: actualFrom,
-                    to: new Date(to.getTime() - 1),
+                    to: new Date(to.getTime()), // TODO: DBL check... "to" should be non-inclusive in most services
                 };
 
-                run.from = params.from;
+                run.from = from;
                 run.to = params.to;
 
                 await strats.updateBotRun(run, trx);

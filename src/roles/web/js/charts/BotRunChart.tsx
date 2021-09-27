@@ -48,7 +48,7 @@ class StockChart extends React.Component<BotChartProps> {
     private margin = { left: 0, right: 68, top: 8, bottom: 0 };
     private pricesDisplayFormat = format(".2f");
     private xScaleProvider = discontinuousTimeScaleProviderBuilder().inputDateAccessor(
-        (d: Candle) => d.date,
+        (d: Candle) => d.ts,
     );
 
     private svgAnnotation = {
@@ -68,11 +68,11 @@ class StockChart extends React.Component<BotChartProps> {
         const signalMap = new Map<string, number>();
         for (let i = 0; i < initialData.length; ++i) {
             const dp = initialData[i];
-            signalMap.set(dp.date.toISOString(), signals[i]);
+            signalMap.set(dp.ts.toISOString(), signals[i]);
         }
 
         const when = (d: DataPoint) => {
-            const key = d.date.toISOString();
+            const key = d.ts.toISOString();
             return eventMap.has(key);
         };
 
@@ -153,16 +153,18 @@ class StockChart extends React.Component<BotChartProps> {
             const signalAtDt = signalMap.get(dt.toISOString());
 
             const cators = indicators.get(key);
-            const catorItems = Array.from(cators.entries()).map(([k, v]) => {
+            const catorItems = !cators
+                ? []
+                : Array.from(cators.entries()).map(([k, v]) => {
 
-                // TODO: Diagnose why cator is null here sometimes
-                const cator = cators.get(k);
-                const value = cator ? cator.toFixed(2) : 0;
-                return {
-                    label: k.toUpperCase(),
-                    value,
-                }
-            });
+                    // TODO: Diagnose why cator is null here sometimes
+                    const cator = cators.get(k);
+                    const value = cator ? cator.toFixed(2) : 0;
+                    return {
+                        label: k.toUpperCase(),
+                        value,
+                    }
+                });
 
             const events = eventMap.has(key) ? eventMap.get(key) : [];
             const eventItems = events.map(e => {
@@ -245,7 +247,7 @@ class StockChart extends React.Component<BotChartProps> {
                     <HoverTooltip
                         yAccessor={this.yEdgeIndicator}
                         tooltip={{
-                            content: buildTooltip,
+                            content: buildTooltip as any,
                         }}
                     />
                     <OHLCTooltip origin={[8, 16]} />
@@ -327,7 +329,7 @@ class StockChart extends React.Component<BotChartProps> {
     };
 
     private readonly when = (data: Candle) => {
-        return data.date.getDay() === 1;
+        return data.ts.getDay() === 1;
     };
 }
 
