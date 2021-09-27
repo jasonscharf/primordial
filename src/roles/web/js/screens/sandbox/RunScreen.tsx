@@ -203,7 +203,7 @@ const RunScreen = () => {
                                     <Grid item container spacing={2}>
                                         <Grid item>
                                             <FormGroup>
-                                                <FormControlLabel control={<Checkbox checked={openInNewWindow} onChange={evt => handleCheckOpenInNewWindow(evt.target.checked)} />} label="Open in new window (popups might get blocked)" />
+                                                <FormControlLabel control={<Checkbox checked={openInNewWindow} onChange={evt => handleCheckOpenInNewWindow(evt.target.checked)} />} label="Open in new window (popups might get blocked; check address bar)" />
                                             </FormGroup>
                                         </Grid>
                                         <Grid item style={{ marginLeft: "auto", textAlign: "right", }}>
