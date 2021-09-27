@@ -4,7 +4,6 @@ import { Price } from "../../common/models/markets/Price";
 
 export interface DataPoint {
     ts: Date;
-    date: Date;
     open: number;
     low: number;
     high: number;
@@ -29,7 +28,7 @@ export type IndicatorMap = Map<Date, Map<string, number>>;
 
 
 export interface Candle {
-    date: Date;
+    ts: Date;
     open: number;
     low: number;
     high: number;
@@ -48,5 +47,6 @@ export interface BotChartProps {
     signals: number[];
     eventMap: any;
     indicators: IndicatorMap;
+    displayHeikinAshi?: boolean;
 }
 

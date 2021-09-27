@@ -121,6 +121,9 @@ export class Sandbox extends ControllerBase {
         }
 
         const report = await results.getLatestResultsForBot(instanceIdOrName);
+        if (!report) {
+            throw new PrimoSerializableError(`Could not find bot results for '${instanceIdOrName}'`, 404);
+        }
 
         // Compute indicators and signals for the run
         const runner = new BotRunner();

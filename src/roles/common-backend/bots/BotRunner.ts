@@ -235,18 +235,16 @@ export class BotRunner {
 
             for (let i = 0; i < prices.length - window; ++i) {
                 ctx.prices = prices.slice(i, i + window);
-                const price = ctx.prices[ctx.prices.length - 1];
-                const botIndicators = await localInstance.computeIndicatorsForTick(ctx, price);
-                const signal = await localInstance.computeSignal(ctx, price, botIndicators);
-                const newState = await localInstance.tick(ctx, price, signal, botIndicators);
-
-                if (newState !== null && ctx.instance.stateJson !== undefined) {
-                    ctx.state = ctx.instance.stateJson = newState;
+                const tick = ctx.prices[ctx.prices.length - 1];
+                if (this.isGapTick(tick)) {
+                    continue;
                 }
 
-                ctx.instance.prevTick = new Date();
+                const botIndicators = await localInstance.computeIndicatorsForTick(ctx, tick);
+                const signal = await localInstance.computeSignal(ctx, tick, botIndicators);
 
                 // Store the indicators and current signal
+
                 signals.push(signal);
 
                 for (const ind of botIndicators.keys()) {
@@ -263,6 +261,7 @@ export class BotRunner {
                         cators.push(null);
                     }
                 }
+
 
                 //log.info(`Backtest in state ${newState.fsmState}`);
 
@@ -415,6 +414,7 @@ export class BotRunner {
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
         const instanceRecord = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
         const [, backtestRun] = await strats.startBotInstance({ id: instanceRecord.id }, trx);
+        let allPrices: Price[] = [];
 
         const runPromise: Promise<BotRunReport> = new Promise(async (res, rej) => {
             try {
@@ -450,10 +450,7 @@ export class BotRunner {
 
                 // SAVE
                 await strats.updateBotInstance(instanceRecord);
-
-                const maxHistoricals = genome.getGene<number>("TIME", "MI").value;
                 const now = Date.now();
-                const end = normalizePriceTime(res, new Date(now)).getTime();
                 const intervalMs = millisecondsPerResInterval(res);
 
                 // Grab the prices + a run-in window of N prices before trading begins.
@@ -470,10 +467,10 @@ export class BotRunner {
                     fetchDelay: 1000,
                     fillMissing: true,
                     from: actualFrom,
-                    to: new Date(to.getTime() - 1),
+                    to: new Date(to.getTime()), // TODO: DBL check... "to" should be non-inclusive in most services
                 };
 
-                run.from = params.from;
+                run.from = from;
                 run.to = params.to;
 
                 await strats.updateBotRun(run, trx);
@@ -486,11 +483,12 @@ export class BotRunner {
                 const { missingRanges, prices, warnings } = sus;
 
                 ctx.prices = prices;
+                allPrices = prices;
                 const endLoadPrices = Date.now();
                 const loadPricesDuration = endLoadPrices - beginLoadPrices;
 
                 // TODO: PERF
-                tr.numCandles = prices.length;
+                tr.numCandles = allPrices.length;
                 tr.missingRanges = missingRanges;
 
                 // TODO: update prices earlier; perf metrics
@@ -501,8 +499,10 @@ export class BotRunner {
 
                 for (let i = 0; i < prices.length - maxIntervals; ++i) {
                     ctx.prices = prices.slice(i, i + maxIntervals);
-
-                    let tick = ctx.prices[ctx.prices.length - 1];
+                    const tick = ctx.prices[ctx.prices.length - 1];
+                    if (this.isGapTick(tick)) {
+                        continue;
+                    }
                     const indicators = await localInstance.computeIndicatorsForTick(ctx, tick);
                     const signal = await localInstance.computeSignal(ctx, tick, indicators);
                     const newState = await localInstance.tick(ctx, tick, signal, indicators);
@@ -561,8 +561,8 @@ export class BotRunner {
                     const [trailingOrder] = orders.splice(orders.length - 1);
                     tr.trailingOrder = trailingOrder;
                 }
-                const firstClose = ctx.prices.length > 0 ? ctx.prices[0].close : Money("0");
-                const lastClose = ctx.prices.length > 0 ? ctx.prices[ctx.prices.length - 1].close : Money("0");
+                const firstClose = allPrices.length > 0 ? allPrices[0].close : Money("0");
+                const lastClose = allPrices.length > 0 ? allPrices[allPrices.length - 1].close : Money("0");
 
                 let totalGrossProfit = Money("0");
                 orders.forEach(o => totalGrossProfit = totalGrossProfit.add(o.gross));
@@ -571,7 +571,7 @@ export class BotRunner {
                 tr.firstClose = firstClose.round(12).toNumber();
                 tr.lastClose = lastClose.round(12).toNumber();
                 tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
-                tr.buyAndHoldGrossPct = lastClose.div(firstClose).minus("1").round(3).toNumber();
+                tr.buyAndHoldGrossPct = Money("1").minus(firstClose.div(lastClose)).round(3).toNumber();
                 tr.balance = capitalInvested.plus(totalGrossProfit).round(12).toNumber();
                 tr.orders = orders;
                 tr.numOrders = orders.length;
@@ -579,13 +579,17 @@ export class BotRunner {
                 const testLenMs = tr.to.getTime() - tr.from.getTime();
                 const days = Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY));
                 tr.avgProfitPerDay = totalGrossProfit.div(days + "").round(2).toNumber();
-                tr.avgProfitPctPerDay = parseFloat(Math.round(tr.totalGrossPct / days).toPrecision(3));
+                tr.avgProfitPctPerDay = parseFloat((tr.totalGrossPct / days).toPrecision(3));
                 tr.length = human(testLenMs);
 
-                // Compounded is calculated per day here.
-                const rate = tr.avgProfitPctPerDay * 7;
+                // Compounded is calculated per week here.
+                const rate = tr.avgProfitPctPerDay * 365;
                 const periods = 52;
-                tr.estProfitPerYearCompounded = orders.length < 2 ? 0 : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).round(12).toNumber();
+                const roundTo = /USD/.test(quote) ? 2 : 4;
+                tr.estProfitPerYearCompounded = orders.length < 2
+                    ? 0
+                    : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).sub(capitalInvested).round(roundTo).toNumber()
+                    ;
 
                 const finish = Date.now();
                 const duration = finish - start;
@@ -616,5 +620,21 @@ export class BotRunner {
             const results = await runPromise;
             return results;
         }
+    }
+
+    /**
+     * Runs a simple heuristic check to detect if a tick is part of a gap.
+     * @param tick 
+     * @returns 
+     */
+    isGapTick(tick: Price) {
+        if (tick.volume.toNumber() == 0 &&
+            tick.open.toNumber() == 0 &&
+            tick.close.toNumber() == 0) {
+            console.log(`Skip gap @ ${tick.ts.toISOString()}`);
+            return true;
+        }
+
+        return false;
     }
 }

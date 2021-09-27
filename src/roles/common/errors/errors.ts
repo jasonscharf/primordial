@@ -17,10 +17,11 @@ export class PrimoSerializableError extends Error {
     message: string;
     stack: string;
 
-    constructor(message: string) {
+    constructor(message: string, code = 500) {
         super(message);
 
         this.primoErrorType = ErrorType.GENERIC;
+        this.code = code;
         this.message = message;
         this.stack = (new Error()).stack;
     }

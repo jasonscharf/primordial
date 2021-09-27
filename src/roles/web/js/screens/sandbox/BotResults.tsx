@@ -5,7 +5,7 @@ import classNames from "classnames";
 import { useEffect, useState } from "react";
 import { Hashicon } from "@emeraldpay/hashicon-react";
 
-import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField } from "@mui/material";
+import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar } from "@mui/material";
 import { Amount } from "../../components/primitives/Amount";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
 import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
@@ -29,11 +29,16 @@ import { RunState } from "../../client";
 
 
 type BotEvent = any;
+const DEFAULT_BOT_RESULTS_POLL_MS = 500;
 
 
+/**
+ * Shows results for a bot run, including OLHCV data, indicators, and events.
+ */
 const BotResults = () => {
     const args = useParams<{ instanceIdOrName: string }>();
     const [results, setResults] = useState<BotResultsApiResponse>(null);
+    const [displayHeikinAshi, setDisplayHeikinAshi] = useState<boolean>(false);
 
     const imap: IndicatorMap = new Map<Date, Map<string, number>>();
 
@@ -48,7 +53,7 @@ const BotResults = () => {
             }
 
             console.log(`Waiting for bot results for ${id}...`);
-            await sleep(1000);
+            await sleep(DEFAULT_BOT_RESULTS_POLL_MS);
         }
     }
 
@@ -116,6 +121,8 @@ const BotResults = () => {
                                 const data: DataPoint[] = [];
                                 for (let i = 0; i < prices.length; ++i) {
                                     const price = PriceEntity.fromRow(prices[i]);
+                                    price.ts = DateTime.fromISO(price.ts as any as string).toJSDate();
+
                                     const indicatorsForTick = new Map<string, number>();
                                     Object.keys(indicators).forEach(k => {
                                         indicatorsForTick.set(k, indicators[k][i]);
@@ -123,8 +130,7 @@ const BotResults = () => {
 
                                     imap.set(price.ts, indicatorsForTick);
                                     const dp: DataPoint = {
-                                        ts: DateTime.fromISO(price.ts.toString()).toJSDate(),
-                                        date: DateTime.fromISO(price.ts.toString()).toJSDate(),
+                                        ts: price.ts,
                                         open: price.open.round(12).toNumber(),
                                         low: price.low.round(12).toNumber(),
                                         high: price.high.round(12).toNumber(),
@@ -141,7 +147,7 @@ const BotResults = () => {
                                 results.data = data;
                                 setResults(results);
                             })
-                            .catch(err => console.error(`Error loading data`, err))
+                            .catch(err => alert("There was an error loading the results. The bot may have exploded during operation. Please go back and try again. Feel free to copy the URL and report this as a bug."))
                             ;
                     });
             }
@@ -150,6 +156,10 @@ const BotResults = () => {
             console.error(err);
         }
     }, []);
+
+    const handleToggleHeikinAshi = React.useCallback(() => {
+        setDisplayHeikinAshi(!displayHeikinAshi);
+    }, [displayHeikinAshi]);
 
     if (!results) {
         return (
@@ -174,7 +184,7 @@ const BotResults = () => {
     const tradingViewSymbol = `${exchange}:${base}${quote}`;
 
     const interval = getIntervalForTimeRes(report.timeRes);
-
+    const runType = "backtest"
     return (
         <Box width={1} height={1}>
             <Grid container className="primo-fullsize" direction="row" style={{ alignContent: "baseline", margin: 0, padding: 0 }}>
@@ -184,7 +194,7 @@ const BotResults = () => {
                     </Grid>
                     <Grid item>
                         <Grid item>
-                            <b>&#127845;&nbsp;{report.symbols}</b>
+                            <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#40;{runType}&#41;
                         </Grid>
                         <Grid item>
                             <span>&#129516;&nbsp;<b>{report.genome}</b></span>
@@ -210,32 +220,55 @@ const BotResults = () => {
                 </Grid>
 
                 <Grid container item spacing={3} style={{ borderBottom: "2px solid #ddd", margin: 0 }}>
-                    <BotRunChart eventMap={eventMap} summary={report} data={data} signals={signals} indicators={indicators} />
+                    <BotRunChart
+                        data={data}
+                        displayHeikinAshi={displayHeikinAshi}
+                        eventMap={eventMap}
+                        summary={report}
+                        signals={signals}
+                        indicators={indicators}
+                    />
+                </Grid>
+
+                <Grid container spacing={2} style={{ borderBottom: "1px solid #ddd" }}>
+                    <Grid item style={{ marginLeft: "auto", padding: "8px " }}>
+                        <Button onClick={handleToggleHeikinAshi} variant="contained">Heikin Ashi {displayHeikinAshi ? "off" : "on"}</Button>
+                    </Grid>
                 </Grid>
 
                 <Grid container item spacing={2}>
-                    <Grid item style={{ height: "325px", overflow: "auto", margin: 0 }}>
-                        <OrderTable orders={orders} />
-                    </Grid>
+
                     <Grid item style={{ flex: 1 }}>
                         <Card>
                             <CardContent>
                                 <Grid container spacing={1} flexDirection="column" className={classNames("primo-info-table")}>
                                     <Grid item container className="primo-info-table-item">
                                         <Grid item>Gross</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.totalGross} symbol={report.quote} /></Grid>
+                                        <Grid item style={{ textAlign: "right" }}>
+                                            <Amount amount={report.totalGross} symbol={report.quote} />
+                                            &nbsp;&#47;&nbsp;
+                                            <Percent amount={report.totalGrossPct} />
+                                        </Grid>
                                     </Grid>
                                     <Grid item container className="primo-info-table-item">
-                                        <Grid item>Gross Percent</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><Percent amount={report.totalGrossPct} /></Grid>
+                                        <Grid item>Avg. Daily Gross</Grid>
+                                        <Grid item style={{ textAlign: "right" }}>
+                                            <Amount amount={report.avgProfitPerDay} symbol={report.quote} />
+                                            &nbsp;&#47;&nbsp;
+                                            <Percent amount={report.avgProfitPctPerDay} />
+                                        </Grid>
                                     </Grid>
                                     <Grid item container className="primo-info-table-item">
-                                        <Grid item>Avg. Daily Profit</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.avgProfitPerDay} symbol={report.quote} /></Grid>
+                                        <Grid item>Buy &amp; Hold</Grid>
+                                        <Grid item style={{ textAlign: "right" }}>
+                                            <Amount amount={report.capital * report.buyAndHoldGrossPct} symbol={report.quote} />
+                                            &nbsp;&#47;&nbsp;
+                                            <Percent amount={report.buyAndHoldGrossPct} />
+                                        </Grid>
                                     </Grid>
                                     <Grid item container className="primo-info-table-item">
-                                        <Grid item>Avg. Daily Profit %</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><Percent amount={report.avgProfitPctPerDay} /></Grid>
+                                        <Grid item>Est. Per year (weekly comp.)</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.estProfitPerYearCompounded} /></Grid>
                                     </Grid>
                                     <Grid item container className="primo-info-table-item">
                                         <Grid item>Sharpe</Grid>
@@ -256,6 +289,9 @@ const BotResults = () => {
                                 </Grid>
                             </CardContent>
                         </Card>
+                    </Grid>
+                    <Grid item style={{ height: "325px", overflow: "auto", margin: 0 }}>
+                        <OrderTable orders={orders} />
                     </Grid>
                 </Grid>
             </Grid>

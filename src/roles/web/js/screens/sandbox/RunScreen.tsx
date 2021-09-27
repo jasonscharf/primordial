@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useState } from "react";
-import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert } from "@mui/material";
+import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel } from "@mui/material";
 import DateAdapter from "@mui/lab/AdapterLuxon";
 import DateTimePicker from "@mui/lab/DateTimePicker";
 import { ApiBacktestRequest, ApiTimeResolution } from "../../client";
@@ -18,6 +18,7 @@ const RunScreen = () => {
     const prevSymbols = window.localStorage["runner-prev-symbols"];
     const prevGenome = window.localStorage["runner-prev-genome"];
     const prevRes = window.localStorage["runner-prev-res"];
+    const prevOpenInNewWindow = window.localStorage["runner-open-in-new-window"] === "true";
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -33,6 +34,7 @@ const RunScreen = () => {
     const [symbolPairs, setSymbols] = useState<string>(prevSymbols || DEFAULT_SYMBOLS);
     const [errors, setErrors] = useState<string[]>([]);
     const [isRunning, setIsRunning] = useState<boolean>(false);
+    const [openInNewWindow, setOpenInNewWindow] = useState<boolean>(prevOpenInNewWindow);
     const loading = open && options.length === 0;
 
     useEffect(() => {
@@ -58,8 +60,11 @@ const RunScreen = () => {
 
     const handleChangeSymbols = useCallback((value: string) => {
         setSymbols(value);
-        console.log(`Set symbols to '${value}'`, symbolPairs);
     }, [symbolPairs]);
+
+    const handleCheckOpenInNewWindow = useCallback((value: boolean) => {
+        setOpenInNewWindow(value);
+    }, [openInNewWindow]);
 
     const handleClickRun = useCallback(async () => {
         try {
@@ -80,6 +85,7 @@ const RunScreen = () => {
             window.localStorage["runner-prev-symbols"] = args.symbols;
             window.localStorage["runner-prev-genome"] = args.genome;
             window.localStorage["runner-prev-res"] = args.res;
+            window.localStorage["runner-open-in-new-window"] = openInNewWindow;
 
 
             setIsRunning(true);
@@ -92,7 +98,12 @@ const RunScreen = () => {
             const { name } = results;
             const newUrl = `/results/${name}`;
 
-            window.location.href = newUrl;
+            if (openInNewWindow) {
+                window.open(newUrl);
+            }
+            else {
+                window.location.href = newUrl;
+            }
         }
         catch (err) {
             let errMessage = "";
@@ -116,7 +127,7 @@ const RunScreen = () => {
             setIsRunning(false);
             setErrors([...errors, ...errorTexts]);
         }
-    }, [from, genome, symbolPairs, to]);
+    }, [from, genome, openInNewWindow, symbolPairs, to]);
 
 
     return (
@@ -138,7 +149,7 @@ const RunScreen = () => {
                         : (
                             <Card elevation={15}>
                                 <CardContent style={{ padding: "32px" }}>
-                                    <form noValidate autoComplete="off">
+                                    <form noValidate autoComplete="off" onSubmit={handleClickRun}>
                                         <Grid item container spacing={2} style={{ padding: "0px !important" }}>
                                             <Grid item container style={{ padding: 0 }}>
                                                 <Grid item container>
@@ -189,8 +200,13 @@ const RunScreen = () => {
                                         ))}
                                     </Grid>
                                     <Grid item container spacing={2}>
+                                        <Grid item>
+                                            <FormGroup>
+                                                <FormControlLabel control={<Checkbox checked={openInNewWindow} onChange={evt => handleCheckOpenInNewWindow(evt.target.checked)} />} label="Open in new window (popups might get blocked; check address bar)" />
+                                            </FormGroup>
+                                        </Grid>
                                         <Grid item style={{ marginLeft: "auto", textAlign: "right", }}>
-                                            <Button onClick={handleClickRun} variant="contained">Run backtest</Button>
+                                            <Button type="submit" onClick={handleClickRun} variant="contained">Run backtest</Button>
                                         </Grid>
                                     </Grid>
                                 </CardContent>
@@ -202,36 +218,3 @@ const RunScreen = () => {
 };
 
 export default RunScreen;
-
-/*
-<Autocomplete
-    id="autocomplete-symbols"
-    sx={{ width: 300 }}
-    open={open}
-    onOpen={() => {
-        setOpen(true);
-    }}
-    onClose={() => {
-        setOpen(false);
-    }}
-    isOptionEqualToValue={(option, value) => option.title === value.title}
-    getOptionLabel={(option) => option.title}
-    options={options}
-    loading={loading}
-    renderInput={(params) => (
-        <TextField
-            {...params}
-            label="Asynchronous"
-            InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                    <React.Fragment>
-                        {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                    </React.Fragment>
-                ),
-            }}
-        />
-    )}
-    />
-*/

@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { Amount } from "./primitives/Amount";
 import { Order } from "../../../common/models/markets/Order";
+import { shortDateAndTime } from "../../../common/utils/time";
 
 
 export interface OrderTableProps {
@@ -25,6 +26,7 @@ export default function OrderTable(props?: OrderTableProps) {
                     <TableRow>
                         <TableCell align="left">Order</TableCell>
                         <TableCell align="right">Type</TableCell>
+                        <TableCell align="right">Opened</TableCell>
                         <TableCell align="right">Quantity</TableCell>
                         <TableCell align="right">Price</TableCell>
                         <TableCell align="right">Gross</TableCell>
@@ -38,6 +40,7 @@ export default function OrderTable(props?: OrderTableProps) {
                                 {row.displayName}
                             </TableCell>
                             <TableCell align="right">{row.typeId}</TableCell>
+                            <TableCell align="right">{shortDateAndTime(row.opened)}</TableCell>
                             <TableCell align="right">{row.quantity.round(12).toString()}</TableCell>
                             <TableCell align="right">{row.price.round(12).toString()}</TableCell>
                             <TableCell align="right"><Amount amount={row.gross.round(12).toNumber()} symbol={row.quoteSymbolId} /></TableCell>

@@ -35,5 +35,9 @@ describe(ResultsService.name, () => {
         it("gets the latest result when there are multiple", async () => {
             // TEST
         });
+
+        it("returns null if no results were found", async () => {
+            // TEST
+        });
     });
 });

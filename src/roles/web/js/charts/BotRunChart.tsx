@@ -33,13 +33,9 @@ import {
     withSize,
 } from "react-financial-charts";
 import { heikinAshi } from "@react-financial-charts/indicators";
-import { BotRunReport } from "../../../common/models/bots/BotSummaryResults";
-import { OrderEntity } from "../../../common/entities/OrderEntity";
-import { normalizePriceTime, shortDateAndTime } from "../../../common/utils/time";
 import { Candle, DataPoint, BotChartProps } from "../models";
+import { shortDateAndTime } from "../../../common/utils/time";
 import { Order } from "../../../common/models/markets/Order";
-import { BarStyles } from "../components/TradingViewWidget";
-import { ResultsService } from "../../../common-backend/services/ResultsService";
 
 
 type BotEvent = any;
@@ -48,7 +44,7 @@ class StockChart extends React.Component<BotChartProps> {
     private margin = { left: 0, right: 68, top: 8, bottom: 0 };
     private pricesDisplayFormat = format(".2f");
     private xScaleProvider = discontinuousTimeScaleProviderBuilder().inputDateAccessor(
-        (d: Candle) => d.date,
+        (d: Candle) => d.ts,
     );
 
     private svgAnnotation = {
@@ -63,16 +59,16 @@ class StockChart extends React.Component<BotChartProps> {
 
     public render() {
         console.log(`Render bot chart`);
-        const { data: initialData, eventMap, indicators, signals, dateTimeFormat = "%HH:%mm:%ss", height, ratio, summary, width } = this.props;
+        const { data: initialData, displayHeikinAshi, eventMap, indicators, signals, dateTimeFormat = "%HH:%mm:%ss", height, ratio, summary, width } = this.props;
 
         const signalMap = new Map<string, number>();
         for (let i = 0; i < initialData.length; ++i) {
             const dp = initialData[i];
-            signalMap.set(dp.date.toISOString(), signals[i]);
+            signalMap.set(dp.ts.toISOString(), signals[i]);
         }
 
         const when = (d: DataPoint) => {
-            const key = d.date.toISOString();
+            const key = d.ts.toISOString();
             return eventMap.has(key);
         };
 
@@ -96,7 +92,7 @@ class StockChart extends React.Component<BotChartProps> {
 
         const signalSubchartHeight = 100;
         const indicatorSubchartHeight = 100;
-        const signalCharOrigin = (_: number, h: number) => [0, h - signalSubchartHeight * 2];
+        const signalChartOrigin = (_: number, h: number) => [0, h - signalSubchartHeight * 2];
         const barChartHeight = gridHeight / 4;
         const barChartOrigin = (_: number, h: number) => [0, h - barChartHeight - signalSubchartHeight + 250];
         const chartHeight = gridHeight - signalSubchartHeight - (numIndicators * indicatorSubchartHeight);
@@ -153,10 +149,18 @@ class StockChart extends React.Component<BotChartProps> {
             const signalAtDt = signalMap.get(dt.toISOString());
 
             const cators = indicators.get(key);
-            const catorItems = Array.from(cators.entries()).map(([k, v]) => ({
-                label: k.toUpperCase(),
-                value: cators.get(k).toFixed(2),
-            }));
+            const catorItems = !cators
+                ? []
+                : Array.from(cators.entries()).map(([k, v]) => {
+
+                    // TODO: Diagnose why cator is null here sometimes
+                    const cator = cators.get(k);
+                    const value = cator ? cator.toFixed(2) : 0;
+                    return {
+                        label: k.toUpperCase(),
+                        value,
+                    }
+                });
 
             const events = eventMap.has(key) ? eventMap.get(key) : [];
             const eventItems = events.map(e => {
@@ -197,8 +201,7 @@ class StockChart extends React.Component<BotChartProps> {
             return content;
         };
 
-        const useHA = false;
-        if (useHA) {
+        if (displayHeikinAshi) {
             const calculator = heikinAshi();
             data = calculator(data);
         }
@@ -239,7 +242,7 @@ class StockChart extends React.Component<BotChartProps> {
                     <HoverTooltip
                         yAccessor={this.yEdgeIndicator}
                         tooltip={{
-                            content: buildTooltip,
+                            content: buildTooltip as any,
                         }}
                     />
                     <OHLCTooltip origin={[8, 16]} />
@@ -257,7 +260,7 @@ class StockChart extends React.Component<BotChartProps> {
                     id={4}
                     height={signalSubchartHeight}
                     yExtents={[-1, 1]}
-                    origin={signalCharOrigin}
+                    origin={signalChartOrigin}
                     padding={{ top: 8, bottom: 8 }}
                 >
                     <XAxis showGridLines={true} gridLinesStrokeStyle="#e0e3eb" />
@@ -321,29 +324,10 @@ class StockChart extends React.Component<BotChartProps> {
     };
 
     private readonly when = (data: Candle) => {
-        return data.date.getDay() === 1;
+        return data.ts.getDay() === 1;
     };
 }
 
 export default (withSize({ style: { minHeight: 600 } })(withDeviceRatio()(StockChart)));
 
 const parseDate = timeParse("%Y-%m-%d");
-
-const parseData = () => {
-    return (d: any) => {
-        const date = parseDate(d.date);
-        if (date === null) {
-            d.date = new Date(Number(d.date));
-        } else {
-            d.date = new Date(date);
-        }
-
-        for (const key in d) {
-            if (key !== "date" && Object.prototype.hasOwnProperty.call(d, key)) {
-                d[key] = +d[key];
-            }
-        }
-
-        return d as Candle;
-    };
-};
