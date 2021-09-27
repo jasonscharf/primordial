@@ -47,5 +47,6 @@ export interface BotChartProps {
     signals: number[];
     eventMap: any;
     indicators: IndicatorMap;
+    displayHeikinAshi?: boolean;
 }
 

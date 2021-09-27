@@ -38,6 +38,7 @@ const DEFAULT_BOT_RESULTS_POLL_MS = 500;
 const BotResults = () => {
     const args = useParams<{ instanceIdOrName: string }>();
     const [results, setResults] = useState<BotResultsApiResponse>(null);
+    const [displayHeikinAshi, setDisplayHeikinAshi] = useState<boolean>(false);
 
     const imap: IndicatorMap = new Map<Date, Map<string, number>>();
 
@@ -156,6 +157,10 @@ const BotResults = () => {
         }
     }, []);
 
+    const handleToggleHeikinAshi = React.useCallback(() => {
+        setDisplayHeikinAshi(!displayHeikinAshi);
+    }, [displayHeikinAshi]);
+
     if (!results) {
         return (
             <Spinner caption1={"Loading bot results..."} caption2={"This may take a moment"} />
@@ -215,13 +220,24 @@ const BotResults = () => {
                 </Grid>
 
                 <Grid container item spacing={3} style={{ borderBottom: "2px solid #ddd", margin: 0 }}>
-                    <BotRunChart eventMap={eventMap} summary={report} data={data} signals={signals} indicators={indicators} />
+                    <BotRunChart
+                        data={data}
+                        displayHeikinAshi={displayHeikinAshi}
+                        eventMap={eventMap}
+                        summary={report}
+                        signals={signals}
+                        indicators={indicators}
+                    />
+                </Grid>
+
+                <Grid container spacing={2} style={{ borderBottom: "1px solid #ddd" }}>
+                    <Grid item style={{ marginLeft: "auto", padding: "8px " }}>
+                        <Button onClick={handleToggleHeikinAshi} variant="contained">Heikin Ashi {displayHeikinAshi ? "off" : "on"}</Button>
+                    </Grid>
                 </Grid>
 
                 <Grid container item spacing={2}>
-                    <Grid item style={{ height: "325px", overflow: "auto", margin: 0 }}>
-                        <OrderTable orders={orders} />
-                    </Grid>
+
                     <Grid item style={{ flex: 1 }}>
                         <Card>
                             <CardContent>
@@ -273,6 +289,9 @@ const BotResults = () => {
                                 </Grid>
                             </CardContent>
                         </Card>
+                    </Grid>
+                    <Grid item style={{ height: "325px", overflow: "auto", margin: 0 }}>
+                        <OrderTable orders={orders} />
                     </Grid>
                 </Grid>
             </Grid>

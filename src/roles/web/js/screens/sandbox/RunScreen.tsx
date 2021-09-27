@@ -60,7 +60,6 @@ const RunScreen = () => {
 
     const handleChangeSymbols = useCallback((value: string) => {
         setSymbols(value);
-        console.log(`Set symbols to '${value}'`, symbolPairs);
     }, [symbolPairs]);
 
     const handleCheckOpenInNewWindow = useCallback((value: boolean) => {
@@ -219,36 +218,3 @@ const RunScreen = () => {
 };
 
 export default RunScreen;
-
-/*
-<Autocomplete
-    id="autocomplete-symbols"
-    sx={{ width: 300 }}
-    open={open}
-    onOpen={() => {
-        setOpen(true);
-    }}
-    onClose={() => {
-        setOpen(false);
-    }}
-    isOptionEqualToValue={(option, value) => option.title === value.title}
-    getOptionLabel={(option) => option.title}
-    options={options}
-    loading={loading}
-    renderInput={(params) => (
-        <TextField
-            {...params}
-            label="Asynchronous"
-            InputProps={{
-                ...params.InputProps,
-                endAdornment: (
-                    <React.Fragment>
-                        {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                    </React.Fragment>
-                ),
-            }}
-        />
-    )}
-    />
-*/
