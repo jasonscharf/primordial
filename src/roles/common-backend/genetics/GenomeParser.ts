@@ -71,10 +71,7 @@ export class GenomeParser {
                 throw new PrimoMalformedGenomeError(`Unknown chromosome '${chromosomeName}'`);
             }
 
-            const gene = chromo.getGene(geneName);
-            if (!gene) {
-                throw new PrimoMalformedGenomeError(`Unknown gene '${geneName}' in chromosome '${chromosomeName}'`);
-            }
+
 
             const geneNameFull = `${chromosomeName}-${geneName}`;
 
@@ -85,6 +82,19 @@ export class GenomeParser {
             }
             else {
                 parsingChromo = specifiedChromos.get(chromo.name);
+            }
+
+            let gene: Gene;
+
+            if (keyValues.length === 1) {
+                parsingChromo.active = true;
+                continue;
+            }
+            else {
+                gene = chromo.getGene(geneName);
+                if (!gene) {
+                    throw new PrimoMalformedGenomeError(`Unknown gene '${geneName}' in chromosome '${chromosomeName}'`);
+                }
             }
 
             // Extract value, if present

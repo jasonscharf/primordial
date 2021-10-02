@@ -290,7 +290,7 @@ const BotResults = () => {
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item style={{ height: "325px", overflow: "auto", margin: 0 }}>
+                    <Grid item style={{ overflow: "auto", margin: 0 }}>
                         <OrderTable orders={orders} />
                     </Grid>
                 </Grid>

@@ -176,7 +176,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             // TODO: Infer a better profit target when none specified. Account for fees.
             const profitTargetPct = profitTargetGene.active
                 ? profitTargetGene.value
-                : 0.002
+                : 0.002 // FIX/COMMENT
                 ;
             const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
 
@@ -205,7 +205,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 savedOrder = await orders.addOrderToDatabase(order, trx);
             }
 
-            log.info(`Placing ${modeStr} order for ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId}`);
+            //log.info(`Placing ${modeStr} order for ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId}`);
 
             const transaction: Partial<AllocationTransaction> = {
                 allocationItemId: item.id,

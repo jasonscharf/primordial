@@ -3,6 +3,7 @@ import { Gene } from "../../common/models/genetics/Gene";
 import { GeneticValueType } from "../../common/models/genetics/GeneticValueType";
 import { RsiIndicatorChromosome } from "../indicators/RSI";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { HeikinAshiIndicator as HeikinAshiIndicatorChromosome } from "../indicators/HeikinAshi";
 
 
 /** Do *NOT* change this value! */
@@ -36,7 +37,10 @@ export const enum names {
     GENETICS_C_BOLL = "BOLL",
     GENETICS_C_BOLL_G_BUY_BREAKOUTS = "BB",
     GENETICS_C_BOLL_G_SELL_BREAKOUTS = "SB",
-}
+    GENETICS_C_HEIKIN_ASHI = "HA",
+    GENETICS_C_HEIKIN_ASHI_G_BW = "BW",
+    GENETICS_C_HEIKIN_ASHI_G_SW = "SW",
+};
 
 
 export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
@@ -45,11 +49,7 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
     ]),
     [names.GENETICS_C_TIME]: new Chromosome(names.GENETICS_C_TIME, "Time", "Controls time related behaviour, notably time resolution", [
         new Gene<TimeResolution>(names.GENETICS_C_TIME_G_RES, GeneticValueType.TIME_RES, TimeResolution.FIFTEEN_MINUTES, "Specifies the time resolution to trade at, e.g. '1m', '15m', '1h', etc"),
-
-
         new Gene<number>(names.GENETICS_C_TIME_G_MAX_INTERVALS, GeneticValueType.NUMBER, 99, "Specifies the number of previous intervals available for indicators to consider"),
-
-
     ]),
     [names.GENETICS_C_PROFIT]: new Chromosome(names.GENETICS_C_PROFIT, "Profit", "Controls profit targets and take-profits", [
         new Gene<number>(names.GENETICS_C_PROFIT_G_TARGET, GeneticValueType.NUMBER, DEFAULT_PROFIT_TARGET, "Controls the default profit target"),
@@ -71,6 +71,11 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
         new Gene(names.GENETICS_C_RSI_G_BW, GeneticValueType.NUMBER, 1, "Weighting for RSI buy signal"),
         new Gene(names.GENETICS_C_RSI_G_SW, GeneticValueType.NUMBER, 1, "Weighting for RSI sell signal"),
         new Gene(names.GENETICS_C_RSI_G_OITP, GeneticValueType.NUMBER, 14, "Opt-in time period for RSI"),
+
+    ]),
+    [names.GENETICS_C_HEIKIN_ASHI]: new HeikinAshiIndicatorChromosome("HA", "Heikin-Ashi", "Signal based on HA colour", [
+        new Gene<number>(names.GENETICS_C_HEIKIN_ASHI_G_BW, GeneticValueType.NUMBER, 1, "Heikin-Ashi signal buy-weight"),
+        new Gene<number>(names.GENETICS_C_HEIKIN_ASHI_G_SW, GeneticValueType.NUMBER, 1, "Heikin-Ashi signal sell-weight"),
     ]),
     [names.GENETICS_C_BOLL]: new Chromosome(names.GENETICS_C_BOLL, "Bollinger Bands", "Behaviour involving Bollinger Bands indicators", [
         new Gene(names.GENETICS_C_BOLL_G_BUY_BREAKOUTS, GeneticValueType.FLAG, false, "Emit buy signal on a breakout of the lower bound"),

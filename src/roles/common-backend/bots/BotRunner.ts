@@ -233,7 +233,7 @@ export class BotRunner {
             ctx.instance.runState = RunState.ACTIVE;
             ctx.instance.modeId = Mode.BACK_TEST;
 
-            for (let i = 0; i < prices.length - window; ++i) {
+            for (let i = 1; i < prices.length - window; ++i) {
                 ctx.prices = prices.slice(i, i + window);
                 const tick = ctx.prices[ctx.prices.length - 1];
                 if (this.isGapTick(tick)) {
@@ -497,7 +497,7 @@ export class BotRunner {
                 // IMPORTANT: We are ticking at the interval level here (e.g. 1min) and not necessarily at true tick-level (e.g. 1s)
 
 
-                for (let i = 0; i < prices.length - maxIntervals; ++i) {
+                for (let i = 1; i < prices.length - maxIntervals; ++i) {
                     ctx.prices = prices.slice(i, i + maxIntervals);
                     const tick = ctx.prices[ctx.prices.length - 1];
                     if (this.isGapTick(tick)) {
