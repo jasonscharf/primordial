@@ -343,7 +343,7 @@ export class BotRunner {
         tr.numCandles = 0;
         tr.firstClose = null;
         tr.lastClose = null;
-        tr.capital = capitalInvested.round(12).toNumber();
+        tr.capital = capitalInvested.round(11).toNumber();
         tr.balance = null;
         tr.totalGross = null;
         tr.totalGrossPct = 0;
@@ -566,13 +566,13 @@ export class BotRunner {
 
                 let totalGrossProfit = Money("0");
                 orders.forEach(o => totalGrossProfit = totalGrossProfit.add(o.gross));
-                tr.totalGross = totalGrossProfit.round(12).toNumber();
-                tr.capital = capitalInvested.round(12).toNumber();
-                tr.firstClose = firstClose.round(12).toNumber();
-                tr.lastClose = lastClose.round(12).toNumber();
+                tr.totalGross = totalGrossProfit.round(11).toNumber();
+                tr.capital = capitalInvested.round(11).toNumber();
+                tr.firstClose = firstClose.round(11).toNumber();
+                tr.lastClose = lastClose.round(11).toNumber();
                 tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
                 tr.buyAndHoldGrossPct = Money("1").minus(firstClose.div(lastClose)).round(3).toNumber();
-                tr.balance = capitalInvested.plus(totalGrossProfit).round(12).toNumber();
+                tr.balance = capitalInvested.plus(totalGrossProfit).round(11).toNumber();
                 tr.orders = orders;
                 tr.numOrders = orders.length;
                 tr.numTrades = tr.numOrders / 2;

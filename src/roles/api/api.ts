@@ -185,7 +185,7 @@ process.on("SIGTERM", () => {
 
 log.info(`API role running migrations (if needed)...`);
 dbm.migrate()
-    .then(createSocketServer)
+    //.then(createSocketServer)
     .then(() => {
 
         // Server entrypoint
