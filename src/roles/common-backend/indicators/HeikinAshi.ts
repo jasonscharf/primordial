@@ -46,8 +46,8 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
                     (prev.open.add(prev.close)),
                 );
 
-                const high = Money(Math.max(tick.high.round(12).toNumber(), open.round(12).toNumber(), close.round(12).toNumber()).toString());
-                const low = Money(Math.min(tick.low.round(12).toNumber(), open.round(12).toNumber(), close.round(12).toNumber()).toString());
+                const high = Money(Math.max(tick.high.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber()).toString());
+                const low = Money(Math.min(tick.low.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber()).toString());
 
                 series.push(Object.assign({}, tick, { open, high, low, close }));
             }
@@ -72,8 +72,8 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
             (prev.open.add(prev.close)),
         );
 
-        const high = Math.max(tick.high.round(12).toNumber(), open.round(12).toNumber(), close.round(12).toNumber());
-        const low = Math.min(tick.low.round(12).toNumber(), open.round(12).toNumber(), close.round(12).toNumber());
+        const high = Math.max(tick.high.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber());
+        const low = Math.min(tick.low.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber());
 
         const isGreen = close.gt(open);
 

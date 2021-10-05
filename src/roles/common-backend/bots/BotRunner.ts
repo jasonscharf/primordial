@@ -253,12 +253,12 @@ export class BotRunner {
                         cators = indicators[ind] = [];
                     }
 
-                    const foo = botIndicators.get(ind);
-                    if (foo && Array.isArray(foo)) {
-                        cators.push(foo[foo.length - 1]);
+                    const indicatorValue = botIndicators.get(ind);
+                    if (Array.isArray(indicatorValue)) {
+                        cators.push(indicatorValue[indicatorValue.length - 1]);
                     }
                     else {
-                        cators.push(null);
+                        cators.push(indicatorValue);
                     }
                 }
 

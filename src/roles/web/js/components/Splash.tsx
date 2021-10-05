@@ -37,7 +37,7 @@ const Splash = () => {
             <div className="hero-img"></div>
             <div className="hero-text">
                 <h1>P R I M O R D I A L</h1>
-                <i>{infoText}</i>
+                <i>{infoText}</i><br />
                 <i>{versionText}</i>
             </div>
         </div>

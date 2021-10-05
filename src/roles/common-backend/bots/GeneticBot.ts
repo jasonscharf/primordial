@@ -155,10 +155,10 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             newState = await this.waitForTradeEntryOrExit(ctx, tick, signal, indicators);
         }
 
-        fsmState = newState.fsmState;
-        // Note: We may have entered the surf state above during the same tick
-        if (fsmState === GeneticBotFsmState.SURF_BUY ||
-            fsmState === GeneticBotFsmState.SURF_SELL) {
+        // Note that we can immediately enter the surf logic here and thus place an order in the very same
+        // tick that enter/exit conditions are met.
+        if (newState.fsmState === GeneticBotFsmState.SURF_BUY ||
+            newState.fsmState === GeneticBotFsmState.SURF_SELL) {
             newState = await this.handleSurfLogic(ctx, tick, indicators);
         }
 
