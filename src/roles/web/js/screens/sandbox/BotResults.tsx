@@ -40,7 +40,7 @@ const BotResults = () => {
     const [results, setResults] = useState<BotResultsApiResponse>(null);
     const [displayHeikinAshi, setDisplayHeikinAshi] = useState<boolean>(false);
 
-    const imap: IndicatorMap = new Map<Date, Map<string, number>>();
+    const imap: IndicatorMap = new Map<string, Map<string, number>>();
 
     async function waitForCompletion(id: string) {
         let hasCompletionOrError = false;
@@ -128,7 +128,7 @@ const BotResults = () => {
                                         indicatorsForTick.set(k, indicators[k][i]);
                                     });
 
-                                    imap.set(price.ts, indicatorsForTick);
+                                    imap.set(price.ts.toISOString(), indicatorsForTick);
                                     const dp: DataPoint = {
                                         ts: price.ts,
                                         open: price.open.round(12).toNumber(),

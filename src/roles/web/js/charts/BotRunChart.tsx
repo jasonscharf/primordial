@@ -267,7 +267,7 @@ class StockChart extends React.Component<BotChartProps> {
                     <XAxis showGridLines={true} gridLinesStrokeStyle="#e0e3eb" />
                     <YAxis ticks={4} tickFormat={this.pricesDisplayFormat} />
 
-                    <MouseCoordinateX displayFormat={signalDisplayX} />
+                    {/*<MouseCoordinateX displayFormat={signalDisplayX} />*/}
                     <MouseCoordinateY rectWidth={margin.right} displayFormat={this.pricesDisplayFormat} />
 
                     <LineSeries yAccessor={this.signalSeries} />
