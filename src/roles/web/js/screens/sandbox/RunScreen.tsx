@@ -66,6 +66,10 @@ const RunScreen = () => {
         setOpenInNewWindow(value);
     }, [openInNewWindow]);
 
+    const handleClickSetEndNow = useCallback(async () => {
+        setTo(DateTime.now());
+    }, []);
+
     const handleClickRun = useCallback(async () => {
         try {
             const res: ApiTimeResolution = ApiTimeResolution.Type15M;
@@ -179,6 +183,15 @@ const RunScreen = () => {
                                                             renderInput={(params) => <TextField {...params} />}
                                                         />
                                                     </Grid>
+                                                    <Grid item>
+                                                        <Button
+                                                            variant="outlined"
+                                                            style={{ height: "55px" }}
+                                                            onClick={handleClickSetEndNow}>
+                                                            <span>&#9201;</span>
+                                                        </Button>
+                                                    </Grid>
+
                                                 </Grid>
                                             </Grid>
                                             <Grid item xs={12} style={{ paddingLeft: 0 }}>
@@ -192,7 +205,6 @@ const RunScreen = () => {
                                                     onChange={evt => handleChangeGenome(evt.target.value)}
                                                 />
                                             </Grid>
-
                                         </Grid>
                                     </form>
                                     <Grid item >
