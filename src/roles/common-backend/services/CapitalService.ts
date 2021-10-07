@@ -116,6 +116,7 @@ export class CapitalService {
                 const transactionRows = <AllocationTransaction[]>await db(tables.AllocationTransactions)
                     .innerJoin(tables.AllocationItems, ref(tables.AllocationTransactions, "allocationItemId"), ref(tables.AllocationItems))
                     .select(ref(tables.AllocationTransactions, "*"))
+                    .where({ "allocationId": allocationId })
                     .orderBy("created", "asc")
                     ;
 
