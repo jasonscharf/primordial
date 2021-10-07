@@ -4,7 +4,6 @@ import { IndicatorChromosome } from "../genetics/IndicatorChromosome";
 import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/markets/Price";
 import { PriceUpdateMessage } from "../messages/trading";
-import { shortDateAndTime } from "../../common/utils/time";
 
 
 /**
@@ -23,21 +22,23 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
         return [buyWeight, sellWeight];
     }
 
-    computeSeries(prices: Price[]) {
+    batchCompute(ctx: BotContext<GeneticBotState>, prices: Price[]) {
         const series: Partial<Price>[] = [];
 
         for (let i = 0; i < prices.length; ++i) {
             const tick = prices[i];
             const prev: Partial<Price> = i === 0 ? null : series[i - 1];
+            let curr: Partial<Price> = null;
             if (!prev) {
-                let { open, high, low, close } = tick;
+                const { open, high, low } = tick;
+                let { close } = tick;
+
                 close = Money("0.25").mul(
                     (open.add(high).add(low).add(close)),
                 );
-                series.push(Object.assign({}, tick, { open, high, low, close }));
+                curr = Object.assign({}, tick, { open, high, low, close })
             }
             else {
-
                 const close = Money("0.25").mul(
                     (tick.open.add(tick.high).add(tick.low).add(tick.close)),
                 );
@@ -49,48 +50,91 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
                 const high = Money(Math.max(tick.high.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber()).toString());
                 const low = Money(Math.min(tick.low.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber()).toString());
 
-                series.push(Object.assign({}, tick, { open, high, low, close }));
+                curr = Object.assign({}, tick, { open, high, low, close });
             }
+
+            series.push(curr);
+
+            this.computeSignalForCandle(ctx, curr, prev);
         }
 
         return series;
     }
 
-    isGreen(ctx: BotContext<GeneticBotState>, tick: Price, values) {
-        const { genome, prices } = ctx;
-        const series = this.computeSeries(prices);
-        const prev = series[series.length - 2];
+    computeCandle(ctx, tick: Partial<Price>, prev: Partial<Price>) {
+        if (!prev) {
+            const { open, high, low } = tick;
+            let { close } = tick;
 
-        let buy = 0;
-        let sell = 0;
+            close = Money("0.25").mul(
+                (open.add(high).add(low).add(close)),
+            );
+            return Object.assign({}, tick, { open, high, low, close })
+        }
+        else {
+            const close = Money("0.25").mul(
+                (tick.open.add(tick.high).add(tick.low).add(tick.close)),
+            );
 
-        const close = Money("0.25").mul(
-            (tick.open.add(tick.high).add(tick.low).add(tick.close)),
-        );
+            const open = Money("0.5").mul(
+                (prev.open.add(prev.close)),
+            );
 
-        const open = Money("0.5").mul(
-            (prev.open.add(prev.close)),
-        );
+            const high = Money(Math.max(tick.high.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber()).toString());
+            const low = Money(Math.min(tick.low.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber()).toString());
 
-        const high = Math.max(tick.high.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber());
-        const low = Math.min(tick.low.round(11).toNumber(), open.round(11).toNumber(), close.round(11).toNumber());
-
-        const isGreen = close.gt(open);
-
-        //console.log(`Heikin-Ashi is ${isGreen ? "GREEN" : "RED"} on ${shortDateAndTime(tick.ts)}`);
-
-        return isGreen;
+            return Object.assign({}, tick, { open, high, low, close });
+        }
     }
 
-    async computeBuySellSignal(ctx: BotContext<GeneticBotState>, price: PriceUpdateMessage, values: number[]): Promise<number> {
-        const isGreen = this.isGreen(ctx, price, values);
-        return isGreen ? 1 : -1;;
+    computeSignalForCandle(ctx, tick: Partial<Price>, prev: Partial<Price> = null) {
+        const { open, high, low, close } = tick;
+        const isGreen = close.gt(open);
+
+        const wickHeight = high.minus(low).round(11).toNumber();
+        const barHeight = Math.abs(close.minus(open).round(11).toNumber());
+
+        const barWickRatio = barHeight / wickHeight;
+        const thresh = 0.25;
+
+        const filtered = barWickRatio < thresh;
+
+        const result = isGreen;// && !filtered;
+        return result ? 1 : -1;
+    }
+
+    // NOTE: These aren't copied by the genomics handling, so are undefined
+    // to begin with during backtesting, and will be for each tick on forward testing.
+    // A proper caching strategy for ticks still needs to be implemented.
+    computedCandles: Partial<Price>[] = [];
+    latestTs: string = null;
+    latest: number;
+
+    async computeBuySellSignal(ctx: BotContext<GeneticBotState>, tick: Price): Promise<number> {
+        const signal = this.compute(ctx, tick);
+        return signal;
     }
 
     async compute(ctx: BotContext<GeneticBotState>, tick: Price): Promise<number> {
         const { genome, log, prices } = ctx;
 
-        const isGreen = this.isGreen(ctx, tick, []);
-        return isGreen ? 1 : -1;;
+        if (tick.ts.toISOString() === this.latestTs) {
+            return this.latest;
+        }
+        else {
+            if (!this.computedCandles || this.computedCandles.length === 0) {
+                console.log(`BATCH COMPUTING ${ctx.prices.length}`);
+                this.computedCandles = this.batchCompute(ctx, ctx.prices);
+            }
+
+            const [last] = this.computedCandles.slice(-1);
+            const candle = this.computeCandle(ctx, tick, last);
+            this.computedCandles.push(candle);
+
+            const signal = await this.computeSignalForCandle(ctx, candle);
+            this.latest = signal;
+            this.latestTs = tick.ts.toISOString();
+            return signal;
+        }
     }
 }
