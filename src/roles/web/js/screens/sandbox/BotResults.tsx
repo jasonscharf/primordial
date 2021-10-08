@@ -182,8 +182,7 @@ const BotResults = () => {
 
     const [base, quote] = symbols.split(/\//);
     const tradingViewSymbol = `${exchange}:${base}${quote}`;
-
-    const interval = getIntervalForTimeRes(report.timeRes);
+    const avgTickDuration = (report.durationMs / report.numCandles).toFixed(2);
     const runType = "backtest"
     return (
         <Box width={1} height={1}>
@@ -285,6 +284,10 @@ const BotResults = () => {
                                     <Grid item container className="primo-info-table-item">
                                         <Grid item>Num. Candles</Grid>
                                         <Grid item style={{ textAlign: "right" }}><b>{report.numCandles}</b></Grid>
+                                    </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Duration (ms)</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><b>{report.durationMs}ms ({avgTickDuration} ms/candle)</b></Grid>
                                     </Grid>
                                 </Grid>
                             </CardContent>
