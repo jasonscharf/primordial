@@ -296,7 +296,7 @@ export class BotRunner {
     async run(args: BacktestRequest, ctx: BotContext = null): Promise<ApiBacktestHandle | BotRunReport> {
         const start = Date.now();
         const trx = null;//await db.transaction();
-        let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ to } = args;
+        let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ res, to } = args;
 
         // TODO: Fix this...JSONification
         if (typeof from === "string") {
@@ -371,6 +371,7 @@ export class BotRunner {
             build: version.full,
             name,
             normalizedGenome: genomeStr,
+            resId: res,
         };
 
         const appliedDefProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_DEF_PROPS, defProps);
@@ -433,7 +434,7 @@ export class BotRunner {
 
                 const symbolPair = instanceRecord.symbols;
                 const botType = genome.getGene<string>("META", "IMPL").value;
-                const res = genome.getGene<TimeResolution>("TIME", "RES").value;
+                const res = instanceRecord.resId;
                 const localInstance = botFactory.create(botType) as BotImplementation;
 
                 // Initialize 
@@ -624,12 +625,13 @@ export class BotRunner {
 
     /**
      * Runs a simple heuristic check to detect if a tick is part of a gap.
+     * NOTE: Really, really rough...
      * @param tick 
      * @returns 
      */
     isGapTick(tick: Price) {
-        if (tick.volume.toNumber() == 0 &&
-            tick.open.toNumber() == 0 &&
+        if (tick.open.toNumber() === 0 ||
+            tick.low.toNumber() === 0 ||
             tick.close.toNumber() == 0) {
             console.log(`Skip gap @ ${tick.ts.toISOString()}`);
             return true;
