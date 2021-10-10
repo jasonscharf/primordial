@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Hashicon } from "@emeraldpay/hashicon-react";
 
 import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar } from "@mui/material";
+import { useParams } from "react-router";
 import { Amount } from "../../components/primitives/Amount";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
 import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
@@ -14,17 +15,15 @@ import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../../../common/entities/PriceEntity";
 import BotRunChart from "../../charts/BotRunChart";
+import { OrderEntity } from "../../../../common/entities/OrderEntity";
+import OrderTable from "../../components/OrderTable";
+import { Percent } from "../../components/primitives/Percent";
+import { RunState } from "../../client";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
-import TradingViewWidget, { BarStyles, Themes } from "../../components/TradingViewWidget";
-import { useParams } from "react-router";
 import { client } from "../../includes";
 import { isNullOrUndefined, sleep } from "../../../../common/utils";
 import { Spinner } from "../../components/primitives/Spinner";
 import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
-import OrderTable from "../../components/OrderTable";
-import { OrderEntity } from "../../../../common/entities/OrderEntity";
-import { Percent } from "../../components/primitives/Percent";
-import { RunState } from "../../client";
 
 
 
@@ -147,7 +146,9 @@ const BotResults = () => {
                                 results.data = data;
                                 setResults(results);
                             })
-                            .catch(err => alert("There was an error loading the results. The bot may have exploded during operation. Please go back and try again. Feel free to copy the URL and report this as a bug."))
+                            .catch(err => {
+                                alert("There was an error loading the results. The bot may have exploded during operation. Please go back and try again. Feel free to copy the URL and report this as a bug.");
+                            })
                             ;
                     });
             }
@@ -183,7 +184,7 @@ const BotResults = () => {
     const [base, quote] = symbols.split(/\//);
     const tradingViewSymbol = `${exchange}:${base}${quote}`;
     const avgTickDuration = (report.durationMs / report.numCandles).toFixed(2);
-    const runType = "backtest"
+    const runType = "backtest";
     return (
         <Box width={1} height={1}>
             <Grid container className="primo-fullsize" direction="row" style={{ alignContent: "baseline", margin: 0, padding: 0 }}>
@@ -194,6 +195,7 @@ const BotResults = () => {
                     <Grid item>
                         <Grid item>
                             <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#40;{runType}&#41;
+                            &nbsp;<span>@</span><b><span>{report.timeRes}</span></b>
                         </Grid>
                         <Grid item>
                             <span>&#129516;&nbsp;<b>{report.genome}</b></span>

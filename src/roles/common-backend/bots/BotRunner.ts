@@ -3,7 +3,7 @@ import knex from "knex";
 import env from "../env";
 import { ApiBacktestHandle } from "../../common/messages/trading";
 import { BacktestRequest } from "../messages/testing";
-import { BotContext, botIdentifier, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
+import { BotContext, botIdentifier, buildBacktestingContext, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
@@ -25,11 +25,8 @@ import { botFactory } from "./RobotFactory";
 import { capital, db, log, results, strats, users } from "../includes";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { names } from "../genetics/base-genetics";
-import { query } from "../database/utils";
 import { sym } from "../services";
-import { tables } from "../constants";
 import { version } from "../../common/version";
-import { sleep } from "../utils";
 
 
 
@@ -261,14 +258,7 @@ export class BotRunner {
                         cators.push(indicatorValue);
                     }
                 }
-
-
-                //log.info(`Backtest in state ${newState.fsmState}`);
-
-                // SAVE (maybe?)
-                //await strats.updateBotInstance(instanceRecord);
             }
-
 
             const result: IndicatorsAndSignals = {
                 signals,
@@ -427,9 +417,8 @@ export class BotRunner {
                 instanceId = instanceRecord.id;
                 tr.timeRes = instanceRecord.resId;
 
-                // TODO: Contextually correct context (i.e. save records or no)
                 if (!ctx) {
-                    ctx = await buildBotContext(def, instanceRecord, run);
+                    ctx = await buildBacktestingContext(def, instanceRecord, run);
                 }
 
                 const symbolPair = instanceRecord.symbols;
@@ -548,13 +537,7 @@ export class BotRunner {
             finally {
                 let orders: Order[] = [];
                 if (run) {
-                    orders = await query("orders", async db => {
-                        const rows = <Order[]>await db(tables.Orders)
-                            .where({ botRunId: run.id })
-                            .orderBy("opened");
-
-                        return rows.map(row => OrderEntity.fromRow(row));
-                    });
+                    orders = ctx.backtestingOrders as Order[];
                 }
 
                 // Disregard the last buy
