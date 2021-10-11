@@ -194,14 +194,6 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
                 : sellWeight
                 ;
 
-            /*
-            if (isBuying && signal < 0) {
-                continue;
-            }
-            else if (!isBuying && signal > 0) {
-                continue;
-            }*/
-
             weightedAverage += signal * weight;
         }
 

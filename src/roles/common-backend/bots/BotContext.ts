@@ -65,7 +65,7 @@ export function botIdentifier(bot: BotInstance) {
  * @returns 
  */
 export async function buildBotContextForSignalsComputation(args: BacktestRequest): Promise<BotContext> {
-    const { genome, from, to } = args;
+    const { genome, from, res, to } = args;
     const { genome: parsedGenome } = new GenomeParser().parse(genome);
     const def: Partial<BotDefinition> = {
         id: randomString(),
@@ -80,6 +80,7 @@ export async function buildBotContextForSignalsComputation(args: BacktestRequest
         modeId: Mode.BACK_TEST,
         normalizedGenome: genome,
         prevTick: new Date(from.getTime() - 1),
+        resId: res,
     };
 
     const prices = [];

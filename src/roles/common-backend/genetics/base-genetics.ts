@@ -38,6 +38,7 @@ export const enum names {
     GENETICS_C_BOLL_G_BUY_BREAKOUTS = "BB",
     GENETICS_C_BOLL_G_SELL_BREAKOUTS = "SB",
     GENETICS_C_HEIKIN_ASHI = "HA",
+    GENETICS_C_HEIKIN_ASHI_G_INTERVAL_ELAPSED_PCT = "IE",
     GENETICS_C_HEIKIN_ASHI_G_BW = "BW",
     GENETICS_C_HEIKIN_ASHI_G_SW = "SW",
 };
@@ -74,6 +75,7 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
 
     ]),
     [names.GENETICS_C_HEIKIN_ASHI]: new HeikinAshiIndicatorChromosome("HA", "Heikin-Ashi", "Signal based on HA colour", [
+        new Gene<number>(names.GENETICS_C_HEIKIN_ASHI_G_INTERVAL_ELAPSED_PCT, GeneticValueType.NUMBER, 98, "Percentage of current interval to complete before producing enter/exit signals"),
         new Gene<number>(names.GENETICS_C_HEIKIN_ASHI_G_BW, GeneticValueType.NUMBER, 1, "Heikin-Ashi signal buy-weight"),
         new Gene<number>(names.GENETICS_C_HEIKIN_ASHI_G_SW, GeneticValueType.NUMBER, 1, "Heikin-Ashi signal sell-weight"),
     ]),

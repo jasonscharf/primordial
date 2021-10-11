@@ -8,13 +8,13 @@ import { Hashicon } from "@emeraldpay/hashicon-react";
 import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar } from "@mui/material";
 import { useParams } from "react-router";
 import { Amount } from "../../components/primitives/Amount";
+import BotRunChart from "../../charts/BotRunChart";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
 import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
 import { DateTime } from "luxon";
 import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../../../common/entities/PriceEntity";
-import BotRunChart from "../../charts/BotRunChart";
 import { OrderEntity } from "../../../../common/entities/OrderEntity";
 import OrderTable from "../../components/OrderTable";
 import { Percent } from "../../components/primitives/Percent";
@@ -140,6 +140,10 @@ const BotResults = () => {
                                     };
 
                                     data.push(dp);
+                                }
+
+                                if (!isNullOrUndefined(data[0].indicators["HA"])) {
+                                    setDisplayHeikinAshi(true);
                                 }
 
                                 results.indicators = imap;

@@ -4,6 +4,8 @@ import { IndicatorChromosome } from "../genetics/IndicatorChromosome";
 import { Money } from "../../common/numbers";
 import { Price } from "../../common/models/markets/Price";
 import { PriceUpdateMessage } from "../messages/trading";
+import { millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
+import { names } from "../genetics/base-genetics";
 
 
 /**
@@ -87,10 +89,22 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
         }
     }
 
-    computeSignalForCandle(ctx, tick: Partial<Price>, prev: Partial<Price> = null) {
+    computeSignalForCandle(ctx: BotContext<GeneticBotState>, tick: Partial<Price>, prev: Partial<Price> = null) {
         const { open, high, low, close } = tick;
         const isGreen = close.gt(open);
 
+        const { genome, instance} = ctx;
+        const { resId } = instance;
+
+        const intervalFloor = normalizePriceTime(resId, new Date(tick.ts.getTime() - 1)).getTime();
+        const progress = Math.round(100 * (tick.ts.getTime() - intervalFloor) / millisecondsPerResInterval(resId));
+
+        const progressGene = genome.getGene(names.GENETICS_C_HEIKIN_ASHI, names.GENETICS_C_HEIKIN_ASHI_G_INTERVAL_ELAPSED_PCT);
+        if (progress < progressGene.value) {
+            return 0;
+        }
+
+        // TODO: Proper noise filtering mechanism
         const wickHeight = high.minus(low).round(11).toNumber();
         const barHeight = Math.abs(close.minus(open).round(11).toNumber());
 
@@ -98,7 +112,6 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
         const thresh = 0.25;
 
         const filtered = barWickRatio < thresh;
-
         const result = isGreen;// && !filtered;
         return result ? 1 : -1;
     }
@@ -123,7 +136,6 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
         }
         else {
             if (!this.computedCandles || this.computedCandles.length === 0) {
-                console.log(`BATCH COMPUTING ${ctx.prices.length}`);
                 this.computedCandles = this.batchCompute(ctx, ctx.prices);
             }
 
