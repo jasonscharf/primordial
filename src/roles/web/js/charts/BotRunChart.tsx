@@ -92,7 +92,7 @@ class StockChart extends React.Component<BotChartProps> {
 
         const signalSubchartHeight = 100;
         const indicatorSubchartHeight = 100;
-        const signalChartOrigin = (_: number, h: number) => [0, h - signalSubchartHeight * 2];
+        const signalChartOrigin = (_: number, h: number) => [0, h - ((numIndicators + 1) * indicatorSubchartHeight)];
         const barChartHeight = gridHeight / 4;
         const barChartOrigin = (_: number, h: number) => [0, h - barChartHeight - signalSubchartHeight + 250];
         const chartHeight = gridHeight - signalSubchartHeight - (numIndicators * indicatorSubchartHeight);
@@ -116,12 +116,13 @@ class StockChart extends React.Component<BotChartProps> {
             ? null
             : indicatorNames.map((indicator, i) => {
                 const series = this.indicatorSeries(indicator);
+                const yExtents = indicator === "RSI" ? [20, 80] : [-1, 1];
                 return (
                     <Chart
                         key={i}
                         id={i + 5}
                         height={indicatorSubchartHeight}
-                        yExtents={[20, 80]}
+                        yExtents={yExtents}
                         origin={(w, h) => [0, h - indicatorSubchartHeight * (i + 1)]}
                         padding={{ top: 8, bottom: 8 }}
                     >
@@ -266,7 +267,7 @@ class StockChart extends React.Component<BotChartProps> {
                     <XAxis showGridLines={true} gridLinesStrokeStyle="#e0e3eb" />
                     <YAxis ticks={4} tickFormat={this.pricesDisplayFormat} />
 
-                    <MouseCoordinateX displayFormat={signalDisplayX} />
+                    {/*<MouseCoordinateX displayFormat={signalDisplayX} />*/}
                     <MouseCoordinateY rectWidth={margin.right} displayFormat={this.pricesDisplayFormat} />
 
                     <LineSeries yAccessor={this.signalSeries} />

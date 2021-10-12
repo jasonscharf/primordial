@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useState } from "react";
-import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel } from "@mui/material";
+import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel, InputLabel, Select, MenuItem } from "@mui/material";
 import DateAdapter from "@mui/lab/AdapterLuxon";
 import DateTimePicker from "@mui/lab/DateTimePicker";
 import { ApiBacktestRequest, ApiTimeResolution } from "../../client";
@@ -29,6 +29,7 @@ const RunScreen = () => {
     const [from, setFrom] = useState<DateTime>(initialFrom);
     const [to, setTo] = useState<DateTime>(initialTo);
     const [genome, setGenome] = useState<string>(prevGenome || DEFAULT_GENOME);
+    const [res, setRes] = useState<ApiTimeResolution>(prevRes || ApiTimeResolution.Type15M)
     const [args, setArgs] = useState<ApiBacktestRequest>();
     const [options, setOptions] = React.useState([]);
     const [symbolPairs, setSymbols] = useState<string>(prevSymbols || DEFAULT_SYMBOLS);
@@ -66,9 +67,16 @@ const RunScreen = () => {
         setOpenInNewWindow(value);
     }, [openInNewWindow]);
 
+    const handleClickSetEndNow = useCallback(async () => {
+        setTo(DateTime.now());
+    }, []);
+
+    const handleChangeTimeRes = useCallback((value: ApiTimeResolution) => {
+        setRes(value);
+    }, [res]);
+
     const handleClickRun = useCallback(async () => {
         try {
-            const res: ApiTimeResolution = ApiTimeResolution.Type15M;
             const args: ApiBacktestRequest = {
                 res,
                 symbols: symbolPairs,
@@ -89,6 +97,7 @@ const RunScreen = () => {
 
 
             setIsRunning(true);
+            setErrors([]);
             const response = await client.sandbox.runBacktest(args);
             const data = await response.data;
             const results = data;
@@ -127,7 +136,7 @@ const RunScreen = () => {
             setIsRunning(false);
             setErrors([...errors, ...errorTexts]);
         }
-    }, [from, genome, openInNewWindow, symbolPairs, to]);
+    }, [from, genome, openInNewWindow, res, symbolPairs, to]);
 
 
     return (
@@ -162,6 +171,19 @@ const RunScreen = () => {
                                                             value={symbolPairs}
                                                             onChange={evt => handleChangeSymbols(evt.target.value)} />
                                                     </Grid>
+                                                    <Grid item>
+                                                        
+                                                        <Select
+                                                            label="Interval"
+                                                            id="demo-simple-select"
+                                                            value={res}
+                                                            onChange={evt => handleChangeTimeRes(evt.target.value as ApiTimeResolution)}
+                                                        >
+                                                            <MenuItem value={ApiTimeResolution.Type5M}>5 min</MenuItem>
+                                                            <MenuItem value={ApiTimeResolution.Type15M}>15 min</MenuItem>
+                                                            <MenuItem value={ApiTimeResolution.Type1H}>1 hour</MenuItem>
+                                                        </Select>
+                                                    </Grid>
                                                     <Grid item xs={3} style={{ marginLeft: "auto" }}>
                                                         <DateTimePicker
                                                             label="from"
@@ -178,6 +200,15 @@ const RunScreen = () => {
                                                             renderInput={(params) => <TextField {...params} />}
                                                         />
                                                     </Grid>
+                                                    <Grid item>
+                                                        <Button
+                                                            variant="outlined"
+                                                            style={{ height: "55px" }}
+                                                            onClick={handleClickSetEndNow}>
+                                                            <span>&#9201;</span>
+                                                        </Button>
+                                                    </Grid>
+
                                                 </Grid>
                                             </Grid>
                                             <Grid item xs={12} style={{ paddingLeft: 0 }}>
@@ -191,7 +222,6 @@ const RunScreen = () => {
                                                     onChange={evt => handleChangeGenome(evt.target.value)}
                                                 />
                                             </Grid>
-
                                         </Grid>
                                     </form>
                                     <Grid item >

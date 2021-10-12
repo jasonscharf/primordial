@@ -24,7 +24,7 @@ export interface BotResultsApiResponse {
     eventMap?: any;
 }
 
-export type IndicatorMap = Map<Date, Map<string, number>>;
+export type IndicatorMap = Map<string, Map<string, number>>;
 
 
 export interface Candle {

@@ -77,7 +77,7 @@ function lookupSymbolPair(pair: string) {
 export function handleCandle(symbolPair: string, res: TimeResolution, candle: Candle) {
     try {
         if (env.isDev()) {
-            console.log(`Handle candle for ${symbolPair} @ ${new Date().toISOString()}`);
+            //console.log(`Handle candle for ${symbolPair} @ ${new Date().toISOString()}`);
         }
 
         const receivedTs = candle.eventTime;

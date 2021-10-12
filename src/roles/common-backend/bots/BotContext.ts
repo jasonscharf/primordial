@@ -1,4 +1,5 @@
 import env from "../env";
+import { AllocationItem } from "../../common/models/capital/AllocationItem";
 import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
 import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
 import { BacktestRequest } from "../messages/testing";
@@ -21,6 +22,7 @@ import { Price } from "../../common/models/markets/Price";
 import { capital, constants, log, mq, orders, strats } from "../includes";
 import { moneytize } from "../database/utils";
 import { randomString } from "../utils";
+import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../commands/bots/test";
 
 
 
@@ -37,6 +39,7 @@ export interface BotContext<TState = unknown> {
     log: Logger;
     prices: Price[];
     indicators: Map<string, unknown>;
+    backtestingOrders?: Partial<Order>[];
 
     placeLimitBuyOrder(ctx: BotContext, args: OrderDelegateArgs, tick: Price, instance: BotImplementation): Promise<Order>;
     placeLimitSellOrder(ctx: BotContext, args: OrderDelegateArgs, tick: Price, instance: BotImplementation): Promise<Order>;
@@ -62,7 +65,7 @@ export function botIdentifier(bot: BotInstance) {
  * @returns 
  */
 export async function buildBotContextForSignalsComputation(args: BacktestRequest): Promise<BotContext> {
-    const { genome, from, to } = args;
+    const { genome, from, res, to } = args;
     const { genome: parsedGenome } = new GenomeParser().parse(genome);
     const def: Partial<BotDefinition> = {
         id: randomString(),
@@ -77,6 +80,7 @@ export async function buildBotContextForSignalsComputation(args: BacktestRequest
         modeId: Mode.BACK_TEST,
         normalizedGenome: genome,
         prevTick: new Date(from.getTime() - 1),
+        resId: res,
     };
 
     const prices = [];
@@ -100,6 +104,106 @@ export async function buildBotContextForSignalsComputation(args: BacktestRequest
     return ctx;
 }
 
+export function buildContextBase(def: BotDefinition, record: BotInstance, run: BotRun): Partial<BotContext> {
+    const { genome } = new GenomeParser().parse(record.currentGenome);
+    const ctx: Partial<BotContext> = {
+        def,
+        instance: record,
+        genome,
+        state: record.stateJson,
+        stateInternal: record.stateInternal,
+        log,
+        runId: run ? run.id : null,
+    };
+
+    return ctx;
+}
+
+export async function buildBacktestingContext(def: BotDefinition, record: BotInstance, run: BotRun): Promise<BotContext> {
+    const { genome } = new GenomeParser().parse(record.currentGenome);
+    const ctx = buildContextBase(def, record, run);
+    ctx.backtestingOrders = [];
+
+    async function placeBacktestOrder(ctx: BotContext<GeneticBotState>, args: OrderDelegateArgs, tick: Price, liveInstance, buy = true, backtestArgs: BacktestRequest = null) {
+        const { instance, state } = ctx;
+        const { exchange, market } = args;
+        const { id: botRunId } = run;
+        const { baseSymbolId, quoteSymbolId } = ctx.stateInternal;
+
+        const purchasePrice = tick.close;
+
+        const order: Partial<Order> = {
+            displayName: `TODO`, // TODO
+            exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
+            baseSymbolId,
+            quoteSymbolId,
+            botRunId,
+            strike: purchasePrice,
+            stateId: OrderState.OPEN,
+            opened: tick.ts,
+        };
+
+        // Dummy, not-in-the-DB item shunt for BT
+        const item: Partial<AllocationItem> = {
+            amount: Money(DEFAULT_BACKTEST_BUDGET_AMOUNT + ""),
+            maxWagerPct: 0.1,
+            symbolId: quoteSymbolId,
+        };
+
+        const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item as AllocationItem, buy);
+
+        order.id = "FAKE";
+
+        let fsmState = state.fsmState;
+        state.fsmState = buy
+            ? GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF
+            : GeneticBotFsmState.WAITING_FOR_SELL_ORDER_CONF
+            ;
+
+        if (buy) {
+            state.prevQuantity = quantity;
+            state.prevPrice = purchasePrice;
+            state.prevOrderId = order.id;
+            state.stopLossPrice = tick.close.add(tick.close.mul(stopLossPct.toString()));
+            state.targetPrice = targetPrice;
+        }
+        else {
+            state.prevQuantity = null;
+            state.prevPrice = null;
+            state.prevOrderId = null;
+            state.stopLossPrice = null;
+            state.targetPrice = null;
+        }
+
+        const msg: OrderStatusUpdateMessage = {
+            exchangeOrder: null,
+            primoOrder: order as Order,
+        };
+
+        // Let the bot handle open and close separately, simulating real-world conditions
+        order.stateId = OrderState.OPEN;
+
+        ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, null);
+
+        order.stateId = OrderState.CLOSED;
+
+        ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, null);
+        ctx.backtestingOrders.push(order);
+        return order as Order;
+    }
+
+    ctx.placeLimitBuyOrder = async (ctx: BotContext<GeneticBotState>, args: OrderDelegateArgs, tick: Price, liveInstance: BotImplementation) => {
+        return placeBacktestOrder(ctx, args, tick, liveInstance, true);
+    }
+
+    ctx.placeLimitSellOrder = async (ctx: BotContext<GeneticBotState>, args, tick: Price, liveInstance: BotImplementation) => {
+        return placeBacktestOrder(ctx, args, tick, liveInstance, false);
+    };
+
+    return ctx as BotContext;
+}
+
+
 
 /**
  * Builds the appropriate bot context for a bot, e.g. a context for backtesting when backtesting,
@@ -110,14 +214,7 @@ export async function buildBotContextForSignalsComputation(args: BacktestRequest
  */
 export async function buildBotContext(def: BotDefinition, record: BotInstance, run: BotRun): Promise<BotContext> {
     const { genome } = new GenomeParser().parse(record.currentGenome);
-    const ctx: Partial<BotContext> = {
-        def,
-        instance: record,
-        genome,
-        state: record.stateJson,
-        stateInternal: record.stateInternal,
-        log,
-    };
+    const ctx = buildContextBase(def, record, run);
 
     async function placeOrder(ctx: BotContext, args, tick: Price, liveInstance, buy = true, backtestArgs: BacktestRequest = null) {
 
@@ -144,68 +241,25 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             : "paper"
             ;
 
-        const buyOrSell = buy
-            ? "BUY"
-            : "SELL"
-            ;
-
         let savedOrder: Order;
+
         const t = await capital.transact(instance.id, order.quoteSymbolId, order, async (item, trx) => {
 
-            const maxBuyingPower = item.amount.mul(Money(item.maxWagerPct.toString()));
-            const profitTargetGene = genome.getGene<number>("PRF", "TGT");
-            const stopLossPct = genome.getGene<number>("SL", "ABS").value;
+            const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item, buy);
 
-            // TODO: Double-check PoC bot
-            // TODO: Exchange-based fee structure
-            // TODO: Fees tracking
-
-            let amount: Money = null;
-            const fees = purchasePrice.mul("0.001");
-
-            let quantity: Money = null;
-            if (buy) {
-                quantity = maxBuyingPower.div(purchasePrice);
-                amount = purchasePrice.mul(quantity).mul("-1");
-            }
-            else {
-                quantity = state.prevQuantity;
-                amount = purchasePrice.mul(quantity);
-            }
-
-            // TODO: Infer a better profit target when none specified. Account for fees.
-            const profitTargetPct = profitTargetGene.active
-                ? profitTargetGene.value
-                : 0.002
-                ;
-            const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
-
-
-            order.botRunId = botRunId;
-            order.quantity = quantity;
-            order.price = purchasePrice;
-            order.limit = purchasePrice;
-            order.gross = amount;
-
-            order.strike = targetPrice;
-            order.displayName = `${buyOrSell} ${quantity.round(8)} X ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId} = ${amount.round(8).toString()} ${order.quoteSymbolId}`;
-            order.extOrderId = "FAKE";
-            order.typeId = buy ? OrderType.LIMIT_BUY : OrderType.LIMIT_SELL;
-
+            // TODO: Get rid of the else here post refactor.. this codepath implies live
             if (isLive) {
                 order.opened = new Date();
             }
             else {
                 order.opened = tick.ts;
-
-                // Note: It's up to downstream componends 
             }
 
             if (!backtestArgs) {
                 savedOrder = await orders.addOrderToDatabase(order, trx);
             }
 
-            log.info(`Placing ${modeStr} order for ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId}`);
+            //log.info(`Placing ${modeStr} order for ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId}`);
 
             const transaction: Partial<AllocationTransaction> = {
                 allocationItemId: item.id,
@@ -237,7 +291,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 state.targetPrice = null;
             }
 
-
+            // If this bot isn't live , we call its order status change handler directly instead of using the MQ.
             if (!isLive) {
                 const msg: OrderStatusUpdateMessage = {
                     exchangeOrder: null,
@@ -265,8 +319,6 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
         return savedOrder;
     };
 
-
-
     ctx.placeLimitBuyOrder = async (ctx, args, tick: Price, liveInstance: BotImplementation) => {
         return placeOrder(ctx, args, tick, liveInstance, true);
     }
@@ -276,4 +328,61 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
     };
 
     return ctx as BotContext;
+}
+
+export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Genome, tick: Price, order: Partial<Order>, item: AllocationItem, buy: boolean) {
+    const { state } = ctx;
+    const maxBuyingPower = item.amount.mul(Money(item.maxWagerPct.toString()));
+    const profitTargetGene = genome.getGene<number>("PRF", "TGT");
+    const stopLossPct = genome.getGene<number>("SL", "ABS").value;
+
+    // TODO: Double-check PoC bot
+    // TODO: Exchange-based fee structure
+    // TODO: Fees tracking
+
+    const purchasePrice = tick.close;
+
+    let amount: Money = null;
+    const fees = purchasePrice.mul("0.001");
+
+    let quantity: Money = null;
+    if (buy) {
+        quantity = maxBuyingPower.div(purchasePrice);
+        amount = purchasePrice.mul(quantity).mul("-1");
+    }
+    else {
+        quantity = state.prevQuantity;
+        amount = purchasePrice.mul(quantity);
+    }
+
+    const buyOrSell = buy
+        ? "BUY"
+        : "SELL"
+        ;
+
+    // TODO: Infer a better profit target when none specified. Account for fees.
+    const profitTargetPct = profitTargetGene.active
+        ? profitTargetGene.value
+        : 0.002 // FIX/COMMENT
+        ;
+    const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
+
+
+    order.botRunId = ctx.runId;
+    order.quantity = quantity;
+    order.price = purchasePrice;
+    order.limit = purchasePrice;
+    order.gross = amount;
+
+    order.strike = targetPrice;
+    order.displayName = `${buyOrSell} ${quantity.round(8)} X ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId} = ${amount.round(8).toString()} ${order.quoteSymbolId}`;
+    order.extOrderId = "FAKE";
+    order.typeId = buy ? OrderType.LIMIT_BUY : OrderType.LIMIT_SELL;
+
+    return {
+        amount,
+        quantity,
+        stopLossPct,
+        targetPrice,
+    };
 }

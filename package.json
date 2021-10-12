@@ -31,6 +31,7 @@
     "up-kube": "yarn dev:build && yarn dev:build-images && yarn kube:apply && yarn kube:restart",
     "up:debug": "yarn up",
     "codegen": "yarn tsoa --basePath src/roles/api -c src/roles/api/tsoa.json spec-and-routes && swagger-typescript-api -p ./src/swagger.json -o ./src/roles/web/js -n client.ts",
+    "metrics:loc": "find src -name '*.ts' | xargs wc -l",
     "kube": "kubectl -n default",
     "kube:apply": "yarn kube:config && yarn kube apply -f k8s/manifest.yml",
     "kube:config": "yarn -s kube kustomize k8s/overlays/dev > k8s/manifest.yml",

@@ -41,9 +41,9 @@ export default function OrderTable(props?: OrderTableProps) {
                             </TableCell>
                             <TableCell align="right">{row.typeId}</TableCell>
                             <TableCell align="right">{shortDateAndTime(row.opened)}</TableCell>
-                            <TableCell align="right">{row.quantity.round(12).toString()}</TableCell>
-                            <TableCell align="right">{row.price.round(12).toString()}</TableCell>
-                            <TableCell align="right"><Amount amount={row.gross.round(12).toNumber()} symbol={row.quoteSymbolId} /></TableCell>
+                            <TableCell align="right">{row.quantity.round(11).toString()}</TableCell>
+                            <TableCell align="right">{row.price.round(11).toString()}</TableCell>
+                            <TableCell align="right"><Amount amount={row.gross.round(11).toNumber()} symbol={row.quoteSymbolId} /></TableCell>
                         </TableRow>
                     ))}
                 </TableBody>

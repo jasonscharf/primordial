@@ -6,25 +6,24 @@ import { useEffect, useState } from "react";
 import { Hashicon } from "@emeraldpay/hashicon-react";
 
 import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar } from "@mui/material";
+import { useParams } from "react-router";
 import { Amount } from "../../components/primitives/Amount";
+import BotRunChart from "../../charts/BotRunChart";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
 import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
 import { DateTime } from "luxon";
 import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../../../common/entities/PriceEntity";
-import BotRunChart from "../../charts/BotRunChart";
+import { OrderEntity } from "../../../../common/entities/OrderEntity";
+import OrderTable from "../../components/OrderTable";
+import { Percent } from "../../components/primitives/Percent";
+import { RunState } from "../../client";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
-import TradingViewWidget, { BarStyles, Themes } from "../../components/TradingViewWidget";
-import { useParams } from "react-router";
 import { client } from "../../includes";
 import { isNullOrUndefined, sleep } from "../../../../common/utils";
 import { Spinner } from "../../components/primitives/Spinner";
 import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
-import OrderTable from "../../components/OrderTable";
-import { OrderEntity } from "../../../../common/entities/OrderEntity";
-import { Percent } from "../../components/primitives/Percent";
-import { RunState } from "../../client";
 
 
 
@@ -40,7 +39,7 @@ const BotResults = () => {
     const [results, setResults] = useState<BotResultsApiResponse>(null);
     const [displayHeikinAshi, setDisplayHeikinAshi] = useState<boolean>(false);
 
-    const imap: IndicatorMap = new Map<Date, Map<string, number>>();
+    const imap: IndicatorMap = new Map<string, Map<string, number>>();
 
     async function waitForCompletion(id: string) {
         let hasCompletionOrError = false;
@@ -128,7 +127,7 @@ const BotResults = () => {
                                         indicatorsForTick.set(k, indicators[k][i]);
                                     });
 
-                                    imap.set(price.ts, indicatorsForTick);
+                                    imap.set(price.ts.toISOString(), indicatorsForTick);
                                     const dp: DataPoint = {
                                         ts: price.ts,
                                         open: price.open.round(12).toNumber(),
@@ -143,11 +142,17 @@ const BotResults = () => {
                                     data.push(dp);
                                 }
 
+                                if (!isNullOrUndefined(data[0].indicators["HA"])) {
+                                    setDisplayHeikinAshi(true);
+                                }
+
                                 results.indicators = imap;
                                 results.data = data;
                                 setResults(results);
                             })
-                            .catch(err => alert("There was an error loading the results. The bot may have exploded during operation. Please go back and try again. Feel free to copy the URL and report this as a bug."))
+                            .catch(err => {
+                                alert("There was an error loading the results. The bot may have exploded during operation. Please go back and try again. Feel free to copy the URL and report this as a bug.");
+                            })
                             ;
                     });
             }
@@ -182,9 +187,8 @@ const BotResults = () => {
 
     const [base, quote] = symbols.split(/\//);
     const tradingViewSymbol = `${exchange}:${base}${quote}`;
-
-    const interval = getIntervalForTimeRes(report.timeRes);
-    const runType = "backtest"
+    const avgTickDuration = (report.durationMs / report.numCandles).toFixed(2);
+    const runType = "backtest";
     return (
         <Box width={1} height={1}>
             <Grid container className="primo-fullsize" direction="row" style={{ alignContent: "baseline", margin: 0, padding: 0 }}>
@@ -195,6 +199,7 @@ const BotResults = () => {
                     <Grid item>
                         <Grid item>
                             <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#40;{runType}&#41;
+                            &nbsp;<span>@</span><b><span>{report.timeRes}</span></b>
                         </Grid>
                         <Grid item>
                             <span>&#129516;&nbsp;<b>{report.genome}</b></span>
@@ -286,11 +291,15 @@ const BotResults = () => {
                                         <Grid item>Num. Candles</Grid>
                                         <Grid item style={{ textAlign: "right" }}><b>{report.numCandles}</b></Grid>
                                     </Grid>
+                                    <Grid item container className="primo-info-table-item">
+                                        <Grid item>Duration (ms)</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><b>{report.durationMs}ms ({avgTickDuration} ms/candle)</b></Grid>
+                                    </Grid>
                                 </Grid>
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item style={{ height: "325px", overflow: "auto", margin: 0 }}>
+                    <Grid item style={{ overflow: "auto", margin: 0 }}>
                         <OrderTable orders={orders} />
                     </Grid>
                 </Grid>

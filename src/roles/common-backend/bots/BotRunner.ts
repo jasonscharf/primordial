@@ -3,7 +3,7 @@ import knex from "knex";
 import env from "../env";
 import { ApiBacktestHandle } from "../../common/messages/trading";
 import { BacktestRequest } from "../messages/testing";
-import { BotContext, botIdentifier, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
+import { BotContext, botIdentifier, buildBacktestingContext, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
@@ -25,11 +25,8 @@ import { botFactory } from "./RobotFactory";
 import { capital, db, log, results, strats, users } from "../includes";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { names } from "../genetics/base-genetics";
-import { query } from "../database/utils";
 import { sym } from "../services";
-import { tables } from "../constants";
 import { version } from "../../common/version";
-import { sleep } from "../utils";
 
 
 
@@ -233,7 +230,7 @@ export class BotRunner {
             ctx.instance.runState = RunState.ACTIVE;
             ctx.instance.modeId = Mode.BACK_TEST;
 
-            for (let i = 0; i < prices.length - window; ++i) {
+            for (let i = 1; i < prices.length - window; ++i) {
                 ctx.prices = prices.slice(i, i + window);
                 const tick = ctx.prices[ctx.prices.length - 1];
                 if (this.isGapTick(tick)) {
@@ -253,22 +250,15 @@ export class BotRunner {
                         cators = indicators[ind] = [];
                     }
 
-                    const foo = botIndicators.get(ind);
-                    if (foo && Array.isArray(foo)) {
-                        cators.push(foo[foo.length - 1]);
+                    const indicatorValue = botIndicators.get(ind);
+                    if (Array.isArray(indicatorValue)) {
+                        cators.push(indicatorValue[indicatorValue.length - 1]);
                     }
                     else {
-                        cators.push(null);
+                        cators.push(indicatorValue);
                     }
                 }
-
-
-                //log.info(`Backtest in state ${newState.fsmState}`);
-
-                // SAVE (maybe?)
-                //await strats.updateBotInstance(instanceRecord);
             }
-
 
             const result: IndicatorsAndSignals = {
                 signals,
@@ -296,7 +286,7 @@ export class BotRunner {
     async run(args: BacktestRequest, ctx: BotContext = null): Promise<ApiBacktestHandle | BotRunReport> {
         const start = Date.now();
         const trx = null;//await db.transaction();
-        let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ to } = args;
+        let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ res, to } = args;
 
         // TODO: Fix this...JSONification
         if (typeof from === "string") {
@@ -343,7 +333,7 @@ export class BotRunner {
         tr.numCandles = 0;
         tr.firstClose = null;
         tr.lastClose = null;
-        tr.capital = capitalInvested.round(12).toNumber();
+        tr.capital = capitalInvested.round(11).toNumber();
         tr.balance = null;
         tr.totalGross = null;
         tr.totalGrossPct = 0;
@@ -371,6 +361,7 @@ export class BotRunner {
             build: version.full,
             name,
             normalizedGenome: genomeStr,
+            resId: res,
         };
 
         const appliedDefProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_DEF_PROPS, defProps);
@@ -426,14 +417,13 @@ export class BotRunner {
                 instanceId = instanceRecord.id;
                 tr.timeRes = instanceRecord.resId;
 
-                // TODO: Contextually correct context (i.e. save records or no)
                 if (!ctx) {
-                    ctx = await buildBotContext(def, instanceRecord, run);
+                    ctx = await buildBacktestingContext(def, instanceRecord, run);
                 }
 
                 const symbolPair = instanceRecord.symbols;
                 const botType = genome.getGene<string>("META", "IMPL").value;
-                const res = genome.getGene<TimeResolution>("TIME", "RES").value;
+                const res = instanceRecord.resId;
                 const localInstance = botFactory.create(botType) as BotImplementation;
 
                 // Initialize 
@@ -497,7 +487,7 @@ export class BotRunner {
                 // IMPORTANT: We are ticking at the interval level here (e.g. 1min) and not necessarily at true tick-level (e.g. 1s)
 
 
-                for (let i = 0; i < prices.length - maxIntervals; ++i) {
+                for (let i = 1; i < prices.length - maxIntervals; ++i) {
                     ctx.prices = prices.slice(i, i + maxIntervals);
                     const tick = ctx.prices[ctx.prices.length - 1];
                     if (this.isGapTick(tick)) {
@@ -547,13 +537,7 @@ export class BotRunner {
             finally {
                 let orders: Order[] = [];
                 if (run) {
-                    orders = await query("orders", async db => {
-                        const rows = <Order[]>await db(tables.Orders)
-                            .where({ botRunId: run.id })
-                            .orderBy("opened");
-
-                        return rows.map(row => OrderEntity.fromRow(row));
-                    });
+                    orders = ctx.backtestingOrders as Order[];
                 }
 
                 // Disregard the last buy
@@ -566,13 +550,13 @@ export class BotRunner {
 
                 let totalGrossProfit = Money("0");
                 orders.forEach(o => totalGrossProfit = totalGrossProfit.add(o.gross));
-                tr.totalGross = totalGrossProfit.round(12).toNumber();
-                tr.capital = capitalInvested.round(12).toNumber();
-                tr.firstClose = firstClose.round(12).toNumber();
-                tr.lastClose = lastClose.round(12).toNumber();
+                tr.totalGross = totalGrossProfit.round(11).toNumber();
+                tr.capital = capitalInvested.round(11).toNumber();
+                tr.firstClose = firstClose.round(11).toNumber();
+                tr.lastClose = lastClose.round(11).toNumber();
                 tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
                 tr.buyAndHoldGrossPct = Money("1").minus(firstClose.div(lastClose)).round(3).toNumber();
-                tr.balance = capitalInvested.plus(totalGrossProfit).round(12).toNumber();
+                tr.balance = capitalInvested.plus(totalGrossProfit).round(11).toNumber();
                 tr.orders = orders;
                 tr.numOrders = orders.length;
                 tr.numTrades = tr.numOrders / 2;
@@ -624,12 +608,13 @@ export class BotRunner {
 
     /**
      * Runs a simple heuristic check to detect if a tick is part of a gap.
+     * NOTE: Really, really rough...
      * @param tick 
      * @returns 
      */
     isGapTick(tick: Price) {
-        if (tick.volume.toNumber() == 0 &&
-            tick.open.toNumber() == 0 &&
+        if (tick.open.toNumber() === 0 ||
+            tick.low.toNumber() === 0 ||
             tick.close.toNumber() == 0) {
             console.log(`Skip gap @ ${tick.ts.toISOString()}`);
             return true;

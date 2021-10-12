@@ -63,7 +63,7 @@ export class CapitalService {
                 .map(s => s.trim())
                 ;
             if (pieces.length !== 2) {
-                throw new Error(`Unknown amount/symbol pair '${pair}'`);
+                throw new Error(`Unknown amount/symbol pair '${pair}' specified by '${amountsRaw}'`);
             }
 
             const [quantityRaw, symbol] = pieces;
@@ -116,6 +116,7 @@ export class CapitalService {
                 const transactionRows = <AllocationTransaction[]>await db(tables.AllocationTransactions)
                     .innerJoin(tables.AllocationItems, ref(tables.AllocationTransactions, "allocationItemId"), ref(tables.AllocationItems))
                     .select(ref(tables.AllocationTransactions, "*"))
+                    .where({ "allocationId": allocationId })
                     .orderBy("created", "asc")
                     ;
 

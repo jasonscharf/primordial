@@ -1,2 +1,2 @@
 #!/bin/bash
-node /app/spooler/cli.js $@
+node /app/spooler/cli.js "$@"

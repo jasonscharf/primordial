@@ -66,26 +66,21 @@ export class SymbolService {
     async getGlobalWatchlistSymbolPairs(): Promise<string[]> {
 
         // Just temporary standins. Ultimately they should be everything always, from every exchange ever.
-        if (env.isDev()) {
-            return [
-                "BTC/USDT",
-                "ETH/USDT",
-                "DOGE/USDT",
-            ];
-        }
-        else {
-
-            // TODO: Derive from active bot instances
-            return [
-                "ETH/BTC",
-                "DOGE/BTC",
-                "ADA/BTC",
-                "NANO/BTC",
-                "DOT/BTC",
-                "C98/BTC",
-                "XMR/BTC",
-            ];
-        }
+        return [
+            "BTC/USDT",
+            "ETH/USDT",
+            "BCH/USDT",
+            "SHIB/USDT",
+            "XRP/USDT",
+            "BUSD/BUSD",
+            "DOGE/USDT",
+            "ADA/USDT",
+            "C98/USDT",
+            "SOL/USDT",
+            "NANO/USDT",
+            "DOT/USDT",
+            "XMR/USDT",
+        ];
     }
 
     /**
@@ -545,7 +540,7 @@ export class SymbolService {
                 GROUP BY ts
                 ORDER BY ts ASC
             `;
- 
+
             const bindings = {
                 tf,
                 pgDatePart,
