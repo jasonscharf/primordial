@@ -63,7 +63,7 @@ export class CapitalService {
                 .map(s => s.trim())
                 ;
             if (pieces.length !== 2) {
-                throw new Error(`Unknown amount/symbol pair '${pair}'`);
+                throw new Error(`Unknown amount/symbol pair '${pair}' specified by '${amountsRaw}'`);
             }
 
             const [quantityRaw, symbol] = pieces;
