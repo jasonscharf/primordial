@@ -29,18 +29,22 @@ const Splash = () => {
     }
     else {
         infoText = mode;
-        versionText = `v. ${(info as InfoResponse).buildInfo.version}`;
+        versionText = `| ${(info as InfoResponse).buildInfo.version}`;
     }
 
     return (
-        <div className="hero-img-wrapper">
-            <div className="hero-img"></div>
-            <div className="hero-text">
-                <h1>P R I M O R D I A L</h1>
-                <i>{infoText}</i><br />
+        <>
+            <div className="hero-img-wrapper">
+                <div className="hero-img"></div>
+                <div className="hero-text">
+                    <h1>P R I M O R D I A L</h1>
+                </div>
+            </div>
+            <div className="hero-version-footer">
+                <i>{infoText}</i>
                 <i>{versionText}</i>
             </div>
-        </div>
+        </>
     );
 };
 
