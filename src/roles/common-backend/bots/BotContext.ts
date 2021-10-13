@@ -351,7 +351,7 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
         amount = purchasePrice.mul(quantity).mul("-1");
     }
     else {
-        quantity = state.prevQuantity;
+        quantity = Money(state.prevQuantity);
         amount = purchasePrice.mul(quantity);
     }
 
@@ -374,7 +374,7 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
     order.limit = purchasePrice;
     order.gross = amount;
 
-    order.strike = targetPrice;
+    order.strike = targetPrice; 
     order.displayName = `${buyOrSell} ${quantity.round(8)} X ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId} = ${amount.round(8).toString()} ${order.quoteSymbolId}`;
     order.extOrderId = "FAKE";
     order.typeId = buy ? OrderType.LIMIT_BUY : OrderType.LIMIT_SELL;
