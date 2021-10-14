@@ -1,6 +1,7 @@
 import { Knex } from "knex";
 import { BotContext, botIdentifier } from "./BotContext";
 import { BotImplementationBase } from "./BotImplementationBase";
+import { GeneticBotFsmState } from "../../common/models/bots/BotState";
 import { IndicatorChromosome } from "../genetics/IndicatorChromosome";
 import { Mode } from "../../common/models/system/Strategy";
 import { Order, OrderState } from "../../common/models/markets/Order";
@@ -13,15 +14,6 @@ import { shortDateAndTime } from "../../common/utils/time";
 import { names } from "../genetics/base-genetics";
 
 
-
-export enum GeneticBotFsmState {
-    WAITING_FOR_BUY_OPP = "wait-for-buy-opp",
-    WAITING_FOR_SELL_OPP = "wait-for-sell-opp",
-    WAITING_FOR_BUY_ORDER_CONF = "wait-for-buy-order-conf",
-    WAITING_FOR_SELL_ORDER_CONF = "wait-for-sell-order-conf",
-    SURF_SELL = "sell-surf",
-    SURF_BUY = "buy-surf",
-}
 
 export interface GeneticBotState {
     fsmState: GeneticBotFsmState;
@@ -65,10 +57,12 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         const exo = msg.exchangeOrder;
 
         // If we're testing, there will be no actual exchange order
+        let closedAt: Date = null;
 
+
+        // Tiny leak of the fact we are testing or not here
         if (!msg.exchangeOrder) {
-            // Testing
-            //order.gross = order.quantity.mul(order.price);
+            //order.closed = new Date();
         }
         else {
             // LIVE orders!!!
@@ -95,7 +89,10 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             }
         }
 
-        //await orders.updateOrder(order, trx);
+        // TODO: Move this 
+        if (instance.modeId === Mode.FORWARD_TEST || instance.modeId === Mode.LIVE_TEST || instance.modeId === Mode.LIVE) {
+            await orders.updateOrder(order, trx);
+        }
 
 
         if (primoOrder.stateId === OrderState.CLOSED) {

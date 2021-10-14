@@ -4,12 +4,12 @@ import { AllocationTransaction } from "../../common/models/capital/AllocationTra
 import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
 import { BacktestRequest } from "../messages/testing";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
-import { BotDefinitionEntity } from "../../common/entities/BotDefinitionEntity";
 import { BotImplementation } from "./BotImplementation";
 import { BotInstance, BotInstanceStateInternal } from "../../common/models/bots/BotInstance";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { Genome } from "../../common/models/genetics/Genome";
-import { GeneticBotFsmState, GeneticBotState } from "./GeneticBot";
+import { GeneticBotFsmState } from "../../common/models/bots/BotState";
+import { GeneticBotState } from "./GeneticBot";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Logger } from "../../common/utils/Logger";
 import { Mode } from "../../common/models/system/Strategy";
@@ -23,6 +23,7 @@ import { capital, constants, log, mq, orders, strats } from "../includes";
 import { moneytize } from "../database/utils";
 import { randomString } from "../utils";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../commands/bots/test";
+import { queue } from "../constants";
 
 
 
@@ -152,7 +153,7 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
 
         const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item as AllocationItem, buy);
 
-        order.id = "FAKE";
+        order.id = `FAKE.${randomString(16)}`;
 
         let fsmState = state.fsmState;
         state.fsmState = buy
@@ -168,6 +169,10 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
             state.targetPrice = targetPrice;
         }
         else {
+
+            // Link the sell back to the previous buy
+            order.relatedOrderId = state.prevOrderId;
+
             state.prevQuantity = null;
             state.prevPrice = null;
             state.prevOrderId = null;
@@ -189,6 +194,8 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
 
         ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, null);
         ctx.backtestingOrders.push(order);
+
+        order.closed = tick.ts;
         return order as Order;
     }
 
@@ -247,12 +254,10 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
             const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item, buy);
 
-            // TODO: Get rid of the else here post refactor.. this codepath implies live
-            if (isLive) {
-                order.opened = new Date();
-            }
-            else {
-                order.opened = tick.ts;
+            order.opened = new Date();
+            if (!buy) {
+                // Link the sell back to previous buy
+                order.relatedOrderId = state.prevOrderId;
             }
 
             if (!backtestArgs) {
@@ -291,8 +296,9 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 state.targetPrice = null;
             }
 
-            // If this bot isn't live , we call its order status change handler directly instead of using the MQ.
             if (!isLive) {
+
+                // If this bot isn't live , we call its order status change handler directly instead of using the MQ.
                 const msg: OrderStatusUpdateMessage = {
                     exchangeOrder: null,
                     primoOrder: savedOrder,
@@ -304,12 +310,20 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, trx);
 
                 savedOrder.stateId = OrderState.CLOSED;
+                savedOrder.closed = new Date();
 
                 if (!backtestArgs) {
                     savedOrder = await orders.updateOrder(savedOrder, trx);
                 }
 
+                msg.primoOrder = savedOrder;
+
                 ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, trx);
+            }
+            else {
+                // LIVE ORDER! Nothing to actually do here.
+                // At this point, the system will wait for order update messages from the exchange.
+                debugger;
             }
 
             //log.debug(`Bot places ${buyOrSell} order`, moneytize(savedOrder));
@@ -374,7 +388,7 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
     order.limit = purchasePrice;
     order.gross = amount;
 
-    order.strike = targetPrice; 
+    order.strike = targetPrice;
     order.displayName = `${buyOrSell} ${quantity.round(8)} X ${order.baseSymbolId} @ ${order.price} ${order.quoteSymbolId} = ${amount.round(8).toString()} ${order.quoteSymbolId}`;
     order.extOrderId = "FAKE";
     order.typeId = buy ? OrderType.LIMIT_BUY : OrderType.LIMIT_SELL;
