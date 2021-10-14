@@ -15,8 +15,11 @@ import { names } from "../genetics/base-genetics";
 
 
 
+// Note: This type will load from DB JSON
 export interface GeneticBotState {
     fsmState: GeneticBotFsmState;
+    prevFsmState: GeneticBotFsmState;
+    prevFsmStateChangeTs: Date;
     signals: number[];
     prevQuantity: Money;
     prevPrice: Money;
@@ -39,8 +42,11 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         const { instance } = ctx;
         ctx.log.info(`[BOT] ${botIdentifier(instance)} initializes'`);
 
+        const fsmState = GeneticBotFsmState.WAITING_FOR_BUY_OPP;
         return <GeneticBotState>{
-            fsmState: GeneticBotFsmState.WAITING_FOR_BUY_OPP,
+            fsmState,
+            prevFsmState: fsmState,
+            prevFsmStateChangeTs: new Date(), // TODO: Use ctx time
         };
     }
 
@@ -61,8 +67,9 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
 
 
         // Tiny leak of the fact we are testing or not here
-        if (!msg.exchangeOrder) {
-            //order.closed = new Date();
+        // TODO: Move this 
+        if (instance.modeId === Mode.FORWARD_TEST || instance.modeId === Mode.LIVE_TEST || instance.modeId === Mode.LIVE) {
+            //await orders.updateOrder(order, trx);
         }
         else {
             // LIVE orders!!!
@@ -89,11 +96,6 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             }
         }
 
-        // TODO: Move this 
-        if (instance.modeId === Mode.FORWARD_TEST || instance.modeId === Mode.LIVE_TEST || instance.modeId === Mode.LIVE) {
-            await orders.updateOrder(order, trx);
-        }
-
 
         if (primoOrder.stateId === OrderState.CLOSED) {
             //log.info(`ORDER COMPLETE! State is now ${fsmState}`);
@@ -111,8 +113,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             }
         }
 
-        state.fsmState = fsmState;
-        return state;
+        return this.changeFsmState(ctx, state, fsmState);
     }
 
     async computeIndicatorsForTick(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage): Promise<Map<string, unknown>> {
@@ -140,10 +141,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         const { close } = tick;
         const { currentGenome } = instance;
 
-        // Set the FSM state if not already set
-        if (!state.fsmState) {
-            state.fsmState = GeneticBotFsmState.WAITING_FOR_BUY_OPP;
-        }
+
         let fsmState = state.fsmState;
         let newState = state;
 
@@ -225,18 +223,18 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         };
 
         if (isBuying) {
-            state.fsmState = GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF;
+            fsmState = GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF;
             await ctx.placeLimitBuyOrder(ctx, order, tick, this);
         }
         else if (isSelling) {
-            state.fsmState = GeneticBotFsmState.WAITING_FOR_SELL_ORDER_CONF;
+            fsmState = GeneticBotFsmState.WAITING_FOR_SELL_ORDER_CONF;
             await ctx.placeLimitSellOrder(ctx, order, tick, this);
         }
         else {
             throw new Error(`Tried to place order in invalid state '${state.fsmState}'`);
         }
 
-        return state;
+        return this.changeFsmState(ctx, state, fsmState);
     }
 
     async handleSurfLogic(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {
@@ -312,7 +310,6 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             }
         }
 
-        newState.fsmState = fsmState;
-        return newState;
+        return this.changeFsmState(ctx, newState, fsmState);
     }
 }

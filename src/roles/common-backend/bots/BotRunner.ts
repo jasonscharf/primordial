@@ -90,10 +90,12 @@ export class BotRunner {
                 log.info(`Initializing ${botIdentifier(instanceRecord)}`);
 
                 const newState = await instance.initialize(ctx);
+                ctx.state = newState;
 
                 if (newState) {
                     instanceRecord.stateJson = newState;
                 }
+
 
                 instanceRecord.runState = RunState.ACTIVE;
                 instanceRecord.prevTick = new Date();
@@ -224,7 +226,7 @@ export class BotRunner {
                 ctx.state = newState;
             }
             else {
-                ctx.state = {};
+                ctx.state = {} as any;
             }
 
             ctx.instance.runState = RunState.ACTIVE;

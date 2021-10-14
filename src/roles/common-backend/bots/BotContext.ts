@@ -9,7 +9,7 @@ import { BotInstance, BotInstanceStateInternal } from "../../common/models/bots/
 import { BotRun } from "../../common/models/bots/BotRun";
 import { Genome } from "../../common/models/genetics/Genome";
 import { GeneticBotFsmState } from "../../common/models/bots/BotState";
-import { GeneticBotState } from "./GeneticBot";
+import { GeneticBot, GeneticBotState } from "./GeneticBot";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Logger } from "../../common/utils/Logger";
 import { Mode } from "../../common/models/system/Strategy";
@@ -23,14 +23,14 @@ import { capital, constants, log, mq, orders, strats } from "../includes";
 import { moneytize } from "../database/utils";
 import { randomString } from "../utils";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../commands/bots/test";
-import { queue } from "../constants";
+import { events, queue } from "../constants";
 
 
 
 /**
  * Runtime context for a bot implementation.
  */
-export interface BotContext<TState = unknown> {
+export interface BotContext<TState = GeneticBotState> {
     def: BotDefinition;
     instance: BotInstance;
     genome: Genome;
@@ -90,7 +90,7 @@ export async function buildBotContextForSignalsComputation(args: BacktestRequest
         def: def as BotDefinition,
         instance: record as BotInstance,
         genome: parsedGenome,
-        state: record.stateJson,
+        state: record.stateJson as GeneticBotState,
         stateInternal: record.stateInternal,
         log: new NullLogger(),
         runId: null,
@@ -111,7 +111,7 @@ export function buildContextBase(def: BotDefinition, record: BotInstance, run: B
         def,
         instance: record,
         genome,
-        state: record.stateJson,
+        state: record.stateJson as GeneticBotState,
         stateInternal: record.stateInternal,
         log,
         runId: run ? run.id : null,
@@ -125,7 +125,7 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
     const ctx = buildContextBase(def, record, run);
     ctx.backtestingOrders = [];
 
-    async function placeBacktestOrder(ctx: BotContext<GeneticBotState>, args: OrderDelegateArgs, tick: Price, liveInstance, buy = true, backtestArgs: BacktestRequest = null) {
+    async function placeBacktestOrder(ctx: BotContext<GeneticBotState>, args: OrderDelegateArgs, tick: Price, liveInstance: BotImplementation, buy = true, backtestArgs: BacktestRequest = null) {
         const { instance, state } = ctx;
         const { exchange, market } = args;
         const { id: botRunId } = run;
@@ -155,11 +155,12 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
 
         order.id = `FAKE.${randomString(16)}`;
 
-        let fsmState = state.fsmState;
-        state.fsmState = buy
+        const newFsmState = buy
             ? GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF
             : GeneticBotFsmState.WAITING_FOR_SELL_ORDER_CONF
             ;
+
+        liveInstance.changeFsmState(ctx, state, newFsmState);
 
         if (buy) {
             state.prevQuantity = quantity;
@@ -223,7 +224,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
     const { genome } = new GenomeParser().parse(record.currentGenome);
     const ctx = buildContextBase(def, record, run);
 
-    async function placeOrder(ctx: BotContext, args, tick: Price, liveInstance, buy = true, backtestArgs: BacktestRequest = null) {
+    async function placeOrder(ctx: BotContext, args, tick: Price, liveInstance: BotImplementation, buy = true, backtestArgs: BacktestRequest = null) {
 
         const { instance, state } = ctx as BotContext<GeneticBotState>;
         const { exchange, market } = args;
@@ -276,10 +277,12 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
             // HACK: Assumes GeneticBot. Perhaps FSM state should be generic
             let fsmState = state.fsmState;
-            state.fsmState = buy
+            let newFsmState = buy
                 ? GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF
                 : GeneticBotFsmState.WAITING_FOR_SELL_ORDER_CONF
                 ;
+
+            liveInstance.changeFsmState(ctx, state, newFsmState);
 
             if (buy) {
                 state.prevQuantity = quantity;
@@ -296,7 +299,18 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 state.targetPrice = null;
             }
 
-            if (!isLive) {
+            // For forward tests, we put two synthetic order updates on the queue to simulate open and close
+            if (instance.modeId === Mode.FORWARD_TEST) {
+
+                // Note: Even though bot tick logic - which ultimately calls this handler - saves the bot
+                // after each tick, it's important than we save the bot _in this transaction_.
+                // Specifically, it allows us to safely schedule synthetic order updates below, knowing that
+                // the bot is in the correct state.
+                instance.stateJson = ctx.state;
+
+                await strats.updateBotInstance(instance, trx);
+            }
+            else if (!isLive) {
 
                 // If this bot isn't live , we call its order status change handler directly instead of using the MQ.
                 const msg: OrderStatusUpdateMessage = {
@@ -319,6 +333,8 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
                 msg.primoOrder = savedOrder;
 
                 ctx.state = await liveInstance.handleOrderStatusChange(ctx, msg, trx);
+                instance.stateJson = ctx.state;
+                await strats.updateBotInstance(instance, trx);
             }
             else {
                 // LIVE ORDER! Nothing to actually do here.
@@ -329,6 +345,26 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             //log.debug(`Bot places ${buyOrSell} order`, moneytize(savedOrder));
             return transaction;
         });
+
+        if (instance.modeId === Mode.FORWARD_TEST) {
+            console.log(`Dispatching order updates for ${botIdentifier(instance)}`);
+            const openMsg: OrderStatusUpdateMessage = {
+                exchangeOrder: null,
+                primoOrder: savedOrder,
+            };
+
+            mq.addWorkerMessageHi(events.EVENT_ORDER_STATUS_UPDATE, openMsg);
+
+            // Note: The bot will save this dirty record once its done its close logic
+            savedOrder.stateId = OrderState.CLOSED;
+
+            const closeMsg: OrderStatusUpdateMessage = {
+                exchangeOrder: null,
+                primoOrder: savedOrder,
+            };
+
+            mq.addWorkerMessageHi(events.EVENT_ORDER_STATUS_UPDATE, closeMsg);
+        }
 
         return savedOrder;
     };

@@ -1,13 +1,15 @@
 import { Knex } from "knex";
-import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../messages/trading";
 import { BotContext, botIdentifier } from "./BotContext";
 import { BotImplementation } from "./BotImplementation";
+import { GeneticBotFsmState } from "../../common/models/bots/BotState";
+import { GeneticBotState } from "./GeneticBot";
+import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../messages/trading";
 
 
 /**
  * Base implementation of a box exposing configurable genetics.
  */
-export class BotImplementationBase<TState = unknown> implements BotImplementation<TState> {
+export class BotImplementationBase<TState = GeneticBotState> implements BotImplementation<TState> {
 
     /**
      * Initializes a newly running bot.
@@ -21,6 +23,29 @@ export class BotImplementationBase<TState = unknown> implements BotImplementatio
         return <TState><any>{
             initialized: true,
         };
+    }
+
+    /**
+     * Mutates a bot's FSM state, and tracks the state change.
+     * @param ctx 
+     * @param newFsmState 
+     * @returns 
+     */
+    changeFsmState(ctx: BotContext<TState>, state: TState, newFsmState: GeneticBotFsmState): TState {
+        // TODO: Clean up this bunk typing; just make all bots genetic bot state bearing
+        const genState = state as any as GeneticBotState;
+        const { log } = ctx as any as BotContext<GeneticBotState>;
+        const currState = genState.fsmState;
+
+        if (newFsmState !== currState) {
+            genState.prevFsmState = currState;
+            genState.prevFsmStateChangeTs = new Date();
+            genState.fsmState = newFsmState;
+            log.info(`Bot '${ctx.instance.id}' changes state from '${genState.prevFsmState}' to '${genState.fsmState}'`);
+        }
+
+        ctx.state = state;
+        return genState as any as TState;
     }
 
     /**
