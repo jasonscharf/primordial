@@ -9,7 +9,6 @@ export class OrderEntity extends MutableEntity implements Order {
     quoteSymbolId: string;
     stopLossOrderId?: string;
     relatedOrderId?: string;
-    orderTime: Date;
     exchangeId: string;
     extOrderId: string;
     stateId: OrderState;
@@ -36,7 +35,6 @@ export class OrderEntity extends MutableEntity implements Order {
             this.stopLossOrderId = row[prefix + "stopLossOrderId"];
             this.relatedOrderId = row[prefix + "relatedOrderId"];
             this.extOrderId = row[prefix + "extOrderId"];
-            this.orderTime = row[prefix + "orderTime"];
             this.stateId = row[prefix + "stateId"];
             this.typeId = row[prefix + "typeId"];
             this.opened = row[prefix + "opened"];
@@ -61,7 +59,6 @@ export class OrderEntity extends MutableEntity implements Order {
             "stopLossOrderId",
             "relatedOrderId",
             "extOrderId",
-            "orderTime",
             "stateId",
             "typeId",
             "opened",

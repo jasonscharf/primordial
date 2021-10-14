@@ -29,46 +29,9 @@ export async function handleOrderStatusUpdate(msg: OrderStatusUpdateMessage) {
         if (instanceRecord.runState !== RunState.ACTIVE) {
 
             // Note: Might want to re-think this warning, as it seems quite normal in practice (esp. testing permutations)
-            log.warn(`Received an order status update for ${botIdentifier(instanceRecord as BotInstance)} while inactive. Running lifecycle method to handle order...`);
+            log.warn(`Received an order status update for ${botIdentifier(instanceRecord as BotInstance)} while inactive. Running lifecycle method to handle order anyways...`);
         }
 
-
-        /* Moved into bot
-        // First, update the Primo order accordingly
-        const order = msg.primoOrder;
-        const exo = msg.exchangeOrder;
-
-        // If we're testing, there will be no actual exchange order
-        if (!msg.exchangeOrder) {
-            order.gross = order.quantity.mul(order.price);
-            order.stateId = OrderState.CLOSED;
-        }
-        else {
-            // LIVE orders!!!
-            switch (exo.status) {
-                case "open":
-                    order.stateId = OrderState.OPEN;
-                    break;
-
-                case "canceled":
-                    order.closed = new Date();
-                    order.stateId = OrderState.CANCELLED;
-                    break;
-
-                case "closed":
-                    debugger;
-                    order.gross = Money((exo.amount * exo.cost).toString()); // TODO: VERIFY
-                    order.closed = new Date();
-                    order.stateId = OrderState.CLOSED;
-                    break;
-
-                default:
-                    log.error(`Unknown order state '${exo.status}'`);
-            }
-        }
-
-        await orders.updateOrder(order);
-        */
 
         const { genome } = ctx;
         const botType = genome.getGene<string>("META", "IMPL").value;
@@ -82,8 +45,6 @@ export async function handleOrderStatusUpdate(msg: OrderStatusUpdateMessage) {
 
         instanceRecord.prevTick = new Date();
         await strats.updateBotInstance(instanceRecord);
-
-        log.info(`New state is ${(newState as GeneticBotState).fsmState}`);
     }
     catch (err) {
         log.error(`Error handling order status update in ${botIdentifier(instanceRecord as BotInstance)}`, err);

@@ -37,9 +37,12 @@ export function handlePriceUpdate(msg: QueueMessage<PriceUpdateMessage>) {
 
     // ... for each strategy
 
-    dispatchTicksRunningBots(price);
+    dispatchTicksRunningBots(price)
+        .catch(err => log.error(err))
+        ;
 }
 
+const tickingBots = new Map<string, boolean>();
 
 export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
 
@@ -58,7 +61,17 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
     const msgPromises = [];
 
     for (const bot of runningBots.concat(botsToInitialize)) {
-        const identifier = `bot ${bot.name} (${bot.id.substr(0, 8)})`;
+        const identifier = botIdentifier(bot);
+
+        // Skip (or warn) on reentrant ticks, i.e. when the debugger is paused
+        if (tickingBots.has(bot.id) && tickingBots.get(bot.id) === true) {
+            if (!env.isDev()) {
+                log.warn(`Reentrant tick for ${identifier} @ ${msg.ts.toISOString()}`);
+            }
+            continue;
+        }
+
+        tickingBots.set(bot.id, true);
 
         // Dispatch promise chains in parallel
         const start = Date.now();
@@ -72,10 +85,15 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
 
                 // TODO: Constant/config
                 if (duration > 100) {
-                    log.debug(`Ran bot '${botIdentifier(bot)}' in ${duration}ms`);
+                    //log.debug(`Ran bot '${botIdentifier(bot)}' in ${duration}ms`);
                 }
             })
-            .catch(err => log.error(`Error running ${identifier}`, err));
+            .catch(err => log.error(`Error running ${identifier}`, err))
+            .finally(() => {
+                tickingBots.set(bot.id, false);
+                console.log(`Ticked ${identifier}`)
+            })
+            ;
     }
 }
 
