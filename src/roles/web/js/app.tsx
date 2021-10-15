@@ -1,46 +1,37 @@
-import React, { lazy, Suspense } from "react";
-import {
-    BrowserRouter as Router,
-    Link,
-    Route,
-    Switch,
-} from "react-router-dom";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { render } from "react-dom";
 import DateAdapter from "@mui/lab/AdapterLuxon";
 import { LocalizationProvider } from "@mui/lab";
+import { AppRoutes } from "./AppRoutes";
+import { InfoContext } from "./contexts";
+import { InfoResponse } from "./client";
+import { client } from "./includes";
 
 
 const Loading = () => (
     <div>Loading</div>
 );
 
+const App = () => {
+    const [info, setInfo] = useState<InfoResponse>(null);
+    useEffect(() => {
+        client.info.getInfo()
+            .then(response => response.data)
+            .then(setInfo)
+            .catch(err => {
+                alert(`There was an error contacting the server`);
+            })
+    }, []);
 
-const RunScreen = lazy(() => import("./screens/sandbox/RunScreen"));
-const BotResults = lazy(() => import("./screens/sandbox/BotResults"));
-const Splash = lazy(() => import("./components/Splash"));
+    return (
+        <LocalizationProvider dateAdapter={DateAdapter}>
+            <InfoContext.Provider value={info}>
+                <Suspense fallback={<div />}>
+                    <AppRoutes />
+                </Suspense>
+            </InfoContext.Provider>
+        </LocalizationProvider>
+    );
+};
 
-
-const app = (
-    <LocalizationProvider dateAdapter={DateAdapter}>
-    <Suspense fallback={<div />}>
-        <Router>
-
-            {/* A <Switch> looks through its children <Route>s and
-                  renders the first one that matches the current URL. */}
-            <Switch>
-                <Route path="/run">
-                    <RunScreen />
-                </Route>
-                <Route path="/results/:instanceIdOrName">
-                    <BotResults />
-                </Route>
-                <Route exact path="/">
-                    <Splash />
-                </Route>
-            </Switch>
-        </Router>
-    </Suspense>
-    </LocalizationProvider>
-);
-
-render(app, document.getElementById("app-container"));
+render(<App />, document.getElementById("app-container"));

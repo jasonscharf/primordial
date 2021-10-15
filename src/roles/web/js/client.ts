@@ -35,7 +35,9 @@ export interface User {
 export interface InfoResponse {
   buildInfo?: BuildInfo;
   environment: EnvInfo;
-  user: User;
+  user?: User;
+  defaultWorkspace?: string;
+  defaultStrategy?: string;
 }
 
 export enum ApiTimeResolution {
@@ -72,6 +74,36 @@ export enum RunState {
   Paused = "paused",
   Stopped = "stopped",
   Error = "error",
+}
+
+export enum GeneticBotFsmState {
+  WaitForBuyOpp = "wait-for-buy-opp",
+  WaitForSellOpp = "wait-for-sell-opp",
+  WaitForBuyOrderConf = "wait-for-buy-order-conf",
+  WaitForSellOrderConf = "wait-for-sell-order-conf",
+  SellSurf = "sell-surf",
+  BuySurf = "buy-surf",
+}
+
+export interface RunningBotDescriptor {
+  id: string;
+  name: string;
+  symbols: string;
+  baseSymbolId: string;
+  quoteSymbolId: string;
+  genome: string;
+  fsmState: GeneticBotFsmState;
+
+  /** @format date-time */
+  created: string;
+
+  /** @format date-time */
+  updated: string;
+  duration: object;
+
+  /** @format double */
+  numOrders: number;
+  gross: string;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -363,6 +395,21 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         path: `/sandbox/prices/${symbolPair}`,
         method: "GET",
         query: query,
+        format: "json",
+        ...params,
+      }),
+  };
+  workspaces = {
+    /**
+     * No description
+     *
+     * @name GetBots
+     * @request GET:/workspaces/{workspaceId}/strategies/{strategyId}/bots/{status}
+     */
+    getBots: (workspaceId: string, strategyId: string, status: string, params: RequestParams = {}) =>
+      this.request<RunningBotDescriptor[], any>({
+        path: `/workspaces/${workspaceId}/strategies/${strategyId}/bots/${status}`,
+        method: "GET",
         format: "json",
         ...params,
       }),
