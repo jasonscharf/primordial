@@ -91,7 +91,6 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
             .catch(err => log.error(`Error running ${identifier}`, err))
             .finally(() => {
                 tickingBots.set(bot.id, false);
-                console.log(`Ticked ${identifier}`)
             })
             ;
     }
