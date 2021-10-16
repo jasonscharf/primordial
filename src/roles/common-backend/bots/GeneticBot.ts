@@ -71,7 +71,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         if (instance.modeId === Mode.FORWARD_TEST || instance.modeId === Mode.LIVE_TEST || instance.modeId === Mode.LIVE) {
             //await orders.updateOrder(order, trx);
         }
-        else {
+        else if (exo) {
             // LIVE orders!!!
             switch (exo.status) {
                 case "open":
@@ -234,7 +234,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             throw new Error(`Tried to place order in invalid state '${state.fsmState}'`);
         }
 
-        return this.changeFsmState(ctx, state, fsmState);
+        return ctx.state;//this.changeFsmState(ctx, state, fsmState);
     }
 
     async handleSurfLogic(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {

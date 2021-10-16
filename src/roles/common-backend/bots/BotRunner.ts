@@ -1,5 +1,4 @@
 import { DateTime } from "luxon";
-import knex from "knex";
 import env from "../env";
 import { ApiBacktestHandle } from "../../common/messages/trading";
 import { BacktestRequest } from "../messages/testing";
@@ -12,8 +11,7 @@ import { BotImplementation } from "./BotImplementation";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
-import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
-import { OrderEntity } from "../../common/entities/OrderEntity";
+import { Order, OrderType } from "../../common/models/markets/Order";
 import { Price } from "../../common/models/markets/Price";
 import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../common/entities/PriceEntity";
@@ -95,7 +93,6 @@ export class BotRunner {
                 if (newState) {
                     instanceRecord.stateJson = newState;
                 }
-
 
                 instanceRecord.runState = RunState.ACTIVE;
                 instanceRecord.prevTick = new Date();
@@ -432,9 +429,7 @@ export class BotRunner {
                 log.info(`Initializing backtest for bot ${botIdentifier(instanceRecord)}`);
 
                 const newState = await localInstance.initialize(ctx);
-                if (newState) {
-                    instanceRecord.stateJson = newState;
-                }
+                ctx.state = instanceRecord.stateJson = newState;
 
                 instanceRecord.runState = RunState.ACTIVE;
                 instanceRecord.modeId = Mode.BACK_TEST;
@@ -494,14 +489,17 @@ export class BotRunner {
                     const tick = ctx.prices[ctx.prices.length - 1];
                     if (this.isGapTick(tick)) {
                         continue;
-                    }
+                    } 
+
                     const indicators = await localInstance.computeIndicatorsForTick(ctx, tick);
                     const signal = await localInstance.computeSignal(ctx, tick, indicators);
                     const newState = await localInstance.tick(ctx, tick, signal, indicators);
 
                     if (newState !== null && instanceRecord.stateJson !== undefined) {
-                        ctx.state = instanceRecord.stateJson = newState;
+                        instanceRecord.stateJson = newState;
                     }
+
+                    localInstance.changeFsmState(ctx, ctx.state, newState.fsmState);
 
                     instanceRecord.prevTick = new Date();
 
@@ -517,8 +515,6 @@ export class BotRunner {
                 if (instanceId) {
                     await strats.stopBotInstance(instanceId, null, trx);
                 }
-
-
 
                 return tr as BotRunReport;
             }
