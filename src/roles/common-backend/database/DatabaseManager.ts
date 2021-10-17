@@ -35,6 +35,10 @@ export class DatabaseManager {
     }
 }
 
+export const pool: Knex.PoolConfig = {
+    propagateCreateError: false,
+};
+
 export const KNEX_CONFIG: Knex.Config<any> = {
     client: "pg",
     connection: {
@@ -44,6 +48,7 @@ export const KNEX_CONFIG: Knex.Config<any> = {
         password: env.PRIMO_DB_PASSWORD,
         database: env.PRIMO_DB_NAME,
         ssl: env.PRIMO_DB_USE_SSL === "true",
+       pool,
     },
     migrations: {
         tableName: "knex_migrations",

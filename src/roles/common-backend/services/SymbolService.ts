@@ -460,7 +460,7 @@ export class SymbolService {
      * @returns 
      */
     async addSymbol(props: Partial<TradeSymbol>): Promise<TradeSymbol> {
-        console.log(`Adding symbpol with props`, props);
+        console.log(`Adding symbol with props`, props);
         return query(queries.SYMBOLS_ADD, async trx => {
             const [row] = <TradeSymbol[]>await trx(tables.TradeSymbols)
                 .insert(props)
