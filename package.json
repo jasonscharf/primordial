@@ -24,6 +24,7 @@
     "release:compile": "ls -lah && yarn dev:clean && yarn codegen && tsc -p src && yarn wp:prod",
     "release:build": "yarn release:compile && yarn release:assets",
     "release:build-images": "DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -p primo build",
+    "logs": "yarn dc logs",
     "tail": "yarn logs -f",
     "ex": "docker exec -it core_server_1 sh",
     "up": "yarn dc up -d --build",

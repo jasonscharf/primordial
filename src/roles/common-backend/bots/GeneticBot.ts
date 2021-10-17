@@ -65,6 +65,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         // TODO: Move this 
         if (instance.modeId === Mode.FORWARD_TEST || instance.modeId === Mode.LIVE_TEST || instance.modeId === Mode.LIVE) {
             primoOrder.stateId = OrderState.CLOSED;
+            primoOrder.closed = new Date();
             await orders.updateOrder(primoOrder, trx);
         }
         else if (exchangeOrder) {
