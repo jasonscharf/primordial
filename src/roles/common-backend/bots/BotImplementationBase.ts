@@ -45,7 +45,7 @@ export class BotImplementationBase<TState = GeneticBotState> implements BotImple
             genState.prevFsmState = currState;
             genState.prevFsmStateChangeTs = new Date();
             genState.fsmState = newFsmState;
-            log.info(`Bot '${ctx.instance.id}' changes state from '${genState.prevFsmState}' to '${genState.fsmState}'`);
+            log.info(`Bot '${botIdentifier(ctx.instance)}' changes state from '${genState.prevFsmState}' to '${genState.fsmState}'`);
         }
 
         ctx.state = state;

@@ -25,7 +25,7 @@ describe(CapitalService.name, () => {
 
     before(async () => {
         ctx = await getTestData();
-        systemUser = await users.getSystemUser(); 
+        systemUser = await users.getSystemUser();
         defaultWorkspace = await strats.getDefaultWorkspaceForUser(systemUser.id, systemUser.id);
         defaultStrategy = await strats.getOrCreateDefaultStrategy(defaultWorkspace.id, systemUser.id);
     });
@@ -39,8 +39,8 @@ describe(CapitalService.name, () => {
         const initial = Money("10000");
         const yearlyRate = 0.10;
 
-        it("correctly computes yearly compounding interest", async () => { 
-            const compounded = cap.calcCompoundingInterest(initial, yearlyRate, 1); 
+        it("correctly computes yearly compounding interest", async () => {
+            const compounded = cap.calcCompoundingInterest(initial, yearlyRate, 1);
             assert.equal(compounded.round(2).toString(), "11000");
         });
 
@@ -113,7 +113,7 @@ describe(CapitalService.name, () => {
             const order = makeTestOrder({ botRunId: run.id });
 
             let delegateExecuted = false;
-            const transaction = await cap.transact(instance.id, "TUSD", order, async (item, trx) => {
+            const transaction = await cap.transact(instance.id, "TUSD", order, null, async (item, trx) => {
                 delegateExecuted = true;
 
                 const savedOrder = await orders.addOrderToDatabase(order);
@@ -136,7 +136,7 @@ describe(CapitalService.name, () => {
             const order = makeTestOrder({ botRunId: run.id });
 
             let delegateExecuted = false;
-            const transaction = await cap.transact(instance.id, "TUSD", order, async (item, trx) => {
+            const transaction = await cap.transact(instance.id, "TUSD", order, null, async (item, trx) => {
                 delegateExecuted = true;
                 const fakeTransaction: Partial<AllocationTransaction> = {
                     allocationItemId: item.id,
@@ -152,7 +152,7 @@ describe(CapitalService.name, () => {
             const { instance, run } = await addNewBotDefAndInstance(TEST_DEFAULT_BUDGET, true);
             const order = makeTestOrder({ botRunId: run.id });
 
-            await assertRejects(() => cap.transact(instance.id, "TUSD", order, async (item, trx) => {
+            await assertRejects(() => cap.transact(instance.id, "TUSD", order, null, async (item, trx) => {
                 throw new Error(`Something went wrong in the transaction`);
             }));
         });

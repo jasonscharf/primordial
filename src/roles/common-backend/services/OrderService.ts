@@ -42,7 +42,7 @@ export class OrderService {
         if (!id) {
             throw new Error(`Missing ID`);
         }
-        return query(constants.queries.ORDERS_UPDATE, async db => {
+        const updatedOrder = query(constants.queries.ORDERS_UPDATE, async db => {
             const [row] = <Order[]>await db(tables.Orders)
                 .where({ id })
                 .update(moneytize(orderProps))
@@ -51,6 +51,8 @@ export class OrderService {
 
             return OrderEntity.fromRow(row);
         }, trx);
+
+        return updatedOrder;
     }
 
     /**

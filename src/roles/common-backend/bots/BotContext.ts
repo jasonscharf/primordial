@@ -1,3 +1,4 @@
+import { Knex } from "knex";
 import env from "../env";
 import { AllocationItem } from "../../common/models/capital/AllocationItem";
 import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
@@ -40,6 +41,7 @@ export interface BotContext<TState = GeneticBotState> {
     log: Logger;
     prices: Price[];
     indicators: Map<string, unknown>;
+    trx?: Knex.Transaction;
     backtestingOrders?: Partial<Order>[];
 
     placeLimitBuyOrder(ctx: BotContext, args: OrderDelegateArgs, tick: Price, instance: BotImplementation): Promise<Order>;
@@ -182,6 +184,7 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
         }
 
         const msg: OrderStatusUpdateMessage = {
+            instanceId: instance.id,
             exchangeOrder: null,
             primoOrder: order as Order,
         };
@@ -226,7 +229,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
     async function placeOrder(ctx: BotContext, args, tick: Price, liveInstance: BotImplementation, buy = true, backtestArgs: BacktestRequest = null) {
 
-        const { instance, state } = ctx as BotContext<GeneticBotState>;
+        const { instance, state, trx } = ctx as BotContext<GeneticBotState>;
         const { exchange, market } = args;
         const { id: botRunId } = run;
         const { baseSymbolId, quoteSymbolId } = ctx.stateInternal;
@@ -251,7 +254,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
         let savedOrder: Order;
 
-        const t = await capital.transact(instance.id, order.quoteSymbolId, order, async (item, trx) => {
+        const t = await capital.transact(instance.id, order.quoteSymbolId, order, trx, async (item, trx) => {
 
             const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item, buy);
 
@@ -314,6 +317,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
                 // If this bot isn't live , we call its order status change handler directly instead of using the MQ.
                 const msg: OrderStatusUpdateMessage = {
+                    instanceId: instance.id,
                     exchangeOrder: null,
                     primoOrder: savedOrder,
                 };
@@ -347,23 +351,13 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
         });
 
         if (instance.modeId === Mode.FORWARD_TEST) {
-            console.log(`Dispatching order updates for ${botIdentifier(instance)}`);
             const openMsg: OrderStatusUpdateMessage = {
+                instanceId: instance.id,
                 exchangeOrder: null,
                 primoOrder: savedOrder,
             };
 
             mq.addWorkerMessageHi(events.EVENT_ORDER_STATUS_UPDATE, openMsg);
-
-            // Note: The bot will save this dirty record once its done its close logic
-            savedOrder.stateId = OrderState.CLOSED;
-
-            const closeMsg: OrderStatusUpdateMessage = {
-                exchangeOrder: null,
-                primoOrder: savedOrder,
-            };
-
-            mq.addWorkerMessageHi(events.EVENT_ORDER_STATUS_UPDATE, closeMsg);
         }
 
         return savedOrder;

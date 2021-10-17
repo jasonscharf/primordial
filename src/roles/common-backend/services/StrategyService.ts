@@ -8,9 +8,11 @@ import { BotInstanceDescriptor } from "../../common/models/BotInstanceDescriptor
 import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunEntity } from "../../common/entities/BotRunEntity";
+import { GeneticBotState } from "../bots/GeneticBot";
 import { Mode, Strategy } from "../../common/models/system/Strategy";
 import { OrderEntity } from "../../common/entities/OrderEntity";
 import { PrimoUnknownName } from "../../common/errors/errors";
+import { RunningBotDescriptor } from "../../common/models/bots/RunningBotDescriptor";
 import { RunState } from "../../common/models/system/RunState";
 import { StrategyEntity } from "../../common/entities/StrategyEntity";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
@@ -57,6 +59,25 @@ export class StrategyService {
         }, trx)
 
         return workspace;
+    }
+
+    async lockBotForUpdate(id: string): Promise<[BotInstance, Knex.Transaction]> {
+        const trx = await db.transaction();
+        const { rows } = await trx.raw(`
+                SELECT ${ref(tables.BotInstances, "*")}
+                FROM ${tables.BotInstances}
+                --INNER JOIN ${tables.BotRuns} ON ${tables.BotRuns}."instanceId" = ${ref(tables.BotInstances)}
+                --INNER JOIN ${tables.Orders} ON ${tables.Orders}."botRunId" = ${ref(tables.BotRuns)}
+                WHERE ${ref(tables.BotInstances)} = :botId
+                FOR UPDATE;
+            `,
+            {
+                botId: id,
+            }
+        );
+
+        const bot = BotInstanceEntity.fromRow(rows[0]);
+        return [bot, trx];
     }
 
     /**
@@ -165,6 +186,64 @@ export class StrategyService {
         }, trx);
 
         return bots;
+    }
+
+    /**
+     * Returns bot status descriptors for any active forward tests
+     * @param workspaceId 
+     * @param strategyId 
+     * @param status 
+     * @param trx 
+     * @returns 
+     */
+    async getBotDescriptors(workspaceId: string, strategyId: string, status: Mode, trx = null): Promise<RunningBotDescriptor[]> {
+        const descriptors = await query(queries.BOTS_INSTANCES_RUNNING, async db => {
+            const bindings = {
+                status,
+            };
+            const { rows } = await db.raw(
+                `
+                SELECT
+                    bot_instances.id,
+                    bot_instances.name,
+                    bot_instances.symbols,
+                    bot_instances."stateJson"->>'fsmState' as "fsmState",
+                    bot_instances."stateInternal"->>'baseSymbolId' as "baseSymbolId",
+                    bot_instances."stateInternal"->>'quoteSymbolId' as "quoteSymbolId",
+                    bot_instances."currentGenome" as genome,
+                    bot_instances.created as created,
+                    bot_instances.updated as updated,
+                    bot_instances.created - bot_instances.updated as duration,
+                    COUNT(orders.id) as "numOrders",
+                    ROUND(SUM(((gross - 1000) - (gross * 0.002))), 2) as gross,
+                    bot_instances."stateJson",
+                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600)) as "durationHours"
+                
+                FROM bot_instances
+                    JOIN bot_runs on bot_runs."instanceId" = bot_instances.id
+                    LEFT OUTER JOIN orders on (orders."botRunId" = bot_runs.id AND orders."typeId" = 'sell.limit')
+
+                AND bot_instances."modeId" = :status
+                AND "bot_runs".active = true
+                GROUP BY
+                    bot_instances.id,
+                    bot_instances.name,
+                    bot_instances.symbols,
+                    bot_instances."stateJson"->'fsmState',
+                    bot_instances."stateInternal"->>'baseSymbolId',
+                    bot_instances."stateInternal"->>'quoteSymbolId',
+                    genome,
+                    bot_instances.created,
+                    bot_instances.updated,
+                    duration,
+                    bot_instances."stateJson"
+                ORDER BY gross DESC
+                `, bindings
+            );
+            return rows as RunningBotDescriptor[];
+        }, trx);
+
+        return descriptors;
     }
 
     /**
@@ -463,6 +542,7 @@ export class StrategyService {
         if (!id) {
             throw new Error(`Must supply a bot instance ID to update it`);
         }
+        //console.log(`Updated bot instance for ${botIdentifier(instance as BotInstance)}`);
         const [updatedBotInstance] = <BotInstance[]>await query(queries.BOTS_INSTANCES_UPDATE, async db => {
             return db(tables.BotInstances)
                 .update(instance)
@@ -478,10 +558,10 @@ export class StrategyService {
      * Updates a bot run in the DB by ID.
      * @param instance 
      */
-     async updateBotRun(run: Partial<BotRun>, trx: Knex.Transaction = null): Promise<BotRun> {
+    async updateBotRun(run: Partial<BotRun>, trx: Knex.Transaction = null): Promise<BotRun> {
         const { id } = run;
         if (!id) {
-            throw new Error(`Must supply a bot run ID to update it`);
+            throw new Error(`Must supply an ID specifying which bot to update`);
         }
         const [updatedBotRun] = <BotRun[]>await query(queries.BOT_RUNS_UPDATE, async db => {
             return db(tables.BotRuns)
@@ -511,7 +591,7 @@ export class StrategyService {
      * @param trx 
      * @returns 
      */
-    async getBotInstanceById<TState = unknown>(instanceId: string, trx: Knex.Transaction = null): Promise<BotInstance<TState>> {
+    async getBotInstanceById<TState = GeneticBotState>(instanceId: string, trx: Knex.Transaction = null): Promise<BotInstance<TState>> {
         const bot = await query(queries.BOTS_INSTANCES_GET, async db => {
             const [row] = <BotInstance<TState>[]>await db(tables.BotInstances)
                 .where({ id: instanceId })
@@ -811,7 +891,7 @@ export class StrategyService {
      */
     async createNewInstanceFromDef(def: BotDefinition, res: TimeResolution, name: string, allocationId: string, start = false, trx: Knex.Transaction = null): Promise<BotInstance> {
         return query(queries.BOTS_INSTANCES_CREATE_FROM_DEF, async db => {
-            const stateJson = {};
+            const stateJson = {} as any as GeneticBotState;
             const [baseSymbolId, quoteSymbolId] = sym.parseSymbolPair(def.symbols);
             const newBotProps: Partial<BotInstance> = {
                 allocationId,

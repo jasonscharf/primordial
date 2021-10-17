@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import env from "../../common-backend/env";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotInstance } from "../../common/models/bots/BotInstance";
+import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
 import { Knex } from "knex";
 import { Mode, Strategy } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
@@ -339,8 +340,7 @@ function makeTestbot(props: Partial<BotInstance>) {
             baseSymbolId: "BTC",
             quoteSymbolId: "TUSD",
         },
-        stateJson: {
-        },
+        stateJson: {} as GeneticBotState,
     };
 
     return Object.assign({}, baseProps, props);

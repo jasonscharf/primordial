@@ -14,6 +14,7 @@ export interface PriceUpdateMessage extends Price {
  * Represents a status change on an order, e.g. completion.
  */
 export interface OrderStatusUpdateMessage {
+     instanceId: string;
      exchangeOrder: ccxt.Order;
      primoOrder: Order;
 }

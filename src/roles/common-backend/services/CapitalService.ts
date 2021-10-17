@@ -186,7 +186,7 @@ export class CapitalService {
      * @param trx 
      * @returns 
      */
-    async transact(instanceId: string, symbol: string, order: Partial<Order>, delegate: (item: AllocationItem, trx: Knex.Transaction) => Promise<Partial<AllocationTransaction>>, trx: Knex.Transaction = null):
+    async transact(instanceId: string, symbol: string, order: Partial<Order>, trx: Knex.Transaction, delegate: (item: AllocationItem, trx: Knex.Transaction) => Promise<Partial<AllocationTransaction>>):
         Promise<Partial<AllocationTransaction>> {
         const newTransaction = !trx;
         trx = trx || await db.transaction();
@@ -219,11 +219,15 @@ export class CapitalService {
                 return AllocationTransactionEntity.fromRow(row);
             }, trx);
 
-            await trx.commit();
+            if (newTransaction) {
+                await trx.commit();
+            }
             return savedTransaction;
         }
         catch (err) {
-            await trx.rollback();
+            if (newTransaction) {
+                await trx.rollback();
+            }
             log.error(`Error transacting order for ${instanceId}`, err);
             throw err;
         }

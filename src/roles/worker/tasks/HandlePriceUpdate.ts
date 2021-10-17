@@ -78,7 +78,8 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
 
         const runner = new BotRunner();
         // TODO: PERF: Combine into the call above to get definitions + instances at once
-        runner.tickBot(null, bot, price)
+        const [botInstance, trx] = await strats.lockBotForUpdate(bot.id);
+        runner.tickBot(null, botInstance, price, trx)
             .then(() => {
                 const end = Date.now();
                 const duration = end - start;
@@ -87,8 +88,13 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
                 if (duration > 100) {
                     //log.debug(`Ran bot '${botIdentifier(bot)}' in ${duration}ms`);
                 }
+
+                return trx.commit();
             })
-            .catch(err => log.error(`Error running ${identifier}`, err))
+            .catch(err => {
+                log.error(`Error running ${identifier}`, err);
+                return trx.rollback();
+            })
             .finally(() => {
                 tickingBots.set(bot.id, false);
             })

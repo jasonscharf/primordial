@@ -1,4 +1,5 @@
 import { Knex } from "knex";
+import env from "../env";
 import { BotContext, botIdentifier } from "./BotContext";
 import { BotImplementationBase } from "./BotImplementationBase";
 import { GeneticBotFsmState } from "../../common/models/bots/BotState";
@@ -55,45 +56,42 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         let { fsmState } = state;
 
         const { exchangeOrder, primoOrder } = msg;
-        //log.info(`Order status change to ${msg.primoOrder.stateId.toUpperCase()}`);
 
-
-        // First, update the Primo order accordingly
-        const order = msg.primoOrder;
-        const exo = msg.exchangeOrder;
 
         // If we're testing, there will be no actual exchange order
         let closedAt: Date = null;
 
-
-        // Tiny leak of the fact we are testing or not here
+        // Tiny leak of the fact we are testing or not here. We must update the order
         // TODO: Move this 
         if (instance.modeId === Mode.FORWARD_TEST || instance.modeId === Mode.LIVE_TEST || instance.modeId === Mode.LIVE) {
-            //await orders.updateOrder(order, trx);
+            primoOrder.stateId = OrderState.CLOSED;
+            await orders.updateOrder(primoOrder, trx);
         }
-        else if (exo) {
+        else if (exchangeOrder) {
             // LIVE orders!!!
-            switch (exo.status) {
+            switch (exchangeOrder.status) {
                 case "open":
-                    order.gross = Money((exo.amount * exo.cost).toString()); // TODO: VERIFY
-                    order.stateId = OrderState.OPEN;
+                    primoOrder.gross = Money((exchangeOrder.amount * exchangeOrder.cost).toString()); // TODO: VERIFY
+                    primoOrder.stateId = OrderState.OPEN;
                     break;
 
                 case "canceled":
-                    order.closed = new Date();
-                    order.stateId = OrderState.CANCELLED;
+                    primoOrder.closed = new Date();
+                    primoOrder.stateId = OrderState.CANCELLED;
                     break;
 
                 case "closed":
                     //debugger;
-                    order.gross = Money((exo.amount * exo.cost).toString()); // TODO: VERIFY
-                    order.closed = new Date();
-                    order.stateId = OrderState.CLOSED;
+                    primoOrder.gross = Money((exchangeOrder.amount * exchangeOrder.cost).toString()); // TODO: VERIFY
+                    primoOrder.closed = new Date();
+                    primoOrder.stateId = OrderState.CLOSED;
                     break;
 
                 default:
-                    log.error(`Unknown order state '${exo.status}'`);
+                    log.error(`Unknown order state '${exchangeOrder.status}'`);
             }
+            primoOrder.stateId = OrderState.CLOSED;
+            await orders.updateOrder(primoOrder, trx);
         }
 
 
@@ -197,7 +195,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
     }
 
     async placeOrder(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, indicators: Map<string, unknown>) {
-        const { genome, instance, log, prices, state } = ctx;
+        const { genome, instance, log, prices, trx, state } = ctx;
         const { close } = tick;
         const { currentGenome } = instance;
 
@@ -205,7 +203,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         let signals = state.signals || [];
         let fsmState = state.fsmState;
 
-        const { alloc, items } = await capital.getAllocationLedger(instance.allocationId);
+        const { alloc, items } = await capital.getAllocationLedger(instance.allocationId, trx);
 
         // Safety check. This should never, ever happen.
         if (alloc.live && instance.modeId !== Mode.LIVE && instance.modeId !== Mode.LIVE_TEST) {
@@ -298,8 +296,11 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
             }
 
             // Make trade!
-            if ((isBuying && signal >= thresholdValue) ||
-                (!isBuying && signal <= thresholdValue)) {
+
+            let forceTestPurchase = false;
+            const hasSignal = (isBuying && signal >= thresholdValue) || (!isBuying && signal <= thresholdValue);
+
+            if (hasSignal || (env.isDev() && forceTestPurchase)) {
                 const buyOrSell = isBuying ? "BUY" : "SELL";
 
                 // TODO: Surfing control genes
