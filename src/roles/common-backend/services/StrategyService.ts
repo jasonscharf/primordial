@@ -233,6 +233,7 @@ export class StrategyService {
                     bot_instances.id,
                     bot_instances.name,
                     bot_instances.symbols,
+                    bot_instances."runState",
                     bot_instances."stateJson"->'fsmState',
                     bot_instances."stateInternal"->>'baseSymbolId',
                     bot_instances."stateInternal"->>'quoteSymbolId',
@@ -244,7 +245,7 @@ export class StrategyService {
 
                 ORDER BY
                     gross DESC,
-                    state DESC,
+                    "runState" DESC,
                     updated DESC
                     
                 `, bindings

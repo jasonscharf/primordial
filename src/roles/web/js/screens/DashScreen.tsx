@@ -18,6 +18,7 @@ const DashScreen = () => {
                         </CardContent>
                     </Card>
                 </Grid>
+                {/*
                 <Grid item xs={12}>
                     <Card title="Quick Links">
                     <CardContent>
@@ -26,7 +27,7 @@ const DashScreen = () => {
                             </Typography>
                         </CardContent>
                     </Card>
-                </Grid>
+                </Grid>*/}
             </Grid>
         </Box>
     );
