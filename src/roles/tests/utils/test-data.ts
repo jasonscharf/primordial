@@ -53,7 +53,7 @@ export function makeTestOrder(props?: Partial<Order>) {
         typeId: OrderType.LIMIT_BUY,
         baseSymbolId: "BTC",
         quoteSymbolId: "TUSD",
-        fees: Money("0.01"),
+        fees: Money(constants.DEFAULT_EXCHANGE_FEE + ""),
         limit: Money("50000"),
         strike: Money("50000"),
         quantity: Money("1"),
@@ -188,7 +188,7 @@ export async function getTestData(): Promise<TestDataCtx> {
         workspace,
         strategy,
         testSymbol1: symbols[0] as TradeSymbol,
-        testSymbol2: symbols[1]as TradeSymbol,
+        testSymbol2: symbols[1] as TradeSymbol,
     };
 }
 

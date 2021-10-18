@@ -4,7 +4,10 @@ import { Mode, Strategy } from "../common/models/system/Strategy";
 export const DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT = 0.2;
 export const DEFAULT_ALLOCATION_MAX_WAGER = 0.1;
 
-export const DEFAULT_SYMBOL_PAIR = "BTC/TUSD";
+// Binance
+export const DEFAULT_EXCHANGE_FEE = 0.001;
+
+
 export const DEFAULT_GENOME = "RSIL=20|RSIH=60";
 export const DEFAULT_STRATEGY_NAME = "default";
 export const DEFAULT_STRATEGY: Partial<Strategy> = {
@@ -104,6 +107,7 @@ export const queries = {
     BOTS_INSTANCES_FORK: "bots.instances.fork",
     BOTS_INSTANCES_GET: "bots.instances.get",
     BOTS_INSTANCES_PAUSE: "bots.instances.pause",
+    BOTS_INSTANCES_RUNNING: "bots.instances.running.list",
     BOTS_INSTANCES_STOP: "bots.instances.stop",
     BOTS_INSTANCES_TO_INIT: "bots.instances.need-init",
     BOTS_INSTANCES_UPDATE: "bots.instances.update",
@@ -132,6 +136,7 @@ export const queries = {
     SYMBOLS_LIST_NAMES: "symbols.list.names",
     SYMBOLS_PRICES_QUERY: "symbols.prices.query",
     SYMBOLS_PRICES_RANGES: "symbols.prices.ranges",
+    SYMBOLS_ACTIVE_PER_WORKSPACE: "symbols.active-per-workspace",
     SYSTEM_GET_SYSTEM_USER: "system.get-system-user",
     TASKS_ADD: "tasks.add",
     TASKS_GET_PENDING: "tasks.get.pending",

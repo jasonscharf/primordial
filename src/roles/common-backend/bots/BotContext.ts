@@ -387,7 +387,9 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
     const purchasePrice = tick.close;
 
     let amount: Money = null;
-    const fees = purchasePrice.mul("0.001");
+
+    // Binance
+    const fees = purchasePrice.mul(constants.DEFAULT_EXCHANGE_FEE + "");
 
     let quantity: Money = null;
     if (buy) {
@@ -412,6 +414,12 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
     const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
 
 
+    // IMPORTANT: NOTE: We are specifying fees here without knowing the actual cost (fills),
+    //  OR about any discounts, e.g. Binance's discount for holding BNB.
+    //  For sell orders, "fees" is initially AN APPROXIMATION until the order closes and we know
+    //  the fills and/or average price (or however fills are calculated per exchange).
+    // This works for backtesting, but properly handling fees in live trading is another (scheduled) topic.
+    order.fees = new Money(constants.DEFAULT_EXCHANGE_FEE + "");
     order.botRunId = ctx.runId;
     order.quantity = quantity;
     order.price = purchasePrice;
