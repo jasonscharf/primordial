@@ -389,7 +389,8 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
     let amount: Money = null;
 
     // Binance
-    const fees = purchasePrice.mul(constants.DEFAULT_EXCHANGE_FEE + "");
+    //const fees = purchasePrice.mul(constants.DEFAULT_EXCHANGE_FEE + "");
+    const fees = purchasePrice.mul("0.001");
 
     let quantity: Money = null;
     if (buy) {
@@ -419,7 +420,7 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
     //  For sell orders, "fees" is initially AN APPROXIMATION until the order closes and we know
     //  the fills and/or average price (or however fills are calculated per exchange).
     // This works for backtesting, but properly handling fees in live trading is another (scheduled) topic.
-    order.fees = new Money(constants.DEFAULT_EXCHANGE_FEE + "");
+    order.fees = fees;
     order.botRunId = ctx.runId;
     order.quantity = quantity;
     order.price = purchasePrice;

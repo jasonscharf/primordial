@@ -88,7 +88,7 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
 
                 // TODO: Constant/config
                 if (duration > 100) {
-                    //log.debug(`Ran bot '${botIdentifier(bot)}' in ${duration}ms`);
+                    log.debug(`Ran bot '${botIdentifier(bot)}' in ${duration}ms`);
                 }
 
                 return trx.commit();

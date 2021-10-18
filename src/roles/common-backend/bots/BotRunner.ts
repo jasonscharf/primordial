@@ -185,7 +185,7 @@ export class BotRunner {
             const duration = Date.now() - start;
 
             // TODO: Move this magic value to live settings
-            if (duration > 0) {
+            if (duration > 100) {
                 log.debug(`Tick ${botIdentifier(instanceRecord)} in ${duration}ms`);
             }
         }
