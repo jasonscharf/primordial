@@ -63,6 +63,14 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
     for (const bot of runningBots.concat(botsToInitialize)) {
         const identifier = botIdentifier(bot);
 
+        // Skip (or warn) on reentrant ticks, i.e. when the debugger is paused
+        if (tickingBots.has(bot.id) && tickingBots.get(bot.id) === true) {
+            if (!env.isDev()) {
+                log.warn(`Reentrant tick for ${identifier} @ ${msg.ts.toISOString()}`);
+            }
+            continue;
+        }
+
         tickingBots.set(bot.id, true);
 
         // Dispatch promise chains in parallel
@@ -72,14 +80,6 @@ export async function dispatchTicksRunningBots(msg: PriceUpdateMessage) {
         // TODO: PERF: Combine into the call above to get definitions + instances at once
         const [botInstance, trx] = await strats.lockBotForUpdate(bot.id);
 
-        // NOTE: This block should never be reached, as the bot is now locked in the DB
-        // Skip (or warn) on reentrant ticks, i.e. when the debugger is paused
-        if (tickingBots.has(bot.id) && tickingBots.get(bot.id) === true) {
-            if (!env.isDev()) {
-                log.warn(`Reentrant tick for ${identifier} @ ${msg.ts.toISOString()}`);
-            }
-            continue;
-        }
 
         runner.tickBot(null, botInstance, price, trx)
             .then(() => {
