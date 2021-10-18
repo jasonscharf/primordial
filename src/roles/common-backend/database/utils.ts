@@ -33,15 +33,17 @@ export function moneytize(obj: unknown) {
 export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Promise<T>, trx?: Knex.Transaction): Promise<T> {
 
     // TODO: Log level, timing, etc
-    // console.log(`Run query '${name}'...`);
+    console.log(`Run query '${name}'...`);
     const start = Date.now();
     let result: T;
-    if (trx) {
-        result = await fn(trx);
+
+    if (!trx) {
+        trx = await db.transaction();
     }
-    else {
-        result = await db.transaction(fn);
-    }
+
+    // 
+    trx.raw(`SET application_name = '${name}';`);
+    result = await fn(trx);
 
     const end = Date.now();
     const duration = end - start;

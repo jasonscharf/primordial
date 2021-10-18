@@ -45,14 +45,20 @@ export const Amount = (props: AmountProps) => {
     }
 
     let amountStr = "";
-    const parsedAmount = parseFloat(amount.toString());
 
-    // TODO: Rm. Total hack. Need currency info and conversion facilities.
-    if (symbol && symbol.indexOf("USD") > -1) {
-        amountStr = parsedAmount.toFixed(2).toString();
+    if (isNullOrUndefined(amount)) {
+        amountStr = '---';
     }
     else {
-        amountStr = parsedAmount.toFixed(8).toString();
+        const parsedAmount = parseFloat(amount.toString());
+
+        // TODO: Rm. Total hack. Need currency info and conversion facilities.
+        if (symbol && symbol.indexOf("USD") > -1) {
+            amountStr = parsedAmount.toFixed(2).toString();
+        }
+        else {
+            amountStr = parsedAmount.toFixed(8).toString();
+        }
     }
 
     const maybeSymbol = symbol ? `${symbol}` : null;

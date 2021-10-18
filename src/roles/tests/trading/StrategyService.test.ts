@@ -83,6 +83,16 @@ describe(StrategyService.name, () => {
         });
     });
 
+    describe(strats.getBotDescriptors.name, () => {
+        it("throws if the mode is not live or forward-test", async () => {
+            // TEST
+        });
+
+        it("returns the correct number of running bots", async () => {
+            // TEST
+        });
+    });
+
     describe(strats.getRunsForBot.name, () => {
         it("returns nothing for a bot that hasn't run", async () => {
             const { instance } = await addNewBotDefAndInstance();

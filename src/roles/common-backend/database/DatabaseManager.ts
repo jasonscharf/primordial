@@ -37,6 +37,7 @@ export class DatabaseManager {
 
 export const pool: Knex.PoolConfig = {
     propagateCreateError: false,
+    max: 50,
 };
 
 export const KNEX_CONFIG: Knex.Config<any> = {

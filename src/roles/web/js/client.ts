@@ -413,5 +413,18 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         format: "json",
         ...params,
       }),
+
+    /**
+     * No description
+     *
+     * @name GetWorkspaceLinks
+     * @request GET:/workspaces/{workspaceId}/links
+     */
+    getWorkspaceLinks: (workspaceId: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/workspaces/${workspaceId}/links`,
+        method: "GET",
+        ...params,
+      }),
   };
 }

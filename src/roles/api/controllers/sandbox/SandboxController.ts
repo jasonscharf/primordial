@@ -9,6 +9,7 @@ import { BotRunner } from "../../../common-backend/bots/BotRunner";
 import { ControllerBase } from "../ControllerBase";
 import { Mode } from "../../../common/models/system/Strategy";
 import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
+import { PrimoSerializableError } from "../../../common/errors/errors";
 import { RunState } from "../../../common/models/system/RunState";
 import { SymbolResultSet } from "../../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
@@ -18,11 +19,11 @@ import { millisecondsPerResInterval } from "../../../common/utils/time";
 import { randomName } from "../../../common-backend/utils/names";
 import { us } from "../../../common-backend/includes";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../../../common-backend/commands/bots/test";
-import { PrimoSerializableError } from "../../../common/errors/errors";
 
 
 @Route("sandbox")
-export class Sandbox extends ControllerBase {
+export class SandboxController extends ControllerBase {
+
 
     @Post("/run")
     async runBacktest(@Body() req: ApiBacktestRequest): Promise<any> {
