@@ -201,6 +201,7 @@ export class StrategyService {
             const bindings = {
                 status,
             };
+
             const { rows } = await db.raw(
                 `
                 SELECT
@@ -214,17 +215,20 @@ export class StrategyService {
                     bot_instances.created as created,
                     bot_instances.updated as updated,
                     bot_instances.created - bot_instances.updated as duration,
-                    COUNT(orders.id) as "numOrders",
-                    ROUND(SUM(((gross - 1000) - (gross * 0.002))), 2) as gross,
+                    COUNT(orders.id)::int as "numOrders",
+                    COALESCE(
+                        ROUND(SUM(((gross - 1000) - (gross * 0.002))), 2)::decimal, 0
+                    ) as gross,
                     bot_instances."stateJson",
-                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600)) as "durationHours"
+                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600))::int as "durationHours"
                 
                 FROM bot_instances
                     JOIN bot_runs on bot_runs."instanceId" = bot_instances.id
                     LEFT OUTER JOIN orders on (orders."botRunId" = bot_runs.id AND orders."typeId" = 'sell.limit')
 
-                AND bot_instances."modeId" = :status
-                AND "bot_runs".active = true
+                WHERE
+                    bot_instances."modeId" = :status AND "bot_runs".active = true
+
                 GROUP BY
                     bot_instances.id,
                     bot_instances.name,
@@ -237,7 +241,12 @@ export class StrategyService {
                     bot_instances.updated,
                     duration,
                     bot_instances."stateJson"
-                ORDER BY gross DESC
+
+                ORDER BY
+                    gross DESC,
+                    state DESC,
+                    updated DESC
+                    
                 `, bindings
             );
             return rows as RunningBotDescriptor[];
