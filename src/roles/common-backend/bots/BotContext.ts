@@ -141,7 +141,6 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
             baseSymbolId,
             quoteSymbolId,
             botRunId,
-            strike: purchasePrice,
             stateId: OrderState.OPEN,
             opened: tick.ts,
         };
@@ -242,7 +241,6 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             baseSymbolId,
             quoteSymbolId,
             botRunId,
-            strike: purchasePrice,
             stateId: OrderState.OPEN,
         };
 
