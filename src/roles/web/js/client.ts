@@ -41,6 +41,7 @@ export interface InfoResponse {
 }
 
 export enum ApiTimeResolution {
+  Type1M = "1m",
   Type5M = "5m",
   Type15M = "15m",
   Type1H = "1h",
@@ -89,6 +90,7 @@ export interface RunningBotDescriptor {
   id: string;
   name: string;
   symbols: string;
+  resId: ApiTimeResolution;
   baseSymbolId: string;
   quoteSymbolId: string;
   genome: string;

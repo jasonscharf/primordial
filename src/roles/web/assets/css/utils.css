@@ -50,6 +50,10 @@
     justify-content: center;
 }
 
+.primo-ellipses {
+    text-overflow: ellipsis;
+}
+
 /* Cancels */
 .MuiGrid-spacing-xs-2 {
     margin: 0 !important;

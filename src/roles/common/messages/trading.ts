@@ -19,8 +19,7 @@ import { TimeResolution } from "../models/markets/TimeResolution";
 }
 
 // FUN: TSOA capitalizes enum value names in keys for some silly reason, so "1m" and "1M" conflict...
-// Dropping 1min, as it's not super useful anyways.
-export type ApiTimeResolution = "5m" | "15m" | "1h" | "4h";
+export type ApiTimeResolution = "1m" | "5m" | "15m" | "1h" | "4h";
 
 export interface ApiBacktestResponse {
     id: string;

@@ -58,7 +58,7 @@ const models: TsoaRoute.Models = {
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ApiTimeResolution": {
         "dataType": "refAlias",
-        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["5m"]},{"dataType":"enum","enums":["15m"]},{"dataType":"enum","enums":["1h"]},{"dataType":"enum","enums":["4h"]}],"validators":{}},
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["1m"]},{"dataType":"enum","enums":["5m"]},{"dataType":"enum","enums":["15m"]},{"dataType":"enum","enums":["1h"]},{"dataType":"enum","enums":["4h"]}],"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ApiBacktestRequest": {
@@ -93,6 +93,7 @@ const models: TsoaRoute.Models = {
             "id": {"dataType":"string","required":true},
             "name": {"dataType":"string","required":true},
             "symbols": {"dataType":"string","required":true},
+            "resId": {"ref":"ApiTimeResolution","required":true},
             "baseSymbolId": {"dataType":"string","required":true},
             "quoteSymbolId": {"dataType":"string","required":true},
             "genome": {"dataType":"string","required":true},

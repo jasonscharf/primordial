@@ -102,6 +102,7 @@
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
     "@material-ui/lab": "^4.0.0-alpha.60",
+    "@mui/icons-material": "^5.0.4",
     "@mui/lab": "^5.0.0-alpha.47",
     "@mui/material": "^5.0.0",
     "@mui/utils": "^5.0.0",
