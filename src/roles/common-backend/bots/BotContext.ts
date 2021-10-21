@@ -380,15 +380,13 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
 
     // TODO: Double-check PoC bot
     // TODO: Exchange-based fee structure
-    // TODO: Fees tracking
 
     const purchasePrice = tick.close;
 
     let amount: Money = null;
 
     // Binance
-    //const fees = purchasePrice.mul(constants.DEFAULT_EXCHANGE_FEE + "");
-    const fees = purchasePrice.mul("0.001");
+    const fees = Money(constants.DEFAULT_EXCHANGE_FEE + "");
 
     let quantity: Money = null;
     if (buy) {
@@ -410,6 +408,7 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
         ? profitTargetGene.value
         : 0.002 // FIX/COMMENT
         ;
+
     const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
 
 
