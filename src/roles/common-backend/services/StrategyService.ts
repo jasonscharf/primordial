@@ -208,31 +208,35 @@ export class StrategyService {
                     bot_instances.id,
                     bot_instances.name,
                     bot_instances.symbols,
-                    bot_instances."stateJson"->>'fsmState' as "fsmState",
-                    bot_instances."stateInternal"->>'baseSymbolId' as "baseSymbolId",
-                    bot_instances."stateInternal"->>'quoteSymbolId' as "quoteSymbolId",
+                    bot_instances."resId",
+                    bot_instances."stateJson"->>'fsmState' AS "fsmState",
+                    bot_instances."stateInternal"->>'baseSymbolId' AS "baseSymbolId",
+                    bot_instances."stateInternal"->>'quoteSymbolId' AS "quoteSymbolId",
                     bot_instances."currentGenome" as genome,
-                    bot_instances.created as created,
-                    bot_instances.updated as updated,
+                    bot_instances.created AS created,
+                    bot_instances.updated AS updated,
                     bot_instances.created - bot_instances.updated as duration,
-                    COUNT(orders.id)::int as "numOrders",
+                    COUNT(orders.id)::int AS "numOrders",
                     COALESCE(
                         ROUND(SUM(((gross - 1000) - (gross * 0.002))), 2)::decimal, 0
-                    ) as gross,
+                    ) AS gross,
                     bot_instances."stateJson",
-                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600))::int as "durationHours"
+                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600))::int AS "durationHours"
                 
                 FROM bot_instances
-                    JOIN bot_runs on bot_runs."instanceId" = bot_instances.id
-                    LEFT OUTER JOIN orders on (orders."botRunId" = bot_runs.id AND orders."typeId" = 'sell.limit')
+                    JOIN bot_runs ON bot_runs."instanceId" = bot_instances.id
+                    LEFT JOIN orders ON (orders."botRunId" = bot_runs.id AND orders."typeId" = 'sell.limit')
 
                 WHERE
-                    bot_instances."modeId" = :status AND "bot_runs".active = true
+                    bot_instances."modeId" = :status AND
+                    bot_instances.deleted = false AND
+                    bot_runs.active = true
 
                 GROUP BY
                     bot_instances.id,
                     bot_instances.name,
                     bot_instances.symbols,
+                    bot_instances."resId",
                     bot_instances."runState",
                     bot_instances."stateJson"->'fsmState',
                     bot_instances."stateInternal"->>'baseSymbolId',

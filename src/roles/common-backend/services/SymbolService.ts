@@ -746,7 +746,7 @@ export class SymbolService {
                 )
                 SELECT *
                 FROM time_range_buckets
-                LEFT OUTER JOIN existing_prices ON "ts" = "generated"
+                LEFT JOIN existing_prices ON "ts" = "generated"
             `;
 
             const bindings = {
