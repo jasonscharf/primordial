@@ -45,13 +45,13 @@ export const AppRoutes = () => {
                 <Route path={routes.DATA}>
                     <DataScreen />
                 </Route>
-                <Route path={routes.BOTS}>
+                <Route path={routes.GENOMES}>
                     <BotScreen />
                 </Route>
-                <Route path={routes.BACK_TESTS_BASE}>
+                <Route exact path={routes.BACK_TESTS_BASE}>
                     <BackTestsScreen />
                 </Route>
-                <Route path={routes.BACK_TESTS_RUN}>
+                <Route exact path={routes.BACK_TESTS_RUN}>
                     <RunScreen />
                 </Route>
                 <Route path={routes.BACK_TESTS_RESULTS_FOR_BOT}>

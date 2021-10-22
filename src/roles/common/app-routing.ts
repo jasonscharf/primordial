@@ -4,7 +4,7 @@ export const routes = {
     DASH: "/dash",
     ANALYTICS: "/analytics",
     CAPITAL: "/capital",
-    BOTS: "/bots",
+    GENOMES: "/genomes",
     ORDERS: "/orders",
     TESTS: "/tests",
     FORWARD_TESTS: "/forward-tests",

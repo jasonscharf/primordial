@@ -23,7 +23,7 @@ const DashScreen = () => {
                         </CardContent>
                         <CardActions>
                             <Button onClick={onClickViewAll} size="small" color="primary">
-                                View All
+                                View All&nbsp;&raquo;
                             </Button>
                         </CardActions>
                     </Card>

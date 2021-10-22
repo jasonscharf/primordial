@@ -49,9 +49,9 @@ export const AppMenu = (props: AppMenuProps) => {
                         <LocalAtmIcon />
                         <ListItemText inset>Capital</ListItemText>
                     </MenuItem>
-                    <MenuItem onClick={() => nav(routes.BOTS)}>
+                    <MenuItem onClick={() => nav(routes.GENOMES)}>
                         <AndroidIcon />
-                        <ListItemText inset>Bots</ListItemText>
+                        <ListItemText inset>Genotypes</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={() => nav(routes.ORDERS)}>
                         <TimelineIcon />

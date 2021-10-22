@@ -151,6 +151,12 @@
     padding: 0;
 }
 
+.MuiCardActions-root {
+    display: flex;
+    justify-content: flex-end;
+}
+
+
 .MuiListItemText-root.MuiListItemText-inset.MuiListItemText-dense {
     padding-left: 16px;
 }
