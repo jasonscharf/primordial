@@ -6,8 +6,8 @@ import { Hashicon } from "@emeraldpay/hashicon-react";
 import { GeneticBotFsmState } from "../../../../common/models/bots/BotState";
 import { InfoContext } from "../../contexts";
 import { RunningBotDescriptor } from "../../client";
-import { client } from "../../includes";
 import { presentBotState } from "../../../../common/utils/presentation";
+import { useApiRequestEffect } from "../../hooks/useApiRequestEffect";
 
 export interface RunningBotTableProps {
     workspaceId?: string;
@@ -19,31 +19,20 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
     const [descriptors, setDescriptors] = useState<RunningBotDescriptor[]>([]);
     const info = useContext(InfoContext);
 
-    useEffect(() => {
-        try {
-            if (!info) {
-                return;
-            }
-
-            const { defaultStrategy, defaultWorkspace } = info;
-            let mode = props.mode;
-
-            const workspaceId = props.workspaceId || defaultWorkspace;
-            const strategyId = props.strategyId || defaultStrategy;
-
-            client.workspaces.getBots(workspaceId, strategyId, mode)
-                .then(response => response.data)
-                .then(descriptors => {
-                    setDescriptors(descriptors);
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert(err);
-                });
+    useApiRequestEffect(async (client) => {
+        if (!info) {
+            return;
         }
-        catch (error) {
-            alert(error);
-        }
+
+        const { defaultStrategy, defaultWorkspace } = info;
+        let mode = props.mode;
+
+        const workspaceId = props.workspaceId || defaultWorkspace;
+        const strategyId = props.strategyId || defaultStrategy;
+
+        const { data } = await client.workspaces.getBots(workspaceId, strategyId, mode);
+        setDescriptors(data);
+
     }, [info]);
 
     return (
@@ -51,11 +40,11 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
             {descriptors.length === 0
                 ? (<b>There are no active forward tests</b>)
                 : descriptors.map((d, i) => (
-                    <Grid key={i} item container spacing={1} style={{  flexWrap: "nowrap", marginBottom: "1em" }}>
+                    <Grid key={i} item container spacing={1} style={{ flexWrap: "nowrap", marginBottom: "1em" }}>
                         <Grid item style={{ marginTop: "auto", marginBottom: "auto" }}>
                             <Hashicon value={d.id} size={32} />
                         </Grid>
-                        <Grid item direction="column" style={{  }} className="primo-ellipses">
+                        <Grid item style={{}} className="primo-ellipses">
                             <Grid item >
                                 <b>{d.name}</b>
                             </Grid>

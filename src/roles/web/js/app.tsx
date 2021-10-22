@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import { render } from "react-dom";
 import DateAdapter from "@mui/lab/AdapterLuxon";
+import { SnackbarProvider } from "notistack";
 import { LocalizationProvider } from "@mui/lab";
 import { AppRoutes } from "./AppRoutes";
 import { InfoContext } from "./contexts";
@@ -25,11 +26,13 @@ const App = () => {
 
     return (
         <LocalizationProvider dateAdapter={DateAdapter}>
-            <InfoContext.Provider value={info}>
-                <Suspense fallback={<div />}>
-                    <AppRoutes />
-                </Suspense>
-            </InfoContext.Provider>
+            <SnackbarProvider maxSnack={3}>
+                <InfoContext.Provider value={info}>
+                    <Suspense fallback={<div />}>
+                        <AppRoutes />
+                    </Suspense>
+                </InfoContext.Provider>
+            </SnackbarProvider>
         </LocalizationProvider>
     );
 };

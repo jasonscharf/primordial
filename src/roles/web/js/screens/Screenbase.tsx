@@ -1,8 +1,8 @@
 import React, { useCallback, useState } from "react";
 import { AppBar, Grid, IconButton, Toolbar, Typography } from "@mui/material";
+import { AppFooter } from "../components/AppFooter";
 import { AppHeader } from "../components/AppHeader";
 import { AppMenu } from "../components/menus/AppMenu";
-import { AppFooter } from "../components/AppFooter";
 
 
 export interface ScreenBaseProps {

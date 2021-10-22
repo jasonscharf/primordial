@@ -59,3 +59,41 @@ export class PrimoValidationError extends PrimoSerializableError {
         this.fieldNameHuman = !isNullOrUndefined(fieldNameHuman) ? fieldNameHuman : fieldName;
     }
 }
+
+export function createError(props: Error | PrimoSerializableError) {
+    if ((props as PrimoSerializableError).primoErrorType) {
+        let newError: Error | PrimoSerializableError;
+        let asPrimoError = props as PrimoSerializableError;
+        switch (asPrimoError.primoErrorType) {
+            case ErrorType.GENERIC:
+                newError = new PrimoSerializableError(props.message, asPrimoError.code);
+                break;
+            case ErrorType.MISSING_ARG:
+                newError = new PrimoMissingArgumentError(props.message, asPrimoError.code);
+                break;
+            case ErrorType.ALREADY_EXISTS:
+                newError = new PrimoAlreadyExistsError(props.message, asPrimoError.code);
+                break;
+            case ErrorType.UNKNOWN_NAME:
+                newError = new PrimoUnknownName(props.message, asPrimoError.code);
+                break;
+            case ErrorType.MALFORMED:
+                newError = new PrimoMalformedGenomeError(props.message, asPrimoError.code);
+                break;
+            case ErrorType.VALIDATION:
+                newError = new PrimoValidationError(props.message, (props as PrimoValidationError).fieldName, (props as PrimoValidationError).fieldNameHuman);
+                break;
+            default:
+                newError = new Error(props.message);
+                break;
+        }
+
+        return newError;
+    }
+    else if (props instanceof Error) {
+        return props;
+    }
+    else {
+        return new Error((props as any).message);
+    }
+}

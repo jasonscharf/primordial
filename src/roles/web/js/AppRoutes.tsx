@@ -6,6 +6,7 @@ import {
     Route,
     Switch,
 } from "react-router-dom";
+
 import { routes } from "../../common/app-routing";
 
 const AnalyticsScreen = lazy(() => import("./screens/AnalyticsScreen"));

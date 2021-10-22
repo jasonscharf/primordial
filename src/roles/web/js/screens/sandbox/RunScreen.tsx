@@ -115,6 +115,9 @@ const RunScreen = () => {
             }
         }
         catch (err) {
+
+            // TODO: Error handling hook
+            
             let errMessage = "";
             let errorTexts: string[] = []
             if (err instanceof Response) {
