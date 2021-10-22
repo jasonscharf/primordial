@@ -1,0 +1,16 @@
+export const routes = {
+    HOME: "/",
+    WORKSPACE_LIST: "/workspaces",
+    DASH: "/dash",
+    ANALYTICS: "/analytics",
+    CAPITAL: "/capital",
+    BOTS: "/bots",
+    ORDERS: "/orders",
+    TESTS: "/tests",
+    FORWARD_TESTS: "/forward-tests",
+    BACK_TESTS_RUN: "/run",
+    BACK_TESTS_BASE: "/results",
+    BACK_TESTS_RESULTS_FOR_BOT: "/results/:instanceIdOrName",
+    DATA: "/data",
+    SYSTEM: "/system",
+};

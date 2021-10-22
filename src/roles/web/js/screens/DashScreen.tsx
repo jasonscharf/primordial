@@ -1,37 +1,34 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Box } from "@mui/system";
-import { Card, CardContent, CardHeader, Grid, Typography } from "@mui/material";
+import { useHistory } from "react-router";
+import { Button, Card, CardActions, CardContent, CardHeader, Grid, Typography } from "@mui/material";
 import { RunningBotTable } from "../components/dash/RunningBotTable";
 import { ScreenBase } from "./Screenbase";
+import { routes } from "../../../common/app-routing";
 
 
 const DashScreen = () => {
+    const hist = useHistory();
+    const onClickViewAll = useCallback(() => {
+        hist.push(routes.FORWARD_TESTS);
+    }, []);
+
     return (
         <ScreenBase>
-            <Box width={1} height={1}>
-                <Grid container spacing={1} direction="row" className="primo-fullsize primo-dash">
-                    <Grid item xs={12} lg={3}>
-                        <Card>
-                            <CardHeader disableTypography title="Active Forward Tests">
-
-                            </CardHeader>
-                            <CardContent>
-                                <RunningBotTable mode="test-forward" />
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                    {/*
-                <Grid item xs={12}>
-                    <Card title="Quick Links">
-                    <CardContent>
-                            <Typography color="text.secondary" component="b">
-                                <div><b>Quick Links</b></div>
-                            </Typography>
+            <Grid container spacing={1} direction="row" className="primo-fullsize primo-dash">
+                <Grid item xs={12} lg={3}>
+                    <Card>
+                        <CardHeader disableTypography title="Active Forward Tests" />
+                        <CardContent>
+                            <RunningBotTable mode="test-forward" />
                         </CardContent>
+                        <CardActions>
+                            <Button onClick={onClickViewAll} size="small" color="primary">
+                                View All
+                            </Button>
+                        </CardActions>
                     </Card>
-                </Grid>*/}
                 </Grid>
-            </Box>
+            </Grid>
         </ScreenBase>
     );
 };

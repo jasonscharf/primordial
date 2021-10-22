@@ -5,6 +5,7 @@ import { client } from "../includes";
 import { Button, Grid } from "@mui/material";
 import { RouterProps, useHistory } from "react-router";
 import { InfoContext } from "../contexts";
+import { routes } from "../../../common/app-routing";
 
 
 const Splash = (props) => {
@@ -37,12 +38,12 @@ const Splash = (props) => {
                     <h1>P R I M O R D I A L</h1>
                     <Grid item container spacing={1} className="primo-button-strip" style={{ width: "auto", justifyContent: "center"}}>
                         <Grid item>
-                            <Button variant="contained" onClick={() => hist.push("/dash")}>
+                            <Button variant="contained" onClick={() => hist.push(routes.DASH)}>
                                 <span>Dashboard&nbsp;&raquo;</span>
                             </Button>
                         </Grid>
                         <Grid item>
-                            <Button variant="contained" onClick={() => hist.push("/run")}>
+                            <Button variant="contained" onClick={() => hist.push(routes.BACK_TESTS_RUN)}>
                                 <span>Run a backtest&nbsp;&raquo;</span>
                             </Button>
                         </Grid>

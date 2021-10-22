@@ -19,7 +19,6 @@ export const AppHeader = (props: HeaderProps) => {
             <Grid item direction="column">
                 <Grid item className="primo-app-header-title">
                     <h1>Primordial</h1>
-                    <span></span>
                 </Grid>
             </Grid>
             <Grid item style={{ textAlign: "right", flex: 1 }}><b>System User</b></Grid>
