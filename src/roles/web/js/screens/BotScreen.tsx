@@ -8,10 +8,10 @@ const BotScreen = () => {
         <ScreenBase>
             <Grid item xs={12} lg={4}>
                 <Card>
-                    <CardHeader disableTypography title="Bot Management" />
+                    <CardHeader disableTypography title="Genotype Management" />
                     <CardContent>
                         <p>
-                            Placeholder for bot management screen.
+                            Placeholder for genotype management screen.
                         </p>
                     </CardContent>
                 </Card>

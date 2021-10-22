@@ -66,6 +66,8 @@
     display: flex;
     height: 100%;
     padding: auto;
+    letter-spacing: 3px;
+    opacity: 0.6;
 }
 
 .primo-app-header-title h1 {
@@ -81,6 +83,8 @@
 
 /* AppMenu */
 .primo-app-menu {
+    bottom: 0;
+    z-index: 999;
     width: 320px;
     top: 48px;
     height: 100%;

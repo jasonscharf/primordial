@@ -21,10 +21,7 @@ export const ScreenBase: React.FC<ScreenBaseProps> = props => {
     }, [drawerOpen]);
 
     return (
-        <Grid container direction="column" style={{
-            height: "100vh",
-            display: "flex"
-        }}>
+        <Grid container direction="column" className="primo-screenbase">
             <Grid item>
                 <AppHeader onTapMenu={() => handleDrawerToggle()} />
             </Grid>

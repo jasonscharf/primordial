@@ -19,6 +19,7 @@ import { OrderEntity } from "../../../../common/entities/OrderEntity";
 import OrderTable from "../../components/OrderTable";
 import { Percent } from "../../components/primitives/Percent";
 import { RunState } from "../../client";
+import { ScreenBase } from "../Screenbase";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
 import { client } from "../../includes";
 import { isNullOrUndefined, sleep } from "../../../../common/utils";
@@ -190,121 +191,119 @@ const BotResults = () => {
     const avgTickDuration = (report.durationMs / report.numCandles).toFixed(2);
     const runType = "backtest";
     return (
-        <Box width={1} height={1}>
-            <Grid container className="primo-fullsize" direction="row" style={{ alignContent: "baseline", margin: 0, padding: 0 }}>
-                <Grid item container style={{ borderBottom: "2px solid #ddd", padding: "12px" }}>
-                    <Grid item className="primo-flex-valign" style={{ marginRight: "8px" }}>
-                        <Hashicon value={instanceId} size={32} />
+        <ScreenBase>
+            <Grid item container style={{ borderBottom: "2px solid #ddd", padding: "12px" }}>
+                <Grid item className="primo-flex-valign" style={{ marginRight: "8px" }}>
+                    <Hashicon value={instanceId} size={32} />
+                </Grid>
+                <Grid item>
+                    <Grid item>
+                        <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#40;{runType}&#41;
+                        &nbsp;<span>@</span><b><span>{report.timeRes}</span></b>
                     </Grid>
                     <Grid item>
-                        <Grid item>
-                            <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#40;{runType}&#41;
-                            &nbsp;<span>@</span><b><span>{report.timeRes}</span></b>
-                        </Grid>
-                        <Grid item>
-                            <span>&#129516;&nbsp;<b>{report.genome}</b></span>
-                        </Grid>
-                        <Grid item>
-                            <span>&#129302;&nbsp;{report.instanceId}</span>
-                        </Grid>
-                        <Grid item>
-                            <span>&#128588;&nbsp;{report.name}</span>
-                        </Grid>
+                        <span>&#129516;&nbsp;<b>{report.genome}</b></span>
                     </Grid>
-                    <Grid item style={{ marginLeft: "auto", textAlign: "right" }}>
-                        <Grid item>
-                            <b>{shortDateAndTime(report.from)}</b> - <b>{shortDateAndTime(report.to)}</b>
-                        </Grid>
-                        <Grid item>
-                            <span>gross</span>&nbsp;<b><Amount amount={report.totalGross} symbol={quote} /></b>
-                        </Grid>
-                        <Grid item style={{ textAlign: "right" }}>
-                            <b>{report.length}</b>
-                        </Grid>
+                    <Grid item>
+                        <span>&#129302;&nbsp;{report.instanceId}</span>
+                    </Grid>
+                    <Grid item>
+                        <span>&#128588;&nbsp;{report.name}</span>
                     </Grid>
                 </Grid>
-
-                <Grid container item spacing={3} style={{ borderBottom: "2px solid #ddd", margin: 0 }}>
-                    <BotRunChart
-                        data={data}
-                        displayHeikinAshi={displayHeikinAshi}
-                        eventMap={eventMap}
-                        summary={report}
-                        signals={signals}
-                        indicators={indicators}
-                    />
-                </Grid>
-
-                <Grid container spacing={2} style={{ borderBottom: "1px solid #ddd" }}>
-                    <Grid item style={{ marginLeft: "auto", padding: "8px " }}>
-                        <Button onClick={handleToggleHeikinAshi} variant="contained">Heikin Ashi {displayHeikinAshi ? "off" : "on"}</Button>
+                <Grid item style={{ marginLeft: "auto", textAlign: "right" }}>
+                    <Grid item>
+                        <b>{shortDateAndTime(report.from)}</b> - <b>{shortDateAndTime(report.to)}</b>
                     </Grid>
-                </Grid>
-
-                <Grid container item spacing={2}>
-
-                    <Grid item style={{ flex: 1 }}>
-                        <Card>
-                            <CardContent>
-                                <Grid container spacing={1} flexDirection="column" className={classNames("primo-info-table")}>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Gross</Grid>
-                                        <Grid item style={{ textAlign: "right" }}>
-                                            <Amount amount={report.totalGross} symbol={report.quote} />
-                                            &nbsp;&#47;&nbsp;
-                                            <Percent amount={report.totalGrossPct} />
-                                        </Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Avg. Daily Gross</Grid>
-                                        <Grid item style={{ textAlign: "right" }}>
-                                            <Amount amount={report.avgProfitPerDay} symbol={report.quote} />
-                                            &nbsp;&#47;&nbsp;
-                                            <Percent amount={report.avgProfitPctPerDay} />
-                                        </Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Buy &amp; Hold</Grid>
-                                        <Grid item style={{ textAlign: "right" }}>
-                                            <Amount amount={report.capital * report.buyAndHoldGrossPct} symbol={report.quote} />
-                                            &nbsp;&#47;&nbsp;
-                                            <Percent amount={report.buyAndHoldGrossPct} />
-                                        </Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Est. Per year (weekly comp.)</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.estProfitPerYearCompounded} /></Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Sharpe</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><Amount amount={report.sharpe.toPrecision(2)} /></Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Trailing Order</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><b>{report.trailingOrder ? "yes" : "no"}</b></Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Num. Orders</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><b>{report.numOrders}</b></Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Num. Candles</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><b>{report.numCandles}</b></Grid>
-                                    </Grid>
-                                    <Grid item container className="primo-info-table-item">
-                                        <Grid item>Duration (ms)</Grid>
-                                        <Grid item style={{ textAlign: "right" }}><b>{report.durationMs}ms ({avgTickDuration} ms/candle)</b></Grid>
-                                    </Grid>
-                                </Grid>
-                            </CardContent>
-                        </Card>
+                    <Grid item>
+                        <span>gross</span>&nbsp;<b><Amount amount={report.totalGross} symbol={quote} /></b>
                     </Grid>
-                    <Grid item style={{ overflow: "auto", margin: 0 }}>
-                        <OrderTable orders={orders} />
+                    <Grid item style={{ textAlign: "right" }}>
+                        <b>{report.length}</b>
                     </Grid>
                 </Grid>
             </Grid>
-        </Box >
+
+            <Grid container item spacing={3} style={{ borderBottom: "2px solid #ddd", margin: 0 }}>
+                <BotRunChart
+                    data={data}
+                    displayHeikinAshi={displayHeikinAshi}
+                    eventMap={eventMap}
+                    summary={report}
+                    signals={signals}
+                    indicators={indicators}
+                />
+            </Grid>
+
+            <Grid container spacing={2} style={{ borderBottom: "1px solid #ddd" }}>
+                <Grid item style={{ marginLeft: "auto", padding: "8px " }}>
+                    <Button onClick={handleToggleHeikinAshi} variant="contained">Heikin Ashi {displayHeikinAshi ? "off" : "on"}</Button>
+                </Grid>
+            </Grid>
+
+            <Grid container item spacing={2}>
+
+                <Grid item style={{ flex: 1 }}>
+                    <Card>
+                        <CardContent>
+                            <Grid container spacing={1} flexDirection="column" className={classNames("primo-info-table")}>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Gross</Grid>
+                                    <Grid item style={{ textAlign: "right" }}>
+                                        <Amount amount={report.totalGross} symbol={report.quote} />
+                                        &nbsp;&#47;&nbsp;
+                                        <Percent amount={report.totalGrossPct} />
+                                    </Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Avg. Daily Gross</Grid>
+                                    <Grid item style={{ textAlign: "right" }}>
+                                        <Amount amount={report.avgProfitPerDay} symbol={report.quote} />
+                                        &nbsp;&#47;&nbsp;
+                                        <Percent amount={report.avgProfitPctPerDay} />
+                                    </Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Buy &amp; Hold</Grid>
+                                    <Grid item style={{ textAlign: "right" }}>
+                                        <Amount amount={report.capital * report.buyAndHoldGrossPct} symbol={report.quote} />
+                                        &nbsp;&#47;&nbsp;
+                                        <Percent amount={report.buyAndHoldGrossPct} />
+                                    </Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Est. Per year (weekly comp.)</Grid>
+                                    <Grid item style={{ textAlign: "right" }}><Amount amount={report.estProfitPerYearCompounded} /></Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Sharpe</Grid>
+                                    <Grid item style={{ textAlign: "right" }}><Amount amount={report.sharpe.toPrecision(2)} /></Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Trailing Order</Grid>
+                                    <Grid item style={{ textAlign: "right" }}><b>{report.trailingOrder ? "yes" : "no"}</b></Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Num. Orders</Grid>
+                                    <Grid item style={{ textAlign: "right" }}><b>{report.numOrders}</b></Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Num. Candles</Grid>
+                                    <Grid item style={{ textAlign: "right" }}><b>{report.numCandles}</b></Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Duration (ms)</Grid>
+                                    <Grid item style={{ textAlign: "right" }}><b>{report.durationMs}ms ({avgTickDuration} ms/candle)</b></Grid>
+                                </Grid>
+                            </Grid>
+                        </CardContent>
+                    </Card>
+                </Grid>
+                <Grid item style={{ overflow: "auto", margin: 0 }}>
+                    <OrderTable orders={orders} />
+                </Grid>
+            </Grid>
+        </ScreenBase>
     );
 };
 

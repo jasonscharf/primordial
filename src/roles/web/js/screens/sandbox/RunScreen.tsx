@@ -1,12 +1,13 @@
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useState } from "react";
-import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel, InputLabel, Select, MenuItem } from "@mui/material";
+import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel, InputLabel, Select, MenuItem, CardHeader } from "@mui/material";
 import DateAdapter from "@mui/lab/AdapterLuxon";
 import DateTimePicker from "@mui/lab/DateTimePicker";
 import { ApiBacktestRequest, ApiTimeResolution } from "../../client";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
 import { client } from "../../includes";
 import { Spinner } from "../../components/primitives/Spinner";
+import { ScreenBase } from "../Screenbase";
 
 const DEFAULT_SYMBOLS = "BTC/USDT";
 const DEFAULT_GENOME = "RSI-L=33|RSI-H=66";
@@ -117,7 +118,7 @@ const RunScreen = () => {
         catch (err) {
 
             // TODO: Error handling hook
-            
+
             let errMessage = "";
             let errorTexts: string[] = []
             if (err instanceof Response) {
@@ -143,23 +144,14 @@ const RunScreen = () => {
 
 
     return (
-        <Box width={1} height={1} className="primo-screen-runner" style={{
-            textAlign: "center",
-            height: "100vh",
-            display: "flex",
-        }}>
-            <Grid container className="primo-fullsize"
-                spacing={0}
-                direction="column"
-                alignItems="center"
-                justifyContent="center"
-                style={{ minHeight: "100vh" }}
-            >
-                {
-                    isRunning
-                        ? (<Spinner caption1="Running bot..." caption2="This may take a while..." />)
-                        : (
-                            <Card elevation={15}>
+        <ScreenBase>
+            {
+                isRunning
+                    ? (<Spinner caption1="Running bot..." caption2="This may take a while..." />)
+                    : (
+                        <Grid xs={12} lg={6}>
+                            <Card>
+                                <CardHeader disableTypography title="Run a Backtest" />
                                 <CardContent style={{ padding: "32px" }}>
                                     <form noValidate autoComplete="off" onSubmit={handleClickRun}>
                                         <Grid item container spacing={2} style={{ padding: "0px !important" }}>
@@ -175,7 +167,7 @@ const RunScreen = () => {
                                                             onChange={evt => handleChangeSymbols(evt.target.value)} />
                                                     </Grid>
                                                     <Grid item>
-                                                        
+
                                                         <Select
                                                             label="Interval"
                                                             id="demo-simple-select"
@@ -244,9 +236,9 @@ const RunScreen = () => {
                                     </Grid>
                                 </CardContent>
                             </Card>
-                        )}
-            </Grid>
-        </Box>
+                        </Grid>
+                    )}
+        </ScreenBase>
     );
 };
 

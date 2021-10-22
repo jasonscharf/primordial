@@ -45,7 +45,7 @@ export const AppRoutes = () => {
                 <Route path={routes.DATA}>
                     <DataScreen />
                 </Route>
-                <Route path={routes.GENOMES}>
+                <Route path={routes.GENOTYPES}>
                     <BotScreen />
                 </Route>
                 <Route exact path={routes.BACK_TESTS_BASE}>

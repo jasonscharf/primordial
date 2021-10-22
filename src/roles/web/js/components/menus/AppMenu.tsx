@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { Grid, ListItemText, MenuItem, MenuList } from "@mui/material";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AcUnitIcon from "@mui/icons-material/AcUnit";
 import AnalyticsIcon from "@mui/icons-material/Analytics";
 import AndroidIcon from "@mui/icons-material/Android";
 import BiotechIcon from "@mui/icons-material/Biotech";
@@ -49,8 +50,8 @@ export const AppMenu = (props: AppMenuProps) => {
                         <LocalAtmIcon />
                         <ListItemText inset>Capital</ListItemText>
                     </MenuItem>
-                    <MenuItem onClick={() => nav(routes.GENOMES)}>
-                        <AndroidIcon />
+                    <MenuItem onClick={() => nav(routes.GENOTYPES)}>
+                        <AcUnitIcon />
                         <ListItemText inset>Genotypes</ListItemText>
                     </MenuItem>
                     <MenuItem onClick={() => nav(routes.ORDERS)}>
