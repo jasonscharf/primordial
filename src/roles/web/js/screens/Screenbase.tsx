@@ -21,15 +21,15 @@ export const ScreenBase: React.FC<ScreenBaseProps> = props => {
     }, [drawerOpen]);
 
     return (
-        <Grid container direction="column" className="primo-screenbase">
+        <Grid container direction="column" className="primo-screen-base">
             <Grid item>
                 <AppHeader onTapMenu={() => handleDrawerToggle()} />
             </Grid>
-            <Grid item direction="row" style={{ display: "flex", flex: 1 }}>
+            <Grid item className="primo-screen-base-body">
                 <Grid item>
                     {maybeDrawer}
                 </Grid>
-                <Grid item style={{ flex: 1 }}>
+                <Grid item style={{ maxWidth: "100%", flex: 1 }}>
                     {children}
                 </Grid>
             </Grid>

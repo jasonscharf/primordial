@@ -1,5 +1,6 @@
 import { DateTime } from "luxon";
 import { TimeResolution } from "../models/markets/TimeResolution";
+import { isNullOrUndefined } from "../utils";
 
 
 
@@ -263,6 +264,9 @@ export function splitRanges(res: TimeResolution, range: { start: Date, end: Date
  * @returns 
  */
 export function from(input: string | Date): Date {
+    if (isNullOrUndefined(input)) {
+        return null;
+    }
     const fr = typeof input === "string"
         ? DateTime.fromISO(input)
         : DateTime.fromISO((input as Date).toISOString())

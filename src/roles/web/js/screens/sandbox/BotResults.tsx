@@ -16,7 +16,7 @@ import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../../../common/entities/PriceEntity";
 import { OrderEntity } from "../../../../common/entities/OrderEntity";
-import OrderTable from "../../components/OrderTable";
+import { SimpleOrderTable } from "../../components/SimpleOrderTable";
 import { Percent } from "../../components/primitives/Percent";
 import { RunState } from "../../client";
 import { ScreenBase } from "../Screenbase";
@@ -300,7 +300,7 @@ const BotResults = () => {
                     </Card>
                 </Grid>
                 <Grid item style={{ overflow: "auto", margin: 0 }}>
-                    <OrderTable orders={orders} />
+                    <SimpleOrderTable orders={orders} />
                 </Grid>
             </Grid>
         </ScreenBase>

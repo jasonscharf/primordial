@@ -28,6 +28,11 @@ describe(OrderService.name, () => {
             // TEST
         });
     });
+    describe(orders.getBotOrderDescriptors.name, () => {
+        it("retrieves the requested number of order descriptors", async () => {
+            // TEST
+        });
+    });
     describe(orders.saveFillsForOrder.name, () => {
         it("saves fill records in the database", async () => {
             // TEST

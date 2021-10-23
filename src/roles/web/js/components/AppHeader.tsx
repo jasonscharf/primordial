@@ -16,7 +16,7 @@ export const AppHeader = (props: HeaderProps) => {
                     <MenuIcon />
                 </button>
             </Grid>
-            <Grid item direction="column">
+            <Grid item>
                 <Grid item className="primo-app-header-title">
                     <h1>Primordial</h1>
                 </Grid>

@@ -61,6 +61,15 @@ export function ref(table: string, col = "id") {
     return `${table}.${col}`;
 }
 
+/**
+ * Same as `ref`, but for use in templated strings due to quote stuff + Knex.
+ * @param table 
+ * @param col 
+ * @returns 
+ */
+ export function refq(table: string, col = "id") {
+    return `${table}."${col}"`;
+}
 
 /**
  * Create common entity fields, such as a UUID primary key, and created and updated timestamps.

@@ -1,3 +1,4 @@
+import { from } from "../utils/time";
 import { isNullOrUndefined } from "../utils";
 
 
@@ -26,8 +27,8 @@ export class MutableEntity implements MutableModel {
     constructor(row?: Partial<MutableModel>, prefix = "") {
         if (row) {
             this.id = row[prefix + "id"];
-            this.created = row[prefix + "created"];
-            this.updated = row[prefix + "updated"];
+            this.created = from(row[prefix + "created"]);
+            this.updated = from(row[prefix + "updated"]);
             this.displayName = isNullOrUndefined(row[prefix + "displayName"]) ? "" : row[prefix + "displayName"];
         }
     }
