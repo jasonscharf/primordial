@@ -249,7 +249,7 @@ export function RegisterRoutes(router: KoaRouter) {
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         router.get('/api/orders/:workspaceId/strategies/:strategyId/orders',
-            async function OrderController_getOrders(context: any, next: any) {
+            async function OrderController_getBotOrderDescriptors(context: any, next: any) {
             const args = {
                     workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
                     strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},

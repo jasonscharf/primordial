@@ -577,10 +577,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @name GetOrders
+     * @name GetBotOrderDescriptors
      * @request GET:/orders/{workspaceId}/strategies/{strategyId}/orders
      */
-    getOrders: (workspaceId: string, strategyId: string, params: RequestParams = {}) =>
+    getBotOrderDescriptors: (workspaceId: string, strategyId: string, params: RequestParams = {}) =>
       this.request<ApiBotOrderDescriptor[], any>({
         path: `/orders/${workspaceId}/strategies/${strategyId}/orders`,
         method: "GET",

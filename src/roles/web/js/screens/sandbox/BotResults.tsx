@@ -92,9 +92,9 @@ const BotResults = () => {
                                 const orders: OrderEntity[] = [];
                                 const eventMap = new Map<string, BotEvent[]>();
                                 for (const order of orderEntities) {
-                                    order.opened = DateTime.fromISO(order.opened + "").toJSDate();
-                                    order.created = DateTime.fromISO(order.created + "").toJSDate();
-                                    order.updated = DateTime.fromISO(order.updated + "").toJSDate();
+                                    order.opened = from(order.opened);
+                                    order.created = from(order.created);
+                                    order.updated = from(order.updated);
 
                                     const key = normalizePriceTime(report.timeRes, order.opened).toISOString();
                                     const arr = eventMap.has(key) ? eventMap.get(key) : [];

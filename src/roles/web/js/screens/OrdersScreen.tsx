@@ -25,7 +25,7 @@ const OrdersScreen = () => {
 
         const { defaultWorkspace, defaultStrategy } = info;
         const options = null;
-        const { data } = await client.orders.getOrders(defaultWorkspace, defaultStrategy, options);
+        const { data } = await client.orders.getBotOrderDescriptors(defaultWorkspace, defaultStrategy, options);
 
         const orderEntries = data.map(hydrateApiBotOrderDescriptor);
         setOrders(orderEntries);
