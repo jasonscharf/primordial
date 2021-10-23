@@ -1,12 +1,12 @@
+import BigNum from "../models/BigNum";
 import { AllocationItem } from "../models/capital/AllocationItem";
 import { MutableEntity } from "../models/MutableEntity";
-import { Money } from "../numbers";
 
 
 export class AllocationItemEntity extends MutableEntity implements AllocationItem {
     allocationId: string;
     symbolId: string;
-    amount: Money;
+    amount: BigNum;
     maxWagerPct: number;
 
 
@@ -16,7 +16,7 @@ export class AllocationItemEntity extends MutableEntity implements AllocationIte
         if (row) {
             this.allocationId = row[prefix + "allocationId"];
             this.symbolId = row[prefix + "symbolId"];
-            this.amount = Money(row[prefix + "amount"]);
+            this.amount = BigNum(row[prefix + "amount"]);
             this.maxWagerPct = parseFloat(row[prefix + "maxWagerPct"]);
         }
     }

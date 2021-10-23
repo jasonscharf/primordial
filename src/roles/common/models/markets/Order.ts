@@ -1,4 +1,4 @@
-import { Money } from "../../../common/numbers";
+import { BigNum } from "../BigNum";
 import { MutableModel } from "../MutableEntity";
 
 
@@ -30,11 +30,11 @@ export interface Order extends MutableModel {
     typeId: OrderType;
     opened?: Date;
     closed?: Date;
-    quantity: Money;
-    price: Money;
-    gross: Money;
-    fees: Money;
-    strike: Money;
-    limit: Money;
-    stop: Money;
+    quantity: BigNum;
+    price: BigNum;
+    gross: BigNum;
+    fees: BigNum;
+    strike: BigNum;
+    limit: BigNum;
+    stop: BigNum;
 }

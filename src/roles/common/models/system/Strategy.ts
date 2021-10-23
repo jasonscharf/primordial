@@ -5,7 +5,7 @@ import { MutableModel } from "../MutableEntity";
  * NOTE: These constants are used in the database.
  * DO NOT remove of change values here. Add and deprecate.
  */
-export enum Mode {
+export enum BotMode {
     BACK_TEST = "test-back",
     FORWARD_TEST = "test-forward",
     LIVE = "live",
@@ -18,6 +18,6 @@ export enum Mode {
 export interface Strategy extends MutableModel {
     ownerId: string;
     workspaceId: string;
-    modeId: Mode;
+    modeId: BotMode;
     name: string;
 }

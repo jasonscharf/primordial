@@ -1,4 +1,4 @@
-import { Mode, Strategy } from "../common/models/system/Strategy";
+import { BotMode, Strategy } from "../common/models/system/Strategy";
 
 
 export const DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT = 0.2;
@@ -13,7 +13,7 @@ export const DEFAULT_STRATEGY_NAME = "default";
 export const DEFAULT_STRATEGY: Partial<Strategy> = {
     displayName: DEFAULT_STRATEGY_NAME,
     name: DEFAULT_STRATEGY_NAME,
-    modeId: Mode.BACK_TEST,
+    modeId: BotMode.BACK_TEST,
 
     // Must be set by consumers
     workspaceId: null,
@@ -119,6 +119,7 @@ export const queries = {
     BOT_RUNS_UPDATE: "bots.runs.update",
     ORDERS_CREATE: "orders.create",
     ORDERS_FEES_SAVE: "orders.fees",
+    ORDERS_LIST: "orders.list",
     ORDERS_UPDATE: "orders.update",
     ORDERS_SAVE_FILLS: "orders.fills.create.bulk",
     RESULTS_ADD: "results.add",

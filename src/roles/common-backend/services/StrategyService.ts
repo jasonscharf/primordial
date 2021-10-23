@@ -9,7 +9,7 @@ import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunEntity } from "../../common/entities/BotRunEntity";
 import { GeneticBotState } from "../bots/GeneticBot";
-import { Mode, Strategy } from "../../common/models/system/Strategy";
+import { BotMode, Strategy } from "../../common/models/system/Strategy";
 import { OrderEntity } from "../../common/entities/OrderEntity";
 import { PrimoUnknownName } from "../../common/errors/errors";
 import { RunningBotDescriptor } from "../../common/models/bots/RunningBotDescriptor";
@@ -196,7 +196,7 @@ export class StrategyService {
      * @param trx 
      * @returns 
      */
-    async getBotDescriptors(workspaceId: string, strategyId: string, status: Mode, trx = null): Promise<RunningBotDescriptor[]> {
+    async getBotDescriptors(workspaceId: string, strategyId: string, status: BotMode, trx = null): Promise<RunningBotDescriptor[]> {
         const descriptors = await query(queries.BOTS_INSTANCES_RUNNING, async db => {
             const bindings = {
                 status,
@@ -375,13 +375,13 @@ export class StrategyService {
                 .where(function () {
                     return this
                         .where(<Partial<BotInstance>>{
-                            modeId: Mode.LIVE
+                            modeId: BotMode.LIVE
                         })
                         .orWhere(<Partial<BotInstance>>{
-                            modeId: Mode.LIVE_TEST,
+                            modeId: BotMode.LIVE_TEST,
                         })
                         .orWhere(<Partial<BotInstance>>{
-                            modeId: Mode.FORWARD_TEST,
+                            modeId: BotMode.FORWARD_TEST,
                         })
                 })
                 .andWhere(function () {
@@ -911,7 +911,7 @@ export class StrategyService {
                 allocationId,
                 definitionId: def.id,
                 displayName: def.displayName,
-                modeId: Mode.FORWARD_TEST,
+                modeId: BotMode.FORWARD_TEST,
                 build: version.full,
                 currentGenome: def.genome,
                 name,

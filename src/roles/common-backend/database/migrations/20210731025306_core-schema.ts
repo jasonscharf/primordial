@@ -1,13 +1,13 @@
 import { Knex } from "knex";
+import { BotMode } from "../../../common/models/system/Strategy";
+import { Exchange } from "../../../common/models/markets/Exchange";
+import { OrderState } from "../../../common/models/markets/Order";
+import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { TradeSymbolType } from "../../../common/models/markets/TradeSymbol";
-import { Mode } from "../../../common/models/system/Strategy";
 import { addUpdateTimestampTrigger } from "../../../common/utils";
 import { createCommonEntityFields as createMutableEntityFields, createMonetaryColumn, enableCompression as enableTimescaleDbCompression } from "../utils";
 import env from "../../env";
 import { db, log, tables } from "../../includes";
-import { Exchange } from "../../../common/models/markets/Exchange";
-import { OrderState } from "../../../common/models/markets/Order";
-import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { transpile } from "typescript";
 
 
@@ -339,11 +339,11 @@ export async function createInitialData(knex: Knex) {
 
     // PlanMode
     const planModes = [
-        { id: Mode.BACK_TEST, displayName: "Back testing", },
-        { id: Mode.FORWARD_TEST, displayName: "Forward testing", },
-        { id: Mode.LIVE, displayName: "Live" },
-        { id: Mode.LIVE_TEST, displayName: "Live testing", },
-        { id: Mode.PAUSED, displayName: "Paused" },
+        { id: BotMode.BACK_TEST, displayName: "Back testing", },
+        { id: BotMode.FORWARD_TEST, displayName: "Forward testing", },
+        { id: BotMode.LIVE, displayName: "Live" },
+        { id: BotMode.LIVE_TEST, displayName: "Live testing", },
+        { id: BotMode.PAUSED, displayName: "Paused" },
     ];
 
     for (const pm of planModes) {

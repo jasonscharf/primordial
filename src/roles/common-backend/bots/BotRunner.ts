@@ -5,12 +5,12 @@ import { ApiBacktestHandle } from "../../common/messages/trading";
 import { BacktestRequest } from "../messages/testing";
 import { BotContext, botIdentifier, buildBacktestingContext, buildBotContext, buildBotContextForSignalsComputation } from "./BotContext";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
-import { BotRun } from "../../common/models/bots/BotRun";
-import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotImplementation } from "./BotImplementation";
+import { BotMode } from "../../common/models/system/Strategy";
+import { BotRun } from "../../common/models/bots/BotRun";
+import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { GenomeParser } from "../genetics/GenomeParser";
-import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { Order, OrderType } from "../../common/models/markets/Order";
 import { Price } from "../../common/models/markets/Price";
@@ -34,7 +34,7 @@ export const TEST_DEFAULT_NEW_BOT_DEF_PROPS: Partial<BotDefinition> = {
 
 export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
     runState: RunState.NEW,
-    modeId: Mode.BACK_TEST,
+    modeId: BotMode.BACK_TEST,
     exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
 };
 
@@ -248,7 +248,7 @@ export class BotRunner {
             }
 
             ctx.instance.runState = RunState.ACTIVE;
-            ctx.instance.modeId = Mode.BACK_TEST;
+            ctx.instance.modeId = BotMode.BACK_TEST;
 
             for (let i = 1; i < prices.length - window; ++i) {
                 ctx.prices = prices.slice(i, i + window);
@@ -398,7 +398,7 @@ export class BotRunner {
             appliedInstanceProps.resId = genome.getGene<TimeResolution>("TIME", "RES").value;
         }
 
-        appliedInstanceProps.modeId = Mode.BACK_TEST;
+        appliedInstanceProps.modeId = BotMode.BACK_TEST;
 
         const user = await users.getSystemUser();
         const workspace = await strats.getDefaultWorkspaceForUser(user.id, user.id, trx);
@@ -453,7 +453,7 @@ export class BotRunner {
                 ctx.state = instanceRecord.stateJson = newState;
 
                 instanceRecord.runState = RunState.ACTIVE;
-                instanceRecord.modeId = Mode.BACK_TEST;
+                instanceRecord.modeId = BotMode.BACK_TEST;
                 instanceRecord.prevTick = new Date();
 
                 // SAVE

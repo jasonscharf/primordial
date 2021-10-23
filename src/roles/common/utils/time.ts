@@ -136,7 +136,10 @@ export function normalizePriceTime(res: TimeResolution, ts: Date): Date {
         case TimeResolution.FIFTEEN_MINUTES: return floorToMinutes(ts, 15);
         case TimeResolution.ONE_HOUR: return removeMinutes(ts);
         case TimeResolution.ONE_DAY: return removeHours(ts);
-        case TimeResolution.ONE_MONTH: return removeDays(ts);
+        
+        // See note on TimeResolution re: TSOA codegen
+        //case TimeResolution.ONE_MONTH: return removeDays(ts);
+        case "1M" as TimeResolution: return removeDays(ts);
         default:
             throw new Error(`Unknown/unsupported time resolution '${res}'`);
     }
@@ -163,8 +166,8 @@ export function getPostgresDatePartForTimeRes(res: TimeResolution): string {
             return "day";
         case TimeResolution.ONE_WEEK:
             return "week";
-        case TimeResolution.ONE_MONTH:
-            return "month";
+        //case TimeResolution.ONE_MONTH:
+        //    return "month";
     }
 }
 
@@ -182,7 +185,7 @@ export function getTimeframeForResolution(res: TimeResolution): string {
         case TimeResolution.ONE_HOUR: return "1 hour";
         case TimeResolution.ONE_DAY: return "1 day";
         case TimeResolution.ONE_WEEK: return "1 week";
-        case TimeResolution.ONE_MONTH: return "1 month";
+        //case TimeResolution.ONE_MONTH: return "1 month";
         default:
             throw new Error(`Cannot derive interval for unknown time resolution '${res}'`);
     }
@@ -202,7 +205,7 @@ export function millisecondsPerResInterval(res: TimeResolution): number {
         case TimeResolution.ONE_HOUR: return 1 * 60 * 60 * 1000;
         case TimeResolution.ONE_DAY: return 1 * 24 * 60 * 60 * 1000;
 
-        case TimeResolution.ONE_MONTH:
+        //case TimeResolution.ONE_MONTH:
         default:
             throw new Error(`This method '${millisecondsPerResInterval.name}' does not supportt time resolution '${res}'`);
     }

@@ -7,13 +7,13 @@ import { BacktestRequest } from "../messages/testing";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotImplementation } from "./BotImplementation";
 import { BotInstance, BotInstanceStateInternal } from "../../common/models/bots/BotInstance";
+import { BotMode } from "../../common/models/system/Strategy";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { Genome } from "../../common/models/genetics/Genome";
 import { GeneticBotFsmState } from "../../common/models/bots/BotState";
-import { GeneticBot, GeneticBotState } from "./GeneticBot";
+import { GeneticBotState } from "./GeneticBot";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Logger } from "../../common/utils/Logger";
-import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { NullLogger } from "../../common/utils/NullLogger";
 import { OrderStatusUpdateMessage } from "../messages/trading";
@@ -80,7 +80,7 @@ export async function buildBotContextForSignalsComputation(args: BacktestRequest
         currentGenome: genome,
         exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
         definitionId: def.id,
-        modeId: Mode.BACK_TEST,
+        modeId: BotMode.BACK_TEST,
         normalizedGenome: genome,
         prevTick: new Date(from.getTime() - 1),
         resId: res,
@@ -244,7 +244,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             stateId: OrderState.OPEN,
         };
 
-        const isLive = record.modeId === Mode.LIVE || record.modeId === Mode.LIVE_TEST;
+        const isLive = record.modeId === BotMode.LIVE || record.modeId === BotMode.LIVE_TEST;
         const modeStr = isLive
             ? "LIVE"
             : "paper"
@@ -301,7 +301,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             }
 
             // For forward tests, we put two synthetic order updates on the queue to simulate open and close
-            if (instance.modeId === Mode.FORWARD_TEST) {
+            if (instance.modeId === BotMode.FORWARD_TEST) {
 
                 // Note: Even though bot tick logic - which ultimately calls this handler - saves the bot
                 // after each tick, it's important than we save the bot _in this transaction_.
@@ -348,7 +348,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             return transaction;
         });
 
-        if (instance.modeId === Mode.FORWARD_TEST) {
+        if (instance.modeId === BotMode.FORWARD_TEST) {
             const openMsg: OrderStatusUpdateMessage = {
                 instanceId: instance.id,
                 exchangeOrder: null,

@@ -1,10 +1,11 @@
 import { Knex } from "knex";
 import env from "../env";
+import { BigNum } from "../../common/models/BigNum";
 import { BotContext, botIdentifier } from "./BotContext";
 import { BotImplementationBase } from "./BotImplementationBase";
+import { BotMode } from "../../common/models/system/Strategy";
 import { GeneticBotFsmState } from "../../common/models/bots/BotState";
 import { IndicatorChromosome } from "../genetics/IndicatorChromosome";
-import { Mode } from "../../common/models/system/Strategy";
 import { Order, OrderState } from "../../common/models/markets/Order";
 import { OrderDelegateArgs } from "./BotOrderDelegate";
 import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../messages/trading";
@@ -22,11 +23,11 @@ export interface GeneticBotState {
     prevFsmState: GeneticBotFsmState;
     prevFsmStateChangeTs: Date;
     signals: number[];
-    prevQuantity: Money;
-    prevPrice: Money;
+    prevQuantity: BigNum;
+    prevPrice: BigNum;
     prevOrderId: string;
-    stopLossPrice: Money;
-    targetPrice: Money;
+    stopLossPrice: BigNum;
+    targetPrice: BigNum;
     verbose?: boolean;
 }
 
@@ -63,7 +64,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
 
         // Tiny leak of the fact we are testing or not here. We must update the order
         // TODO: Move this 
-        if (instance.modeId === Mode.FORWARD_TEST || instance.modeId === Mode.LIVE_TEST || instance.modeId === Mode.LIVE) {
+        if (instance.modeId === BotMode.FORWARD_TEST || instance.modeId === BotMode.LIVE_TEST || instance.modeId === BotMode.LIVE) {
             primoOrder.stateId = OrderState.CLOSED;
             primoOrder.closed = new Date();
             await orders.updateOrder(primoOrder, trx);
@@ -207,7 +208,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         const { alloc, items } = await capital.getAllocationLedger(instance.allocationId, trx);
 
         // Safety check. This should never, ever happen.
-        if (alloc.live && instance.modeId !== Mode.LIVE && instance.modeId !== Mode.LIVE_TEST) {
+        if (alloc.live && instance.modeId !== BotMode.LIVE && instance.modeId !== BotMode.LIVE_TEST) {
             throw new Error(`FATAL: Bot was in test mode but requested a withdrawal from a LIVE allocation`);
         }
 

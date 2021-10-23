@@ -1,9 +1,5 @@
 import knex, { Knex } from "knex";
-import { BotDefinition } from "../../../common/models/bots/BotDefinition";
-import { BotDefinitionEntity } from "../../../common/entities/BotDefinitionEntity";
-import { BotInstance } from "../../../common/models/bots/BotInstance";
-import { BotInstanceEntity } from "../../../common/entities/BotInstanceEntity";
-import { Mode } from "../../../common/models/system/Strategy";
+import { BotMode } from "../../../common/models/system/Strategy";
 import { RunState } from "../../../common/models/system/RunState";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { User } from "../../../common/models/user/User";
@@ -151,7 +147,7 @@ export async function up(knex: Knex): Promise<void> {
         table.uuid("allocationId").notNullable();
         table.foreign("allocationId").references(`${tables.Allocations}.id`);
 
-        table.string("modeId").notNullable().defaultTo(Mode.FORWARD_TEST);
+        table.string("modeId").notNullable().defaultTo(BotMode.FORWARD_TEST);
         table.string("resId").notNullable().defaultTo(TimeResolution.FIFTEEN_MINUTES);
         table.string("name").notNullable();
         table.string("symbols").notNullable();

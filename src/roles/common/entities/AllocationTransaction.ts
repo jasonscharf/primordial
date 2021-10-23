@@ -1,12 +1,12 @@
 import { AllocationTransaction } from "../models/capital/AllocationTransaction";
 import { AllocationTransactionType } from "../models/capital/AllocationTransactionType";
+import { BigNum } from "../numbers";
 import { MutableEntity } from "../models/MutableEntity";
-import { Money } from "../numbers";
 
 
 export class AllocationTransactionEntity extends MutableEntity implements AllocationTransaction {
     allocationItemId: string;
-    amount: Money;
+    amount: BigNum;
     orderId?: string;
     typeId: AllocationTransactionType;
 
@@ -16,7 +16,7 @@ export class AllocationTransactionEntity extends MutableEntity implements Alloca
 
         if (row) {
             this.allocationItemId = row[prefix + "allocationItemId"];
-            this.amount = Money(row[prefix + "amount"]);
+            this.amount = BigNum(row[prefix + "amount"]);
             this.orderId = row[prefix + "orderId"];
             this.typeId = row[prefix + "typeId"];
         }

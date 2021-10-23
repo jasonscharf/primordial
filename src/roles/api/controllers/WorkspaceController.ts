@@ -1,7 +1,7 @@
 import Koa from "koa";
 import { Body, Get, Post, Query, Request, Route } from "tsoa";
+import { BotMode } from "../../common/models/system/Strategy";
 import { ControllerBase } from "./ControllerBase";
-import { Mode } from "../../common/models/system/Strategy";
 import { PrimoValidationError } from "../../common/errors/errors";
 import { strats, sym, users } from "../../common-backend/includes";
 
@@ -21,11 +21,12 @@ export class WorkspaceController extends ControllerBase {
             throw new PrimoValidationError(`Missing or malformed strategy reference`, strategyId);
         }
 
-        if (status !== Mode.FORWARD_TEST && status !== Mode.LIVE) {
+        if (status !== BotMode.FORWARD_TEST && status !== BotMode.LIVE) {
             throw new PrimoValidationError(`Unknown status '${status}'`, "status");
         }
 
         // SECURITY: TODO: Call out to security manage to ensure user has access to strategy and that it's part of workspace
+        // SECURITY: Add RUID to getBotDescriptors
 
         // The cast to any here is because `Mode` collides with a builtin Node FS type with the same name, when running tsoa
         const descriptors = await strats.getBotDescriptors(workspaceId, strategyId, status as any);

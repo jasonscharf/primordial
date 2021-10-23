@@ -1,8 +1,8 @@
 import { BotInstance, BotInstanceStateInternal } from "../models/bots/BotInstance";
+import { BotMode } from "../models/system/Strategy";
 import { BotType } from "../models/bots/BotType";
 import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
 import { MutableEntity } from "../models/MutableEntity";
-import { Mode } from "../models/system/Strategy";
 import { RunState } from "../models/system/RunState";
 import { TimeResolution } from "../models/markets/TimeResolution";
 
@@ -14,7 +14,7 @@ export class BotInstanceEntity<T = GeneticBotState> extends MutableEntity implem
     allocationId: string;
     definitionId: string;
     exchangeId: string;
-    modeId: Mode;
+    modeId: BotMode;
     resId: TimeResolution;
     typeId: BotType;
     runState: RunState;

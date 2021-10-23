@@ -1,5 +1,5 @@
+import { BigNum } from "../../numbers";
 import { ImmutableModel } from "../ImmutableEntity";
-import { Money } from "../../numbers";
 
 
 /**
@@ -9,6 +9,6 @@ export interface PrimoFee extends ImmutableModel {
     id: string;
     orderId: string;
     assetId: string;
-    amount: Money;
-    rate: Money;
+    amount: BigNum;
+    rate: BigNum;
 }

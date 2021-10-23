@@ -1,10 +1,9 @@
-import { DateTime } from "luxon";
+import { Knex } from "knex";
 import env from "../../common-backend/env";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotInstance } from "../../common/models/bots/BotInstance";
+import { BotMode, Strategy } from "../../common/models/system/Strategy";
 import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
-import { Knex } from "knex";
-import { Mode, Strategy } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
 import { Price } from "../../common/models/markets/Price";
@@ -40,7 +39,7 @@ export const TEST_DEFAULT_NEW_BOT_DEF_PROPS: Partial<BotDefinition> = {
 
 export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
     runState: RunState.NEW,
-    modeId: Mode.BACK_TEST,
+    modeId: BotMode.BACK_TEST,
     exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
     currentGenome: "BBBBO",
 };
@@ -335,7 +334,7 @@ function makeTestbot(props: Partial<BotInstance>) {
         currentGenome: constants.DEFAULT_GENOME,
         displayName: `testbot`,
         definitionId,
-        modeId: Mode.FORWARD_TEST,
+        modeId: BotMode.FORWARD_TEST,
         stateInternal: {
             baseSymbolId: "BTC",
             quoteSymbolId: "TUSD",

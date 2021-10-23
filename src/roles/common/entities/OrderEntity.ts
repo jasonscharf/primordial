@@ -1,6 +1,7 @@
-import { Order, OrderState, OrderType } from "../models/markets/Order";
-import { Money } from "../numbers";
+import { BigNum } from "../numbers";
 import { MutableEntity } from "../models/MutableEntity";
+import { Order, OrderState, OrderType } from "../models/markets/Order";
+import { from } from "../utils/time";
 
 
 export class OrderEntity extends MutableEntity implements Order {
@@ -15,13 +16,13 @@ export class OrderEntity extends MutableEntity implements Order {
     typeId: OrderType;
     opened?: Date;
     closed?: Date;
-    quantity: Money;
-    price: Money;
-    gross: Money;
-    fees: Money;
-    strike: Money;
-    limit: Money;
-    stop: Money;
+    quantity: BigNum;
+    price: BigNum;
+    gross: BigNum;
+    fees: BigNum;
+    strike: BigNum;
+    limit: BigNum;
+    stop: BigNum;
 
 
     constructor(row?: Partial<Order>, prefix = "") {
@@ -37,15 +38,15 @@ export class OrderEntity extends MutableEntity implements Order {
             this.extOrderId = row[prefix + "extOrderId"];
             this.stateId = row[prefix + "stateId"];
             this.typeId = row[prefix + "typeId"];
-            this.opened = row[prefix + "opened"];
-            this.closed = row[prefix + "closed"];
-            this.quantity = Money(row[prefix + "quantity"]);
-            this.price = Money(row[prefix + "price"]);
-            this.gross = Money(row[prefix + "gross"]);
-            this.fees = Money(row[prefix + "fees"]);
-            this.strike = Money(row[prefix + "strike"]);
-            this.limit = Money(row[prefix + "limit"]);
-            this.stop = Money(row[prefix + "stop"]);
+            this.opened = from(row[prefix + "opened"]);
+            this.closed = from(row[prefix + "closed"]);
+            this.quantity = BigNum(row[prefix + "quantity"]);
+            this.price = BigNum(row[prefix + "price"]);
+            this.gross = BigNum(row[prefix + "gross"]);
+            this.fees = BigNum(row[prefix + "fees"]);
+            this.strike = BigNum(row[prefix + "strike"]);
+            this.limit = BigNum(row[prefix + "limit"]);
+            this.stop = BigNum(row[prefix + "stop"]);
         }
     }
 

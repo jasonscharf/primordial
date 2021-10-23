@@ -5,9 +5,9 @@ import env from "../../../common-backend/env";
 import { ApiBacktestRequest } from "../../../common/messages/trading";
 import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
+import { BotMode } from "../../../common/models/system/Strategy";
 import { BotRunner } from "../../../common-backend/bots/BotRunner";
 import { ControllerBase } from "../ControllerBase";
-import { Mode } from "../../../common/models/system/Strategy";
 import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
 import { PrimoSerializableError } from "../../../common/errors/errors";
 import { RunState } from "../../../common/models/system/RunState";
@@ -80,7 +80,7 @@ export class SandboxController extends ControllerBase {
             instanceIdOrName = instance.id;
         }
 
-        if (instance.modeId === Mode.BACK_TEST && instance.runState === RunState.ACTIVE) {
+        if (instance.modeId === BotMode.BACK_TEST && instance.runState === RunState.ACTIVE) {
             return {
                 runState: RunState.ACTIVE,
             };

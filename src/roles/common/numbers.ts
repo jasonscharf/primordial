@@ -1,4 +1,5 @@
 import Big from "big.js";
+import { BigNum, BigNumConstructor } from "./models/BigNum";
 
 
 // Strict mode so we don't accidentally make any bad numbers
@@ -10,4 +11,4 @@ Big.NE = -1e+6;
 Big.PE = 1e+6;
 
 
-export { Big as Money }
+export { BigNum, BigNum as Money, Big as BigNumConstructor };
