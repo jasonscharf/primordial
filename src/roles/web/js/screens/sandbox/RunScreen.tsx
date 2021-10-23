@@ -1,13 +1,12 @@
 import { DateTime } from "luxon";
 import React, { useCallback, useEffect, useState } from "react";
-import { Autocomplete, Box, Button, CircularProgress, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel, InputLabel, Select, MenuItem, CardHeader } from "@mui/material";
-import DateAdapter from "@mui/lab/AdapterLuxon";
+import { Button, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel, InputLabel, MenuItem, Select } from "@mui/material";
 import DateTimePicker from "@mui/lab/DateTimePicker";
 import { ApiBacktestRequest, ApiTimeResolution } from "../../client";
-import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
 import { client } from "../../includes";
 import { Spinner } from "../../components/primitives/Spinner";
 import { ScreenBase } from "../Screenbase";
+import { CardHeader } from "../../components/primitives/CardHeader";
 
 const DEFAULT_SYMBOLS = "BTC/USDT";
 const DEFAULT_GENOME = "RSI-L=33|RSI-H=66";
@@ -151,7 +150,7 @@ const RunScreen = () => {
                     : (
                         <Grid xs={12} lg={6}>
                             <Card>
-                                <CardHeader disableTypography title="Run a Backtest" />
+                                <CardHeader title="Run a Backtest" />
                                 <CardContent style={{ padding: "32px" }}>
                                     <form noValidate autoComplete="off" onSubmit={handleClickRun}>
                                         <Grid item container spacing={2} style={{ padding: "0px !important" }}>

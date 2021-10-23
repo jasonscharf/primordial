@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useHistory } from "react-router";
-import { Button, Card, CardActions, CardContent, CardHeader, Grid } from "@mui/material";
+import { Button, Card, CardActions, CardContent, Grid } from "@mui/material";
+import { CardHeader } from "../components/primitives/CardHeader";
 import { ScreenBase } from "./Screenbase";
 import { routes } from "../../../common/app-routing";
 
@@ -15,7 +16,7 @@ const TestsScreen = () => {
         <ScreenBase>
             <Grid item xs={12} lg={4}>
                 <Card>
-                    <CardHeader disableTypography title="Tests" />
+                    <CardHeader title="Tests" />
                     <CardContent>
                         <p>
                             Placeholder for testing screen.

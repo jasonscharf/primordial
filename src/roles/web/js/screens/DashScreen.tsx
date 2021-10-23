@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useHistory } from "react-router";
-import { Button, Card, CardActions, CardContent, CardHeader, Grid, Typography } from "@mui/material";
+import { CardHeader } from "../components/primitives/CardHeader";
+import { Button, Card, CardActions, CardContent, Grid, Typography } from "@mui/material";
 import { RunningBotTable } from "../components/dash/RunningBotTable";
 import { ScreenBase } from "./Screenbase";
 import { routes } from "../../../common/app-routing";
@@ -17,7 +18,7 @@ const DashScreen = () => {
             <Grid container spacing={1} direction="row" className="primo-fullsize primo-dash">
                 <Grid item xs={12} lg={3}>
                     <Card>
-                        <CardHeader disableTypography title="Active Forward Tests" />
+                        <CardHeader title="Active Forward Tests" />
                         <CardContent>
                             <RunningBotTable mode="test-forward" />
                         </CardContent>

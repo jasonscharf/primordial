@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, Grid } from "@mui/material";
+import { Card, CardContent, Grid } from "@mui/material";
+import { CardHeader } from "../components/primitives/CardHeader";
 import { ScreenBase } from "./Screenbase";
 
 
@@ -8,7 +9,7 @@ const WorkspaceScreen = () => {
         <ScreenBase>
             <Grid item xs={12} lg={4}>
                 <Card>
-                    <CardHeader disableTypography title="About Workspaces">
+                    <CardHeader title="About Workspaces">
 
                     </CardHeader>
                     <CardContent>

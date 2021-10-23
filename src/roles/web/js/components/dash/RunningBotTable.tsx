@@ -45,9 +45,10 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
                             <Hashicon value={d.id} size={32} />
                         </Grid>
                         <Grid item style={{}} className="primo-ellipses">
+                            {/*
                             <Grid item >
                                 <b>{d.name}</b>
-                            </Grid>
+                            </Grid>*/}
                             <Grid item>
                                 <b>{d.symbols}</b>&nbsp;@&nbsp;<b>{d.resId}</b>
                             </Grid>
@@ -55,7 +56,7 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
                                 <span>{d.genome}</span>
                             </Grid>
                             <Grid item>
-                                <Chip label={presentBotState(d.fsmState as any as GeneticBotFsmState)} variant="outlined" />
+                                <b>{presentBotState(d.fsmState as any as GeneticBotFsmState)}</b>
                             </Grid>
                         </Grid>
                         <Grid item style={{ marginLeft: "auto" }}>
