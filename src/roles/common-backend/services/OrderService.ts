@@ -63,16 +63,15 @@ export class OrderService {
                 ruid: requestingUserId,
                 workspaceId,
                 strategyId,
-            }
+            };
+
             const queryBase = db(tables.Workspaces)
-                //.innerJoin(tables.Strategies, ref(tables.Strategies, "workspaceId"), ref(tables.Workspaces))
                 .innerJoin(tables.BotDefinitions, ref(tables.BotDefinitions, "workspaceId"), ref(tables.Workspaces))
                 .innerJoin(tables.BotInstances, ref(tables.BotInstances, "definitionId"), ref(tables.BotDefinitions))
                 .innerJoin(tables.BotRuns, ref(tables.BotRuns, "instanceId"), ref(tables.BotInstances))
                 .innerJoin(tables.Orders, ref(tables.Orders, "botRunId"), "=", ref(tables.BotRuns))
                 .where(ref(tables.Workspaces), "=", workspaceId)
                 .andWhere(ref(tables.Workspaces, "ownerId"), "=", requestingUserId)
-                //.andWhere(ref(tables.BotDefinitions, "strategyId"), "=", strategyId)
                 ;
 
             queryBase.select(db.raw(`
@@ -129,7 +128,7 @@ export class OrderService {
             }
 
             // Ordering
-            queryBase.orderBy(ref(tables.Orders, "updated"), "desc");
+            queryBase.orderBy("order_opened", "desc");
 
             // TODO: Pagination
             queryBase.limit(100);

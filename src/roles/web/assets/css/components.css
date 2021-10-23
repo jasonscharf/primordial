@@ -127,13 +127,11 @@
 
 /* CardHeader (custom) */
 
-
 .primo-card-header.MuiCardHeader-root {
     text-transform: uppercase;
     color: #333;
     opacity: 0.8;
 }
-
 
 .primo-card-header.MuiCardHeader-root .MuiCardHeader-content {
     padding: 8px;
@@ -176,10 +174,9 @@
 }
 
 .primo-order-table-advanced .MuiTableHead-root {
-text-transform: uppercase;
-color: #333;
+    text-transform: uppercase;
+    color: #333;
 }
-
 
 /* Misc */
 
