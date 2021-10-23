@@ -1,21 +1,19 @@
 import { Knex } from "knex";
 import { ApiBotOrderDescriptor } from "../../common/messages/trading";
-import { BotInstance } from "../../common/models/bots/BotInstance";
+import { BotDefinitionEntity } from "../../common/entities/BotDefinitionEntity";
+import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
+import { BotMode } from "../../common/models/system/Strategy";
+import { BotRunEntity } from "../../common/entities/BotRunEntity";
 import { FeeEntity } from "../../common/entities/FeeEntity";
 import { Fill } from "../../common/models/markets/Fill";
 import { FillEntity } from "../../common/entities/FillEntity";
-import { BotMode } from "../../common/models/system/Strategy";
-import { Order, OrderState } from "../../common/models/markets/Order";
+import { Order } from "../../common/models/markets/Order";
 import { OrderEntity } from "../../common/entities/OrderEntity";
 import { PrimoFee } from "../../common/models/markets/Fee";
 import { RunState } from "../../common/models/system/RunState";
 import { constants } from "../includes";
 import { moneytize, query, ref, refq } from "../database/utils";
 import { tables } from "../constants";
-import { raw } from "body-parser";
-import { BotDefinitionEntity } from "../../common/entities/BotDefinitionEntity";
-import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
-import { BotRunEntity } from "../../common/entities/BotRunEntity";
 
 
 

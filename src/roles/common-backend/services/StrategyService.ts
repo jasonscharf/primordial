@@ -99,6 +99,22 @@ export class StrategyService {
     }
 
     /**
+     * 
+     * @param ruid 
+     * @param workspaceId 
+     * @param strategyId 
+     * @param trx 
+     * @returns 
+     */
+    async getTopPerformingBacktests(ruid: string, workspaceId: string, strategyId: string, trx: Knex.Transaction = null) {
+        const results = await query(queries.BOTS_BACK_TESTS_TOP, async db => {
+
+        }, trx);
+
+        return results;
+    }
+
+    /**
      * Retrieves bots for a given workspace and strategy.
      * @param workspaceId 
      * @param strategyId 
@@ -202,6 +218,7 @@ export class StrategyService {
                 status,
             };
 
+            // TODO: Add RUID, join workspace + strategy
             const { rows } = await db.raw(
                 `
                 SELECT
@@ -217,15 +234,25 @@ export class StrategyService {
                     bot_instances.updated AS updated,
                     bot_instances.created - bot_instances.updated as duration,
                     COUNT(orders.id)::int AS "numOrders",
+
                     COALESCE(
-                        ROUND(SUM(((gross - 1000) - (gross * 0.002))), 2)::decimal, 0
-                    ) AS gross,
+                        ROUND(SUM((ABS(orders.gross) * orders.fees) + (ABS(o2.gross) * o2.fees)), 2)
+                    , 0) AS "computedFees",
+                    
+                    COALESCE(
+                        ROUND(
+                            SUM(
+                                (o2.gross - ABS(orders.gross)) - ((ABS(orders.gross) * orders.fees) + (ABS(o2.gross) * o2.fees))
+                            )
+                        , 4)
+                    , 0) AS "computedProfit",
                     bot_instances."stateJson",
                     ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600))::int AS "durationHours"
                 
                 FROM bot_instances
                     JOIN bot_runs ON bot_runs."instanceId" = bot_instances.id
-                    LEFT JOIN orders ON (orders."botRunId" = bot_runs.id AND orders."typeId" = 'sell.limit')
+                    LEFT JOIN orders ON (orders."botRunId" = bot_runs.id AND orders."stateId" = 'closed')
+                    LEFT JOIN orders o2 ON o2."relatedOrderId" = orders.id
 
                 WHERE
                     bot_instances."modeId" = :status AND
@@ -248,7 +275,7 @@ export class StrategyService {
                     bot_instances."stateJson"
 
                 ORDER BY
-                    gross DESC,
+                    "computedProfit" DESC,
                     "runState" DESC,
                     updated DESC
                     

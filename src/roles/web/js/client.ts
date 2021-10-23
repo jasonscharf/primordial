@@ -337,7 +337,8 @@ export interface RunningBotDescriptor {
 
   /** @format double */
   numOrders: number;
-  gross: string;
+  computedProfit: BigNum;
+  computedFees: BigNum;
 }
 
 export type QueryParamsType = Record<string | number, any>;

@@ -6,6 +6,7 @@ import { GeneticBotFsmState } from "../../../../common/models/bots/BotState";
 import { Hashicon } from "@emeraldpay/hashicon-react";
 import { InfoContext } from "../../contexts";
 import { RunningBotDescriptor } from "../../client";
+import { SpinnerMini } from "../primitives/SpinnerMini";
 import { presentBotState } from "../../../../common/utils/presentation";
 import { useApiRequestEffect } from "../../hooks/useApiRequestEffect";
 
@@ -19,7 +20,7 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
     const [descriptors, setDescriptors] = useState<RunningBotDescriptor[]>([]);
     const info = useContext(InfoContext);
 
-    useApiRequestEffect(async (client) => {
+    const [, isLoading] = useApiRequestEffect(async (client) => {
         if (!info) {
             return;
         }
@@ -34,6 +35,10 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
         setDescriptors(data);
 
     }, [info]);
+
+    if (isLoading) {
+        return <SpinnerMini />
+    }
 
     return (
         <>
@@ -60,7 +65,7 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
                             </Grid>
                         </Grid>
                         <Grid item style={{ marginLeft: "auto" }}>
-                            <Amount amount={d.gross} symbol={d.quoteSymbolId} />
+                            <Amount amount={d.computedProfit} symbol={d.quoteSymbolId} />
                         </Grid>
                     </Grid>))
             }

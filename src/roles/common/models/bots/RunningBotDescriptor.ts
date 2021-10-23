@@ -1,4 +1,5 @@
 import { ApiTimeResolution } from "../../messages/trading";
+import { BigNum } from "../BigNum";
 import { GeneticBotFsmState } from "./BotState";
 
 
@@ -15,5 +16,6 @@ export interface RunningBotDescriptor {
     updated: Date;
     duration: object; // Actually a Postgres interval, but not sure if type is public
     numOrders: number;
-    gross: string;
+    computedProfit: BigNum;
+    computedFees: BigNum;
 }

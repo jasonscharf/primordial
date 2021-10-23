@@ -3,8 +3,8 @@ import { it } from "intern/lib/interfaces/bdd";
 import env from "../../common-backend/env";
 import { StrategyService } from "../../common-backend/services/StrategyService";
 import { before, beforeEach } from "intern/lib/interfaces/tdd";
-import { assert, describe } from "../includes";
 import { addNewBotDefAndInstance, clearTestData, getTestData, TestDataCtx } from "../utils/test-data";
+import { assert, describe } from "../includes";
 
 
 describe(StrategyService.name, () => {
@@ -18,10 +18,15 @@ describe(StrategyService.name, () => {
     before(async () => ctx = await getTestData());
     beforeEach(async () => strats = new StrategyService());
 
+    describe(strats.getTopPerformingBacktests.name, () => {
+        it("returns results ranked correctly", async () => {
+            // TEST
+        });
+    });
 
     describe(strats.getDefaultWorkspaceForUser.name, () => {
         it("returns the default workspace for the user", async () => {
-
+            // TEST
         });
     });
 
@@ -89,6 +94,10 @@ describe(StrategyService.name, () => {
         });
 
         it("returns the correct number of running bots", async () => {
+            // TEST
+        });
+
+        it("returns descriptors for bots with no orders", async () => {
             // TEST
         });
     });
