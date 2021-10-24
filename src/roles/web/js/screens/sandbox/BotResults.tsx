@@ -216,7 +216,7 @@ const BotResults = () => {
                         <b>{shortDateAndTime(report.from)}</b> - <b>{shortDateAndTime(report.to)}</b>
                     </Grid>
                     <Grid item>
-                        <span>gross</span>&nbsp;<b><Amount amount={report.totalGross} symbol={quote} /></b>
+                        <span>profit</span>&nbsp;<b><Amount amount={report.totalProfit} symbol={quote} /></b>
                     </Grid>
                     <Grid item style={{ textAlign: "right" }}>
                         <b>{report.length}</b>
@@ -248,15 +248,15 @@ const BotResults = () => {
                         <CardContent>
                             <Grid container spacing={1} flexDirection="column" className={classNames("primo-info-table")}>
                                 <Grid item container className="primo-info-table-item">
-                                    <Grid item>Gross</Grid>
+                                    <Grid item>Profit</Grid>
                                     <Grid item style={{ textAlign: "right" }}>
-                                        <Amount amount={report.totalGross} symbol={report.quote} />
+                                        <Amount amount={report.totalProfit} symbol={report.quote} />
                                         &nbsp;&#47;&nbsp;
-                                        <Percent amount={report.totalGrossPct} />
+                                        <Percent amount={report.totalProfitPct} />
                                     </Grid>
                                 </Grid>
                                 <Grid item container className="primo-info-table-item">
-                                    <Grid item>Avg. Daily Gross</Grid>
+                                    <Grid item>Avg. Daily Profit</Grid>
                                     <Grid item style={{ textAlign: "right" }}>
                                         <Amount amount={report.avgProfitPerDay} symbol={report.quote} />
                                         &nbsp;&#47;&nbsp;

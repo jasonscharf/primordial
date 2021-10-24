@@ -357,6 +357,9 @@ export class BotRunner {
         tr.balance = null;
         tr.totalGross = null;
         tr.totalGrossPct = 0;
+        tr.totalFees = 0;
+        tr.totalProfit = 0;
+        tr.totalProfitPct = 0;
         tr.buyAndHoldGrossPct = 0;
         tr.avgProfitPerDay = 0;
         tr.avgProfitPctPerDay = 0;
@@ -568,7 +571,22 @@ export class BotRunner {
                 const lastClose = allPrices.length > 0 ? allPrices[allPrices.length - 1].close : Money("0");
 
                 let totalGrossProfit = Money("0");
-                orders.forEach(o => totalGrossProfit = totalGrossProfit.add(o.gross));
+                let totalProfit = Money("0");
+                let totalFees = Money("0");
+
+                orders.forEach(o => {
+                    totalGrossProfit = totalGrossProfit.add(o.gross);
+                    totalFees = totalFees.add(o.gross.abs().mul(o.fees));
+                });
+
+                totalProfit = totalGrossProfit.minus(totalFees);
+                let totalProfitPct = (totalProfit.div(capitalInvested).round(4).toNumber());
+
+                tr.totalProfit = totalProfit.round(11).toNumber();
+                tr.totalProfitPct = totalProfitPct;
+                tr.totalFees = totalFees.round(11).toNumber();
+                tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
+
                 tr.totalGross = totalGrossProfit.round(11).toNumber();
                 tr.capital = capitalInvested.round(11).toNumber();
                 tr.firstClose = firstClose.round(11).toNumber();
@@ -581,8 +599,8 @@ export class BotRunner {
                 tr.numTrades = tr.numOrders / 2;
                 const testLenMs = tr.to.getTime() - tr.from.getTime();
                 const days = Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY));
-                tr.avgProfitPerDay = totalGrossProfit.div(days + "").round(2).toNumber();
-                tr.avgProfitPctPerDay = parseFloat((tr.totalGrossPct / days).toPrecision(3));
+                tr.avgProfitPerDay = totalProfit.div(days + "").round(2).toNumber();
+                tr.avgProfitPctPerDay = parseFloat((tr.totalProfitPct / days).toPrecision(3));
                 tr.length = human(testLenMs);
 
                 // Compounded is calculated per week here.
