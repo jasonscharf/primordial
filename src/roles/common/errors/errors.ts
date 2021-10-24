@@ -10,6 +10,7 @@ export enum ErrorType {
     UNKNOWN_NAME = "primo.err.unknown-name",
     MALFORMED = "primo.err.malformed",
     VALIDATION = "primo.err.validation",
+    DATABASE = "primo.err.database",
 };
 
 export class PrimoSerializableError extends Error {
@@ -60,6 +61,11 @@ export class PrimoValidationError extends PrimoSerializableError {
     }
 }
 
+export class PrimoDatabaseError extends PrimoSerializableError {
+    primoErrorType = ErrorType.DATABASE;
+}
+
+
 export function createError(props: Error | PrimoSerializableError) {
     if ((props as PrimoSerializableError).primoErrorType) {
         let newError: Error | PrimoSerializableError;
@@ -79,6 +85,9 @@ export function createError(props: Error | PrimoSerializableError) {
                 break;
             case ErrorType.MALFORMED:
                 newError = new PrimoMalformedGenomeError(props.message, asPrimoError.code);
+                break;
+            case ErrorType.DATABASE:
+                newError = new PrimoDatabaseError(props.message);
                 break;
             case ErrorType.VALIDATION:
                 newError = new PrimoValidationError(props.message, (props as PrimoValidationError).fieldName, (props as PrimoValidationError).fieldNameHuman);

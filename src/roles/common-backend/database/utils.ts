@@ -1,4 +1,5 @@
 import { Knex } from "knex";
+import { PrimoDatabaseError } from "../../common/errors/errors";
 import { Money } from "../../common/numbers";
 import env from "../env";
 import { db } from "../includes";
@@ -32,23 +33,32 @@ export function moneytize(obj: unknown) {
  */
 export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Promise<T>, trx?: Knex.Transaction): Promise<T> {
 
-    // TODO: Log level, timing, etc
-    // console.log(`Run query '${name}'...`);
-    const start = Date.now();
-    let result: T;
-    if (trx) {
-        result = await fn(trx);
+    try {
+        // TODO: Log level, timing, etc
+        // console.log(`Run query '${name}'...`);
+        const start = Date.now();
+        let result: T;
+        if (trx) {
+            result = await fn(trx);
+        }
+        else {
+            result = await db.transaction(fn);
+        }
+
+        const end = Date.now();
+        const duration = end - start;
+
+        //console.log(`Done query '${name}' in ${duration}ms`);
+        return result;
     }
-    else {
-        result = await db.transaction(fn);
+    catch (err) {
+        if (env.isDev()) {
+            throw err;
+        }
+        else {
+            throw new PrimoDatabaseError(`Database error ${err.code} in query '${name}'${err.hint ? (": " + err.hint) : ""}`);
+        }
     }
-
-    const end = Date.now();
-    const duration = end - start;
-
-    //console.log(`Done query '${name}' in ${duration}ms`);
-
-    return result;
 }
 
 /**
@@ -67,7 +77,7 @@ export function ref(table: string, col = "id") {
  * @param col 
  * @returns 
  */
- export function refq(table: string, col = "id") {
+export function refq(table: string, col = "id") {
     return `${table}."${col}"`;
 }
 
