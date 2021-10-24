@@ -340,6 +340,12 @@ export interface GenotypeInstanceDescriptor {
   modeId: BotMode;
   genome: string;
   fsmState: GeneticBotFsmState;
+
+  /** @format date-time */
+  from?: string;
+
+  /** @format date-time */
+  to?: string;
   duration: object;
 
   /** @format double */
@@ -350,6 +356,11 @@ export interface GenotypeInstanceDescriptor {
 
   /** @format double */
   avgProfitPctPerDay: number;
+}
+
+export enum QueryOrderDirection {
+  ASC = "ASC",
+  DESC = "DESC",
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -671,7 +682,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       workspaceId: string,
       strategyId: string,
       status: string,
-      query?: { limit?: number },
+      query?: { limit?: number; orderBy?: string; orderDir?: QueryOrderDirection },
       params: RequestParams = {},
     ) =>
       this.request<GenotypeInstanceDescriptor[], any>({
@@ -691,7 +702,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     getTopBacktests: (
       workspaceId: string,
       strategyId: string,
-      query?: { limit?: number },
+      query?: { limit?: number; orderBy?: string; orderDir?: QueryOrderDirection },
       params: RequestParams = {},
     ) =>
       this.request<GenotypeInstanceDescriptor[], any>({

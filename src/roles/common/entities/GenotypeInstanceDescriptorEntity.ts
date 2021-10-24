@@ -4,6 +4,7 @@ import { BotMode } from "../models/system/Strategy";
 import { GeneticBotFsmState } from "../models/bots/BotState";
 import { GenotypeInstanceDescriptor } from "../models/bots/GenotypeInstanceDescriptor";
 import { MutableEntity, MutableModel } from "../models/MutableEntity";
+import { from } from "../utils/time";
 
 
 // NOTE: Non-DB entity
@@ -16,6 +17,8 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
     quoteSymbolId: string;
     genome: string;
     fsmState: GeneticBotFsmState;
+    from: Date;
+    to: Date;
     duration: object; // Actually a Postgres interval, but not sure if type is public
     numOrders: number;
     totalFees: BigNum;
@@ -36,12 +39,14 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
             this.quoteSymbolId = row[prefix + "quoteSymbolId"];
             this.genome = row[prefix + "genome"];
             this.fsmState = row[prefix + "fsmState"];
+            this.from = from(row[prefix + "from"]);
+            this.to = from(row[prefix + "to"]);
             this.duration = row[prefix + "duration"];
             this.numOrders = row[prefix + "numOrders"];
             this.totalProfit = BigNum(row[prefix + "totalProfit"]);
             this.totalProfitPct = parseFloat(row[prefix + "totalProfitPct"]);
-            this.totalFees =  BigNum(row[prefix + "totalFees"]);
-            this.avgProfitPerDay =  BigNum(row[prefix + "avgProfitPerDay"]);
+            this.totalFees = BigNum(row[prefix + "totalFees"]);
+            this.avgProfitPerDay = BigNum(row[prefix + "avgProfitPerDay"]);
             this.avgProfitPctPerDay = parseFloat(row[prefix + "avgProfitPctPerDay"]);
         }
     }
@@ -57,6 +62,8 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
             "quoteSymbolId",
             "genome",
             "fsmState",
+            "from",
+            "to",
             "duration",
             "numOrders",
             "totalProfit",

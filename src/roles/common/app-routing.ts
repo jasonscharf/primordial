@@ -10,7 +10,7 @@ export const routes = {
     FORWARD_TESTS: "/forward-tests",
     BACK_TESTS_RUN: "/run",
     BACK_TESTS_BASE: "/results",
-    BACK_TESTS_RESULTS_FOR_BOT: "/results/:instanceIdOrName",
+    BACK_TESTS_RESULTS_FOR_BOT: "/results/:instanceName",
     DATA: "/data",
     SYSTEM: "/system",
 };

@@ -27,6 +27,7 @@ import { shortDateAndTime, shortTime } from "../../common/utils/time";
 import { sym } from "../services";
 import { version } from "../../common/version";
 import * as validate from "../validation";
+import { BACKTEST_SORT_OPTIONS, INSTANCE_SORT_OPTIONS } from "../../common/constants";
 
 
 export interface StartBotInstanceArgs {
@@ -112,7 +113,7 @@ export class StrategyService {
         Promise<GenotypeInstanceDescriptor[]> {
         const { limit, orderBy, orderDir } = args;
 
-        const validatedOrderBy = validate.column(orderBy, "totalProfit", ["updated", "baseSymbolId", "quoteSymbolId"]);
+        const validatedOrderBy = validate.column(orderBy, "totalProfit", Object.keys(BACKTEST_SORT_OPTIONS));
         const validatedOrderDir = validate.orderDir(orderDir);
 
         const results = await query(queries.BOTS_BACK_TESTS_TOP, async db => {
@@ -141,7 +142,12 @@ export class StrategyService {
                     bi."stateInternal"->>'baseSymbolId' AS "baseSymbolId",
                     bi."stateInternal"->>'quoteSymbolId' AS "quoteSymbolId",
 
+                    (results.results->>'from')::timestamp with time zone AS "from",
+                    (results.results->>'to')::timestamp with time zone AS "to",
+                    ((results.results->>'to')::timestamp with time zone) - ((results.results->>'from')::timestamp with time zone) AS "duration",
+
                     COALESCE((results.results->'numOrders')::int, 0) AS "numOrders",
+                    COALESCE((results.results->'totalfees')::decimal, 0) AS "totalFees",
                     COALESCE((results.results->'totalProfit')::decimal, 0) AS "totalProfit",
                     COALESCE((results.results->'totalProfitPct')::decimal, 0) AS "totalProfitPct",
                     COALESCE((results.results->'avgProfitPerDay')::decimal, 0) AS "avgProfitPerDay",
@@ -279,7 +285,7 @@ export class StrategyService {
                     bot_instances."currentGenome" as genome,
                     bot_instances.created AS created,
                     bot_instances.updated AS updated,
-                    bot_instances.created - bot_instances.updated as duration,
+                    (NOW() - bot_runs.from) AS duration,
                     bot_instances."stateJson",
 
                     COUNT(orders.id)::int AS "numOrders",

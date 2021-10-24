@@ -18,6 +18,8 @@ export interface GenotypeInstanceDescriptor extends MutableModel {
     fsmState: GeneticBotFsmState;
     created: Date;
     updated: Date;
+    from?: Date;
+    to?: Date;
     duration: object; // Actually a Postgres interval, but not sure if type is public
     numOrders: number;
     totalProfit: BigNum;

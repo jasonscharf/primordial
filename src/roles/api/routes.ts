@@ -215,6 +215,8 @@ const models: TsoaRoute.Models = {
             "modeId": {"ref":"BotMode","required":true},
             "genome": {"dataType":"string","required":true},
             "fsmState": {"ref":"GeneticBotFsmState","required":true},
+            "from": {"dataType":"datetime"},
+            "to": {"dataType":"datetime"},
             "duration": {"dataType":"object","required":true},
             "numOrders": {"dataType":"double","required":true},
             "totalProfit": {"ref":"BigNum","required":true},
@@ -223,6 +225,11 @@ const models: TsoaRoute.Models = {
             "avgProfitPctPerDay": {"dataType":"double","required":true},
         },
         "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "QueryOrderDirection": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["ASC"]},{"dataType":"enum","enums":["DESC"]}],"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
@@ -366,6 +373,8 @@ export function RegisterRoutes(router: KoaRouter) {
                     strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},
                     status: {"in":"path","name":"status","required":true,"dataType":"string"},
                     limit: {"in":"query","name":"limit","dataType":"double"},
+                    orderBy: {"in":"query","name":"orderBy","dataType":"string"},
+                    orderDir: {"in":"query","name":"orderDir","ref":"QueryOrderDirection"},
             };
 
             let validatedArgs: any[] = [];
@@ -388,6 +397,8 @@ export function RegisterRoutes(router: KoaRouter) {
                     workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
                     strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},
                     limit: {"in":"query","name":"limit","dataType":"double"},
+                    orderBy: {"in":"query","name":"orderBy","dataType":"string"},
+                    orderDir: {"in":"query","name":"orderDir","ref":"QueryOrderDirection"},
             };
 
             let validatedArgs: any[] = [];

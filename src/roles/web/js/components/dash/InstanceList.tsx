@@ -1,17 +1,16 @@
 import "react-dom";
-import React, { useContext, useEffect, useState } from "react";
-import { Amount } from "../primitives/Amount";
-import { BotMode } from "../../../../common/models/system/Strategy";
-import { Chip, Grid } from "@mui/material";
-import { GeneticBotFsmState } from "../../../../common/models/bots/BotState";
+import React, { useCallback, useContext, useEffect, useState } from "react";
+import { generatePath, useHistory } from "react-router";
+import { Chip, Grid, List, ListItem, Table, TableRow } from "@mui/material";
+import { CommonQueryArgs } from "../../../../common/models/CommonQueryArgs";
 import { GenotypeInstanceDescriptor } from "../../../../common/models/bots/GenotypeInstanceDescriptor";
 import { GenotypeInstanceDescriptorEntity } from "../../../../common/entities/GenotypeInstanceDescriptorEntity";
-import { Hashicon } from "@emeraldpay/hashicon-react";
 import { If } from "../primitives/If";
 import { InfoContext } from "../../contexts";
 import { SpinnerMini } from "../primitives/SpinnerMini";
-import { presentBotState } from "../../../../common/utils/presentation";
 import { useApiRequestEffect } from "../../hooks/useApiRequestEffect";
+import { QueryOrderDirection } from "../../client";
+import { InstanceOverviewItem } from "../genotypes/InstanceOverviewItem";
 
 
 export interface InstanceListProps {
@@ -19,11 +18,19 @@ export interface InstanceListProps {
     strategyId?: string;
     mode: "test-back" | "test-forward" | "live";
     limit?: number;
+    orderBy?: string;
+    orderDir?: QueryOrderDirection;
+    noItems?: string;
+
 }
 
 export const InstanceList = (props: InstanceListProps) => {
+    const { limit, mode, noItems, orderBy, orderDir } = props;
     const [descriptors, setDescriptors] = useState<GenotypeInstanceDescriptor[]>([]);
     const info = useContext(InfoContext);
+    const hist = useHistory();
+
+
 
     const [, isLoading] = useApiRequestEffect(async (client) => {
         if (!info) {
@@ -31,23 +38,29 @@ export const InstanceList = (props: InstanceListProps) => {
         }
 
         const { defaultStrategy, defaultWorkspace } = info;
-        const { limit, mode } = props;
 
         const workspaceId = props.workspaceId || defaultWorkspace;
         const strategyId = props.strategyId || defaultStrategy;
 
+        const args: CommonQueryArgs = {
+            limit,
+            orderBy,
+            orderDir,
+        };
+
         if (mode === 'test-forward') {
-            const { data } = await client.workspaces.getRunningInstances(workspaceId, strategyId, mode, { limit });
+            const { data } = await client.workspaces.getRunningInstances(workspaceId, strategyId, mode, args as any);
             const items = data.map(item => GenotypeInstanceDescriptorEntity.fromRow(item as any as GenotypeInstanceDescriptor));
             setDescriptors(items);
         }
         else if (mode === 'test-back') {
-            const { data } = await client.workspaces.getTopBacktests(workspaceId, strategyId, { limit });
+            const { data } = await client.workspaces.getTopBacktests(workspaceId, strategyId, args as any);
             const items = data.map(item => GenotypeInstanceDescriptorEntity.fromRow(item as any as GenotypeInstanceDescriptor));
             setDescriptors(items);
         }
 
-    }, [info]);
+    }, [info, limit, orderBy, orderDir]);
+
 
     if (isLoading) {
         return <SpinnerMini />
@@ -56,33 +69,14 @@ export const InstanceList = (props: InstanceListProps) => {
     return (
         <>
             {descriptors.length === 0
-                ? (<b>No genotypes found</b>)
-                : descriptors.map((d, i) => (
-                    <Grid key={i} item container spacing={1} style={{ flexWrap: "nowrap", marginBottom: "1em" }}>
-                        <Grid item style={{ marginTop: "auto", marginBottom: "auto" }}>
-                            <Hashicon value={d.id} size={32} />
-                        </Grid>
-                        <Grid item style={{}} className="primo-ellipses">
-                            {/*
-                            <Grid item >
-                                <b>{d.name}</b>
-                            </Grid>*/}
-                            <Grid item>
-                                <b>{d.symbols}</b>&nbsp;@&nbsp;<b>{d.resId}</b>
-                            </Grid>
-                            <Grid item>
-                                <span>{d.genome}</span>
-                            </Grid>
-                            <If exp={d.modeId !== BotMode.BACK_TEST}>
-                                <Grid item>
-                                    <b>{presentBotState(d.fsmState as any as GeneticBotFsmState)}</b>
-                                </Grid>
-                            </If>
-                        </Grid>
-                        <Grid item style={{ marginLeft: "auto" }}>
-                            <Amount amount={d.totalProfit} symbol={d.quoteSymbolId} />
-                        </Grid>
-                    </Grid>))
+                ? (<b>{noItems ?? "No genotypes found"}</b>)
+                : (
+                    <Table className="primo-instance-list">
+                        {descriptors.map((d, i) => (
+                            <InstanceOverviewItem key={i} instance={d} />
+                        ))}
+                    </Table>
+                )
             }
         </>
     );

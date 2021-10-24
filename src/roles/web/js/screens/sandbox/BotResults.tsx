@@ -36,7 +36,7 @@ const DEFAULT_BOT_RESULTS_POLL_MS = 500;
  * Shows results for a bot run, including OLHCV data, indicators, and events.
  */
 const BotResults = () => {
-    const args = useParams<{ instanceIdOrName: string }>();
+    const args = useParams<{ instanceName: string }>();
     const [results, setResults] = useState<BotResultsApiResponse>(null);
     const [displayHeikinAshi, setDisplayHeikinAshi] = useState<boolean>(false);
 
@@ -59,17 +59,17 @@ const BotResults = () => {
 
     useEffect(() => {
         try {
-            const { instanceIdOrName: instanceId } = args;
+            const { instanceName } = args;
 
-            console.log(`Fetching bot results for '${instanceId}'...`);
+            console.log(`Fetching bot results for '${instanceName}'...`);
 
-            if (!instanceId) {
+            if (!instanceName) {
                 //throw new Error("Specify an instance ID");
             }
             else {
-                waitForCompletion(instanceId)
+                waitForCompletion(instanceName)
                     .then(() => {
-                        client.sandbox.getBotResults(instanceId)
+                        client.sandbox.getBotResults(instanceName)
                             .then(response => response.data)
                             .then(results => {
                                 const {

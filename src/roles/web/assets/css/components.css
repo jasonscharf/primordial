@@ -132,6 +132,7 @@
 }
 
 .primo-card-header.MuiCardHeader-root .MuiCardHeader-content {
+    align-items: center;
     padding: 8px;
 }
 
@@ -169,6 +170,13 @@
     font-weight: bold;
     display: inline-block;
     font-size: 120%;
+}
+
+/* InstanceList */
+.primo-instance-list {
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
 }
 
 /* Tables */
@@ -214,7 +222,9 @@
     padding: 1em 0 2em 2em;
 }
 
-.MuiCardContent-root li {}
+.MuiCardContent-root li {
+    padding: 0;
+}
 
 .MuiCardHeader-title {
     padding: 0;
