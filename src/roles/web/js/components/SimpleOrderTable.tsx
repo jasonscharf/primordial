@@ -36,7 +36,7 @@ export function SimpleOrderTable(props?: OrderTableProps) {
                     {orders.map((row) => (
                         <TableRow
                             key={row.id}>
-                            <TableCell component="th" scope="row">
+                            <TableCell>
                                 {row.displayName}
                             </TableCell>
                             <TableCell align="right">{row.typeId}</TableCell>

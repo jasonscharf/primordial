@@ -1,7 +1,8 @@
 import { ApiTimeResolution } from "../../messages/trading";
 import { BigNum } from "../BigNum";
-import { MutableModel } from "../MutableEntity";
+import { BotMode } from "../system/Strategy";
 import { GeneticBotFsmState } from "./BotState";
+import { MutableModel } from "../MutableEntity";
 
 
 // Not a DB entity
@@ -12,6 +13,7 @@ export interface GenotypeInstanceDescriptor extends MutableModel {
     resId: ApiTimeResolution;
     baseSymbolId: string;
     quoteSymbolId: string;
+    modeId: BotMode;
     genome: string;
     fsmState: GeneticBotFsmState;
     created: Date;

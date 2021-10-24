@@ -332,6 +332,12 @@ export interface GenotypeInstanceDescriptor {
   resId: ApiTimeResolution;
   baseSymbolId: string;
   quoteSymbolId: string;
+
+  /**
+   * NOTE: These constants are used in the database.
+   * DO NOT remove of change values here. Add and deprecate.
+   */
+  modeId: BotMode;
   genome: string;
   fsmState: GeneticBotFsmState;
   duration: object;

@@ -3,18 +3,30 @@ import { render } from "react-dom";
 import DateAdapter from "@mui/lab/AdapterLuxon";
 import { SnackbarProvider } from "notistack";
 import { LocalizationProvider } from "@mui/lab";
+import useDimensions from "react-cool-dimensions";
 import { AppRoutes } from "./AppRoutes";
-import { InfoContext } from "./contexts";
+import { InfoContext, PresentationContext, ResponsiveBreakpoint, breakpoints } from "./contexts";
 import { InfoResponse } from "./client";
 import { client } from "./includes";
 
 
 const Loading = () => (
-    <div>Loading</div>
+    <div>Loading...</div>
 );
 
 const App = () => {
     const [info, setInfo] = useState<InfoResponse>(null);
+    const [breakpoint, setBreakpoint] = useState<ResponsiveBreakpoint>("xs");
+
+    const { observe, unobserve, width, height, entry } = useDimensions({
+        breakpoints,
+
+        updateOnBreakpointChange: true,
+        onResize: ({ currentBreakpoint }) => {
+            setBreakpoint(currentBreakpoint as ResponsiveBreakpoint);
+        },
+    });
+
     useEffect(() => {
         client.info.getInfo()
             .then(response => response.data)
@@ -25,16 +37,20 @@ const App = () => {
     }, []);
 
     return (
-        <LocalizationProvider dateAdapter={DateAdapter}>
-            <SnackbarProvider maxSnack={3}>
-                <InfoContext.Provider value={info}>
-                    <Suspense fallback={<div />}>
-                        <AppRoutes />
-                    </Suspense>
-                </InfoContext.Provider>
-            </SnackbarProvider>
-        </LocalizationProvider>
+        <div className="primo-app-container" ref={observe}>
+            <LocalizationProvider dateAdapter={DateAdapter}>
+                <PresentationContext.Provider value={{ breakpoint }}>
+                    <SnackbarProvider maxSnack={3}>
+                        <InfoContext.Provider value={info}>
+                            <Suspense fallback={<div />}>
+                                <AppRoutes />
+                            </Suspense>
+                        </InfoContext.Provider>
+                    </SnackbarProvider>
+                </PresentationContext.Provider>
+            </LocalizationProvider>
+        </div>
     );
 };
 
-render(<App />, document.getElementById("app-container"));
+render(<App />, document.getElementById("primo-app-container"));

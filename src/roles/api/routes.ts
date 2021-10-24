@@ -212,6 +212,7 @@ const models: TsoaRoute.Models = {
             "resId": {"ref":"ApiTimeResolution","required":true},
             "baseSymbolId": {"dataType":"string","required":true},
             "quoteSymbolId": {"dataType":"string","required":true},
+            "modeId": {"ref":"BotMode","required":true},
             "genome": {"dataType":"string","required":true},
             "fsmState": {"ref":"GeneticBotFsmState","required":true},
             "duration": {"dataType":"object","required":true},

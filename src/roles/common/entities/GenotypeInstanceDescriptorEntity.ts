@@ -1,5 +1,6 @@
 import { ApiTimeResolution } from "../messages/trading";
 import { BigNum } from "../numbers";
+import { BotMode } from "../models/system/Strategy";
 import { GeneticBotFsmState } from "../models/bots/BotState";
 import { GenotypeInstanceDescriptor } from "../models/bots/GenotypeInstanceDescriptor";
 import { MutableEntity, MutableModel } from "../models/MutableEntity";
@@ -9,6 +10,7 @@ import { MutableEntity, MutableModel } from "../models/MutableEntity";
 export class GenotypeInstanceDescriptorEntity extends MutableEntity implements GenotypeInstanceDescriptor {
     name: string;
     symbols: string;
+    modeId: BotMode;
     resId: ApiTimeResolution;
     baseSymbolId: string;
     quoteSymbolId: string;
@@ -28,6 +30,7 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
         if (row) {
             this.name = row[prefix + "name"];
             this.symbols = row[prefix + "symbols"];
+            this.modeId = row[prefix + "modeId"];
             this.resId = row[prefix + "resId"];
             this.baseSymbolId = row[prefix + "baseSymbolId"];
             this.quoteSymbolId = row[prefix + "quoteSymbolId"];
@@ -48,6 +51,7 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
             ...MutableEntity.cols,
             "name",
             "symbols",
+            "modeId",
             "resId",
             "baseSymbolId",
             "quoteSymbolId",

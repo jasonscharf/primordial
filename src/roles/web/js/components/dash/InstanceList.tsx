@@ -1,11 +1,13 @@
 import "react-dom";
 import React, { useContext, useEffect, useState } from "react";
 import { Amount } from "../primitives/Amount";
+import { BotMode } from "../../../../common/models/system/Strategy";
 import { Chip, Grid } from "@mui/material";
 import { GeneticBotFsmState } from "../../../../common/models/bots/BotState";
 import { GenotypeInstanceDescriptor } from "../../../../common/models/bots/GenotypeInstanceDescriptor";
 import { GenotypeInstanceDescriptorEntity } from "../../../../common/entities/GenotypeInstanceDescriptorEntity";
 import { Hashicon } from "@emeraldpay/hashicon-react";
+import { If } from "../primitives/If";
 import { InfoContext } from "../../contexts";
 import { SpinnerMini } from "../primitives/SpinnerMini";
 import { presentBotState } from "../../../../common/utils/presentation";
@@ -71,9 +73,11 @@ export const InstanceList = (props: InstanceListProps) => {
                             <Grid item>
                                 <span>{d.genome}</span>
                             </Grid>
-                            <Grid item>
-                                <b>{presentBotState(d.fsmState as any as GeneticBotFsmState)}</b>
-                            </Grid>
+                            <If exp={d.modeId !== BotMode.BACK_TEST}>
+                                <Grid item>
+                                    <b>{presentBotState(d.fsmState as any as GeneticBotFsmState)}</b>
+                                </Grid>
+                            </If>
                         </Grid>
                         <Grid item style={{ marginLeft: "auto" }}>
                             <Amount amount={d.totalProfit} symbol={d.quoteSymbolId} />

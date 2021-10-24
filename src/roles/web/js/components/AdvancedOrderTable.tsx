@@ -9,14 +9,29 @@ import {
     Paper,
 } from "@mui/material";
 
+import Biotech from "@mui/icons-material/Biotech";
 import { Amount } from "./primitives/Amount";
 import { ApiBotOrderDescriptor } from "../../../common/messages/trading";
-import { Order } from "../../../common/models/markets/Order";
+import { BotMode } from "../../../common/models/system/Strategy";
+import { Order, OrderType } from "../../../common/models/markets/Order";
 import { shortDateAndTime } from "../../../common/utils/time";
 
 
 export interface AdvancedOrderTableProps {
     orders: ApiBotOrderDescriptor[];
+}
+
+export function presentOrderType(orderType: OrderType) {
+    switch (orderType) {
+        case OrderType.LIMIT_BUY:
+        case OrderType.MARKET_BUY:
+            return "BUY";
+        case OrderType.LIMIT_SELL:
+        case OrderType.MARKET_SELL:
+            return "SELL";
+        default:
+            return "(unknown)";
+    }
 }
 
 export function AdvancedOrderTable(props?: AdvancedOrderTableProps) {
@@ -34,10 +49,11 @@ export function AdvancedOrderTable(props?: AdvancedOrderTableProps) {
             return (
                 <TableRow
                     key={row.order.id}>
+
+                    <TableCell align="left" style={{ width: "1rem" }}>{row.instance.modeId === BotMode.FORWARD_TEST ? <Biotech /> : ""}</TableCell>
                     <TableCell align="left">{row.instance.symbols}</TableCell>
-
-                    <TableCell align="right">{shortDateAndTime(row.order.closed)}</TableCell>
-
+                    <TableCell align="left" style={{ minWidth: "4rem" }}>{presentOrderType(row.order.typeId)}</TableCell>
+                    <TableCell align="left" style={{ minWidth: "11rem" }}>{shortDateAndTime(row.order.closed)}</TableCell>
                     <TableCell align="right">{row.order.price.toString()}</TableCell>
                     <TableCell align="right"><Amount amount={row.order.gross.toString()} symbol={row.order.quoteSymbolId} /></TableCell>
                 </TableRow>
@@ -50,10 +66,11 @@ export function AdvancedOrderTable(props?: AdvancedOrderTableProps) {
             <Table size="small" aria-label="Recent orders">
                 <TableHead>
                     <TableRow>
+
+                        <TableCell align="left"></TableCell>
                         <TableCell align="left">Symbols</TableCell>
-
-                        <TableCell align="right">Closed</TableCell>
-
+                        <TableCell align="left">Type</TableCell>
+                        <TableCell align="left">Closed</TableCell>
                         <TableCell align="right">Price</TableCell>
                         <TableCell align="right">Gross</TableCell>
                     </TableRow>
