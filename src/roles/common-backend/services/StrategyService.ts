@@ -13,7 +13,7 @@ import { GenotypeInstanceDescriptor } from "../../common/models/bots/GenotypeIns
 import { GenotypeInstanceDescriptorEntity } from "../../common/entities/GenotypeInstanceDescriptorEntity";
 import { BotMode, Strategy } from "../../common/models/system/Strategy";
 import { OrderEntity } from "../../common/entities/OrderEntity";
-import { PrimoUnknownName } from "../../common/errors/errors";
+import { PrimoUnknownName, PrimoValidationError } from "../../common/errors/errors";
 import { RunState } from "../../common/models/system/RunState";
 import { StrategyEntity } from "../../common/entities/StrategyEntity";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
@@ -26,6 +26,7 @@ import { query, ref } from "../database/utils";
 import { shortDateAndTime, shortTime } from "../../common/utils/time";
 import { sym } from "../services";
 import { version } from "../../common/version";
+import * as validate from "../validation";
 
 
 export interface StartBotInstanceArgs {
@@ -109,15 +110,22 @@ export class StrategyService {
      */
     async getTopPerformingBacktests(requestingUserId: string, workspaceId: string, strategyId: string, args = defaults.DEFAULT_API_COMMON_QUERY_ARGS, trx: Knex.Transaction = null):
         Promise<GenotypeInstanceDescriptor[]> {
-        const { limit } = args;
+        const { limit, orderBy, orderDir } = args;
+
+        const validatedOrderBy = validate.column(orderBy, "totalProfit", ["updated", "baseSymbolId", "quoteSymbolId"]);
+        const validatedOrderDir = validate.orderDir(orderDir);
+
         const results = await query(queries.BOTS_BACK_TESTS_TOP, async db => {
             const bindings = {
                 requestingUserId,
                 workspaceId,
+                validatedOrderBy,
+                validatedOrderDir,
                 limit,
             };
 
-            const { rows } = await db.raw(
+            // SECURITY: Note the injection vector in ORDER BY. It is validated, but just noting.
+            const query = db.raw(
                 `
                 SELECT
                     bi.id AS "id",
@@ -158,13 +166,14 @@ export class StrategyService {
                     AND bi."runState" = 'stopped'
 
                 ORDER BY
-                    "totalProfit" DESC
+                    "${validatedOrderBy}" ${validatedOrderDir === "ASC" ? "ASC" : "DESC"}
 
                 LIMIT :limit
                     ;
                 `
                 , bindings);
 
+            const { rows } = await query;
             return rows.map(row => GenotypeInstanceDescriptorEntity.fromRow(row));
         }, trx);
 
@@ -204,7 +213,7 @@ export class StrategyService {
                     runs.created AS run_created,
                     runs.updated AS run_updated,
                     runs.active AS run_active
-                    
+
                 FROM ${tables.BotDefinitions}
                 INNER JOIN ${tables.Workspaces} ON ${tables.BotDefinitions}."workspaceId" = :workspaceId
                 INNER JOIN ${tables.Strategies} ON ${tables.Strategies}."workspaceId" = ${tables.Workspaces}.id

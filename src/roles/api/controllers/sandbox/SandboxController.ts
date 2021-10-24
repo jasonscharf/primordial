@@ -46,7 +46,7 @@ export class SandboxController extends ControllerBase {
             maxWagerPct,
             name: isNullOrUndefined(name) ? randomName() : name,
             res,
-            symbols,
+            symbols: symbols.toUpperCase(),
             remove: false,
             from: fromParsed,
             to: toParsed,

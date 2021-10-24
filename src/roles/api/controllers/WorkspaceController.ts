@@ -1,6 +1,7 @@
 import Koa from "koa";
 import { Body, Get, Post, Query, Request, Route } from "tsoa";
 import { BotMode } from "../../common/models/system/Strategy";
+import { CommonQueryArgs, QueryOrderDirection } from "../../common/models/CommonQueryArgs";
 import { ControllerBase } from "./ControllerBase";
 import { GenotypeInstanceDescriptor } from "../../common/models/bots/GenotypeInstanceDescriptor";
 import { PrimoValidationError } from "../../common/errors/errors";
@@ -12,7 +13,14 @@ import { defaults, limits } from "../../common-backend/constants";
 export class WorkspaceController extends ControllerBase {
 
     @Get("{workspaceId}/strategies/{strategyId}/instances/{status}")
-    async getRunningInstances(workspaceId: string, strategyId: string, status: string, @Query() limit?: number): Promise<GenotypeInstanceDescriptor[]> {
+    async getRunningInstances(
+        workspaceId: string,
+        strategyId: string,
+        status: string,
+        @Query() limit?: number,
+        @Query() orderBy?: string,
+        @Query() orderDir?: QueryOrderDirection
+    ): Promise<GenotypeInstanceDescriptor[]> {
         const user = this.currentSession?.user || null;
 
         if (!workspaceId) {
@@ -38,13 +46,25 @@ export class WorkspaceController extends ControllerBase {
         // SECURITY: TODO: Call out to security manage to ensure user has access to strategy and that it's part of workspace
         // SECURITY: Add RUID to getBotDescriptors
 
+        const args: CommonQueryArgs = {
+            limit,
+            orderBy,
+            orderDir,
+        };
+
         // The cast to any here is because `Mode` collides with a builtin Node FS type with the same name, when running tsoa
-        const descriptors = await strats.getBotDescriptors(workspaceId, strategyId, status as any, { limit });
+        const descriptors = await strats.getBotDescriptors(workspaceId, strategyId, status as any, args);
         return descriptors;
     }
 
     @Get("{workspaceId}/strategies/{strategyId}/backtests/top")
-    async getTopBacktests(workspaceId: string, strategyId: string, @Query() limit?: number): Promise<GenotypeInstanceDescriptor[]> {
+    async getTopBacktests(
+        workspaceId: string,
+        strategyId: string,
+        @Query() limit?: number,
+        @Query() orderBy?: string,
+        @Query() orderDir?: QueryOrderDirection,
+    ): Promise<GenotypeInstanceDescriptor[]> {
         const user = this.currentSession?.user || null;
 
         if (!workspaceId) {
@@ -66,7 +86,13 @@ export class WorkspaceController extends ControllerBase {
         // SECURITY
         const { id: ruid } = await users.getSystemUser();
 
-        const descriptors = await strats.getTopPerformingBacktests(ruid, workspaceId, strategyId, { limit });
+        const args: CommonQueryArgs = {
+            limit,
+            orderBy,
+            orderDir,
+        };
+
+        const descriptors = await strats.getTopPerformingBacktests(ruid, workspaceId, strategyId, args);
         return descriptors;
     }
 
