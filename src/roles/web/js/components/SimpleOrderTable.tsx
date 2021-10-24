@@ -17,11 +17,11 @@ export interface OrderTableProps {
     orders: Order[];
 }
 
-export default function OrderTable(props?: OrderTableProps) {
+export function SimpleOrderTable(props?: OrderTableProps) {
     const orders = (props && props.orders) ? props.orders : [];
     return (
         <TableContainer component={Paper}>
-            <Table size="small" aria-label="a dense table">
+            <Table size="small" aria-label="Recent orders">
                 <TableHead>
                     <TableRow>
                         <TableCell align="left">Order</TableCell>
@@ -36,7 +36,7 @@ export default function OrderTable(props?: OrderTableProps) {
                     {orders.map((row) => (
                         <TableRow
                             key={row.id}>
-                            <TableCell component="th" scope="row">
+                            <TableCell>
                                 {row.displayName}
                             </TableCell>
                             <TableCell align="right">{row.typeId}</TableCell>

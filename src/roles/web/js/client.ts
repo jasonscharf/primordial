@@ -35,7 +35,263 @@ export interface User {
 export interface InfoResponse {
   buildInfo?: BuildInfo;
   environment: EnvInfo;
-  user: User;
+  user?: User;
+  defaultWorkspace?: string;
+  defaultStrategy?: string;
+}
+
+/**
+ * Make all properties in T optional
+ */
+export interface PartialBotDefinition {
+  workspaceId?: string;
+  name?: string;
+  symbols?: string;
+  genome?: string;
+  description?: string;
+  id?: string;
+
+  /** @format date-time */
+  created?: string;
+
+  /** @format date-time */
+  updated?: string;
+  displayName?: string;
+}
+
+/**
+* NOTE: These constants are used in the database.
+DO NOT remove of change values here. Add and deprecate.
+*/
+export enum BotMode {
+  TestBack = "test-back",
+  TestForward = "test-forward",
+  Live = "live",
+  TestLive = "test-live",
+  Paused = "paused",
+}
+
+/**
+ * Represents time resolutions for price intervals.
+ */
+export enum TimeResolution {
+  Type1S = "1s",
+  Type2S = "2s",
+  Type1M = "1m",
+  Type5M = "5m",
+  Type15M = "15m",
+  Type1H = "1h",
+  Type1D = "1d",
+  Type1W = "1w",
+}
+
+/**
+ * Describes the run state of a strategy or bot.
+ */
+export enum RunState {
+  New = "new",
+  Initializing = "initializing",
+  Active = "active",
+  Paused = "paused",
+  Stopped = "stopped",
+  Error = "error",
+}
+
+export interface BotInstanceStateInternal {
+  baseSymbolId: string;
+  quoteSymbolId: string;
+}
+
+export enum GeneticBotFsmState {
+  WaitForBuyOpp = "wait-for-buy-opp",
+  WaitForSellOpp = "wait-for-sell-opp",
+  WaitForBuyOrderConf = "wait-for-buy-order-conf",
+  WaitForSellOrderConf = "wait-for-sell-order-conf",
+  SellSurf = "sell-surf",
+  BuySurf = "buy-surf",
+}
+
+export type BigNum = string;
+
+export interface GeneticBotState {
+  fsmState: GeneticBotFsmState;
+  prevFsmState: GeneticBotFsmState;
+
+  /** @format date-time */
+  prevFsmStateChangeTs: string;
+  signals: number[];
+  prevQuantity: BigNum;
+  prevPrice: BigNum;
+  prevOrderId: string;
+  stopLossPrice: BigNum;
+  targetPrice: BigNum;
+  verbose?: boolean;
+}
+
+export interface BotInstance {
+  id: string;
+
+  /** @format date-time */
+  created: string;
+
+  /** @format date-time */
+  updated: string;
+  displayName?: string;
+  allocationId: string;
+  definitionId: string;
+  exchangeId: string;
+
+  /**
+   * NOTE: These constants are used in the database.
+   * DO NOT remove of change values here. Add and deprecate.
+   */
+  modeId: BotMode;
+
+  /** Represents time resolutions for price intervals. */
+  resId: TimeResolution;
+  typeId: string;
+  name: string;
+  type: string;
+  build: string;
+
+  /** @format date-time */
+  prevTick: string;
+  symbols: string;
+  currentGenome?: string;
+  normalizedGenome?: string;
+
+  /** Describes the run state of a strategy or bot. */
+  runState: RunState;
+  stateInternal: BotInstanceStateInternal;
+  stateJson: GeneticBotState;
+}
+
+/**
+ * Make all properties in T optional
+ */
+export interface PartialBotInstance {
+  allocationId?: string;
+  definitionId?: string;
+  exchangeId?: string;
+
+  /**
+   * NOTE: These constants are used in the database.
+   * DO NOT remove of change values here. Add and deprecate.
+   */
+  modeId?: BotMode;
+
+  /** Represents time resolutions for price intervals. */
+  resId?: TimeResolution;
+  typeId?: string;
+  name?: string;
+  type?: string;
+  build?: string;
+
+  /** @format date-time */
+  prevTick?: string;
+  symbols?: string;
+  currentGenome?: string;
+  normalizedGenome?: string;
+
+  /** Describes the run state of a strategy or bot. */
+  runState?: RunState;
+  stateInternal?: BotInstanceStateInternal;
+  stateJson?: BotInstance;
+  id?: string;
+
+  /** @format date-time */
+  created?: string;
+
+  /** @format date-time */
+  updated?: string;
+  displayName?: string;
+}
+
+/**
+ * Make all properties in T optional
+ */
+export interface PartialBotRun {
+  instanceId?: string;
+  active?: boolean;
+
+  /** @format date-time */
+  from?: string;
+
+  /** @format date-time */
+  to?: string;
+  id?: string;
+
+  /** @format date-time */
+  created?: string;
+
+  /** @format date-time */
+  updated?: string;
+  displayName?: string;
+}
+
+export enum OrderState {
+  Open = "open",
+  Filling = "filling",
+  Cancelled = "cancelled",
+  Closed = "closed",
+  Error = "error",
+}
+
+export enum OrderType {
+  BuyLimit = "buy.limit",
+  SellLimit = "sell.limit",
+  BuyMarket = "buy.market",
+  SellMarket = "sell.market",
+}
+
+/**
+ * Make all properties in T optional
+ */
+export interface PartialOrder {
+  botRunId?: string;
+  baseSymbolId?: string;
+  quoteSymbolId?: string;
+  exchangeId?: string;
+  stopLossOrderId?: string;
+  relatedOrderId?: string;
+  extOrderId?: string;
+  stateId?: OrderState;
+  typeId?: OrderType;
+
+  /** @format date-time */
+  opened?: string;
+
+  /** @format date-time */
+  closed?: string;
+  quantity?: BigNum;
+  price?: BigNum;
+  gross?: BigNum;
+  fees?: BigNum;
+  strike?: BigNum;
+  limit?: BigNum;
+  stop?: BigNum;
+  id?: string;
+
+  /** @format date-time */
+  created?: string;
+
+  /** @format date-time */
+  updated?: string;
+  displayName?: string;
+}
+
+export interface ApiBotOrderDescriptor {
+  /** Make all properties in T optional */
+  def: PartialBotDefinition;
+
+  /** Make all properties in T optional */
+  instance: PartialBotInstance;
+
+  /** Make all properties in T optional */
+  run: PartialBotRun;
+
+  /** Make all properties in T optional */
+  order: PartialOrder;
 }
 
 export enum ApiTimeResolution {
@@ -62,16 +318,38 @@ export interface ApiBacktestRequest {
   returnEarly?: boolean;
 }
 
-/**
- * Describes the run state of a strategy or bot.
- */
-export enum RunState {
-  New = "new",
-  Initializing = "initializing",
-  Active = "active",
-  Paused = "paused",
-  Stopped = "stopped",
-  Error = "error",
+export interface GenotypeInstanceDescriptor {
+  id: string;
+
+  /** @format date-time */
+  created: string;
+
+  /** @format date-time */
+  updated: string;
+  displayName?: string;
+  name: string;
+  symbols: string;
+  resId: ApiTimeResolution;
+  baseSymbolId: string;
+  quoteSymbolId: string;
+
+  /**
+   * NOTE: These constants are used in the database.
+   * DO NOT remove of change values here. Add and deprecate.
+   */
+  modeId: BotMode;
+  genome: string;
+  fsmState: GeneticBotFsmState;
+  duration: object;
+
+  /** @format double */
+  numOrders: number;
+  totalProfit: BigNum;
+  totalFees: BigNum;
+  avgProfitPerDay: BigNum;
+
+  /** @format double */
+  avgProfitPctPerDay: number;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -307,6 +585,21 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         ...params,
       }),
   };
+  orders = {
+    /**
+     * No description
+     *
+     * @name GetBotOrderDescriptors
+     * @request GET:/orders/{workspaceId}/strategies/{strategyId}/orders
+     */
+    getBotOrderDescriptors: (workspaceId: string, strategyId: string, params: RequestParams = {}) =>
+      this.request<ApiBotOrderDescriptor[], any>({
+        path: `/orders/${workspaceId}/strategies/${strategyId}/orders`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+  };
   sandbox = {
     /**
      * No description
@@ -364,6 +657,61 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         method: "GET",
         query: query,
         format: "json",
+        ...params,
+      }),
+  };
+  workspaces = {
+    /**
+     * No description
+     *
+     * @name GetRunningInstances
+     * @request GET:/workspaces/{workspaceId}/strategies/{strategyId}/instances/{status}
+     */
+    getRunningInstances: (
+      workspaceId: string,
+      strategyId: string,
+      status: string,
+      query?: { limit?: number },
+      params: RequestParams = {},
+    ) =>
+      this.request<GenotypeInstanceDescriptor[], any>({
+        path: `/workspaces/${workspaceId}/strategies/${strategyId}/instances/${status}`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetTopBacktests
+     * @request GET:/workspaces/{workspaceId}/strategies/{strategyId}/backtests/top
+     */
+    getTopBacktests: (
+      workspaceId: string,
+      strategyId: string,
+      query?: { limit?: number },
+      params: RequestParams = {},
+    ) =>
+      this.request<GenotypeInstanceDescriptor[], any>({
+        path: `/workspaces/${workspaceId}/strategies/${strategyId}/backtests/top`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetWorkspaceLinks
+     * @request GET:/workspaces/{workspaceId}/links
+     */
+    getWorkspaceLinks: (workspaceId: string, params: RequestParams = {}) =>
+      this.request<void, any>({
+        path: `/workspaces/${workspaceId}/links`,
+        method: "GET",
         ...params,
       }),
   };

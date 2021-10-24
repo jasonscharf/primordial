@@ -70,7 +70,6 @@ export class SymbolService {
             "BTC/USDT",
             "ETH/USDT",
             "BCH/USDT",
-            "SHIB/USDT",
             "XRP/USDT",
             "BUSD/BUSD",
             "DOGE/USDT",
@@ -81,6 +80,33 @@ export class SymbolService {
             "DOT/USDT",
             "XMR/USDT",
         ];
+    }
+
+
+    /**
+     * Get all symbols actively trading in live or forward test mode.
+     * @param requestingUserId 
+     * @param workspaceId 
+     * @param exchangeId 
+     */
+    async getActivelyTradingSymbolPairs(requestingUserId: string, workspaceId: string, exchangeId = env.PRIMO_DEFAULT_EXCHANGE) {
+        // SECURITY: TODO
+
+        const symbolPairs = await query(queries.SYMBOLS_ACTIVE_PER_WORKSPACE, async db => {
+            const { rows } = await db
+                .raw(
+                    `
+                    SELECT "symbols",
+                        "stateInternal"->>'baseSymbolId' AS base,
+                        "stateInternal"->>'quoteSymbolId' As "quote" -- heh
+                    FROM bot_instances
+                    WHERE "exchangeId = ::exchange
+                        AND "modeId" = 'test-forward' OR "modeId" = 'test-live';
+                    `
+                );
+        });
+
+
     }
 
     /**
@@ -460,7 +486,7 @@ export class SymbolService {
      * @returns 
      */
     async addSymbol(props: Partial<TradeSymbol>): Promise<TradeSymbol> {
-        console.log(`Adding symbpol with props`, props);
+        console.log(`Adding symbol with props`, props);
         return query(queries.SYMBOLS_ADD, async trx => {
             const [row] = <TradeSymbol[]>await trx(tables.TradeSymbols)
                 .insert(props)
@@ -689,7 +715,7 @@ export class SymbolService {
             throw new Error(`Unknown base symbol '${baseName}'`);
         }
         else if (!quote) {
-            throw new Error(`Unknown base symbol '${quoteName}'`);
+            throw new Error(`Unknown quote symbol '${quoteName}'`);
         }
 
         // Pull ranges, filling with null values where no data exists
@@ -712,14 +738,15 @@ export class SymbolService {
                     SELECT time_bucket(:tf, ts) as ts
                     FROM prices
                     WHERE "exchangeId" = :exchange
+                    AND ("resId" = :res)
                     AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
                     AND ("ts" >= :start AND "ts" < :end)
                     GROUP BY "ts"
                     ORDER BY "ts"
                 )
                 SELECT *
-                FROM existing_prices
-                FULL OUTER JOIN time_range_buckets ON "ts" = "generated"
+                FROM time_range_buckets
+                LEFT JOIN existing_prices ON "ts" = "generated"
             `;
 
             const bindings = {
@@ -782,7 +809,7 @@ export class SymbolService {
      * @param pair 
      */
     parseSymbolPair(pair: string): string[] {
-        const pieces = pair.split(/[_\/\\-]/);
+        const pieces = pair.toUpperCase().split(/[_\/\\-]/);
         if (pieces.length > 2 || pieces.length === 0) {
             throw new Error(`Malformed symbol pair '${pair}'`);
         }

@@ -6,5 +6,9 @@ import { User } from "../user/User";
 export interface InfoResponse {
     buildInfo?: BuildInfo;
     environment: EnvInfo;
-    user: User;
+
+    // These must be null for unauthed users
+    user?: User;
+    defaultWorkspace?: string;
+    defaultStrategy?: string;
 }

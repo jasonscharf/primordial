@@ -3,9 +3,15 @@
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   import { Controller, ValidationService, FieldErrors, ValidateError, TsoaRoute, HttpStatusCodeLiteral, TsoaResponse } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { GenotypeController } from './controllers/GenotypeContoller';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { InfoController } from './controllers/InfoController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { Sandbox } from './controllers/sandbox/SandboxController';
+import { OrderController } from './controllers/OrderController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { SandboxController } from './controllers/sandbox/SandboxController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { WorkspaceController } from './controllers/WorkspaceController';
 import * as KoaRouter from '@koa/router';
 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -47,7 +53,128 @@ const models: TsoaRoute.Models = {
         "properties": {
             "buildInfo": {"ref":"BuildInfo"},
             "environment": {"ref":"EnvInfo","required":true},
-            "user": {"ref":"User","required":true},
+            "user": {"ref":"User"},
+            "defaultWorkspace": {"dataType":"string"},
+            "defaultStrategy": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Partial_BotDefinition_": {
+        "dataType": "refAlias",
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"workspaceId":{"dataType":"string"},"name":{"dataType":"string"},"symbols":{"dataType":"string"},"genome":{"dataType":"string"},"description":{"dataType":"string"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BotMode": {
+        "dataType": "refEnum",
+        "enums": ["test-back","test-forward","live","test-live","paused"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TimeResolution": {
+        "dataType": "refEnum",
+        "enums": ["1s","2s","1m","5m","15m","1h","1d","1w"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "RunState": {
+        "dataType": "refEnum",
+        "enums": ["new","initializing","active","paused","stopped","error"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BotInstanceStateInternal": {
+        "dataType": "refObject",
+        "properties": {
+            "baseSymbolId": {"dataType":"string","required":true},
+            "quoteSymbolId": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeneticBotFsmState": {
+        "dataType": "refEnum",
+        "enums": ["wait-for-buy-opp","wait-for-sell-opp","wait-for-buy-order-conf","wait-for-sell-order-conf","sell-surf","buy-surf"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BigNum": {
+        "dataType": "refAlias",
+        "type": {"dataType":"string","validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeneticBotState": {
+        "dataType": "refObject",
+        "properties": {
+            "fsmState": {"ref":"GeneticBotFsmState","required":true},
+            "prevFsmState": {"ref":"GeneticBotFsmState","required":true},
+            "prevFsmStateChangeTs": {"dataType":"datetime","required":true},
+            "signals": {"dataType":"array","array":{"dataType":"double"},"required":true},
+            "prevQuantity": {"ref":"BigNum","required":true},
+            "prevPrice": {"ref":"BigNum","required":true},
+            "prevOrderId": {"dataType":"string","required":true},
+            "stopLossPrice": {"ref":"BigNum","required":true},
+            "targetPrice": {"ref":"BigNum","required":true},
+            "verbose": {"dataType":"boolean"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BotInstance": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "created": {"dataType":"datetime","required":true},
+            "updated": {"dataType":"datetime","required":true},
+            "displayName": {"dataType":"string"},
+            "allocationId": {"dataType":"string","required":true},
+            "definitionId": {"dataType":"string","required":true},
+            "exchangeId": {"dataType":"string","required":true},
+            "modeId": {"ref":"BotMode","required":true},
+            "resId": {"ref":"TimeResolution","required":true},
+            "typeId": {"dataType":"string","required":true},
+            "name": {"dataType":"string","required":true},
+            "type": {"dataType":"string","required":true},
+            "build": {"dataType":"string","required":true},
+            "prevTick": {"dataType":"datetime","required":true},
+            "symbols": {"dataType":"string","required":true},
+            "currentGenome": {"dataType":"string"},
+            "normalizedGenome": {"dataType":"string"},
+            "runState": {"ref":"RunState","required":true},
+            "stateInternal": {"ref":"BotInstanceStateInternal","required":true},
+            "stateJson": {"ref":"GeneticBotState","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Partial_BotInstance_": {
+        "dataType": "refAlias",
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"allocationId":{"dataType":"string"},"definitionId":{"dataType":"string"},"exchangeId":{"dataType":"string"},"modeId":{"ref":"BotMode"},"resId":{"ref":"TimeResolution"},"typeId":{"dataType":"string"},"name":{"dataType":"string"},"type":{"dataType":"string"},"build":{"dataType":"string"},"prevTick":{"dataType":"datetime"},"symbols":{"dataType":"string"},"currentGenome":{"dataType":"string"},"normalizedGenome":{"dataType":"string"},"runState":{"ref":"RunState"},"stateInternal":{"ref":"BotInstanceStateInternal"},"stateJson":{"ref":"BotInstance"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Partial_BotRun_": {
+        "dataType": "refAlias",
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"instanceId":{"dataType":"string"},"active":{"dataType":"boolean"},"from":{"dataType":"datetime"},"to":{"dataType":"datetime"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "OrderState": {
+        "dataType": "refEnum",
+        "enums": ["open","filling","cancelled","closed","error"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "OrderType": {
+        "dataType": "refEnum",
+        "enums": ["buy.limit","sell.limit","buy.market","sell.market"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Partial_Order_": {
+        "dataType": "refAlias",
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"botRunId":{"dataType":"string"},"baseSymbolId":{"dataType":"string"},"quoteSymbolId":{"dataType":"string"},"exchangeId":{"dataType":"string"},"stopLossOrderId":{"dataType":"string"},"relatedOrderId":{"dataType":"string"},"extOrderId":{"dataType":"string"},"stateId":{"ref":"OrderState"},"typeId":{"ref":"OrderType"},"opened":{"dataType":"datetime"},"closed":{"dataType":"datetime"},"quantity":{"ref":"BigNum"},"price":{"ref":"BigNum"},"gross":{"ref":"BigNum"},"fees":{"ref":"BigNum"},"strike":{"ref":"BigNum"},"limit":{"ref":"BigNum"},"stop":{"ref":"BigNum"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApiBotOrderDescriptor": {
+        "dataType": "refObject",
+        "properties": {
+            "def": {"ref":"Partial_BotDefinition_","required":true},
+            "instance": {"ref":"Partial_BotInstance_","required":true},
+            "run": {"ref":"Partial_BotRun_","required":true},
+            "order": {"ref":"Partial_Order_","required":true},
         },
         "additionalProperties": false,
     },
@@ -73,9 +200,29 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "RunState": {
-        "dataType": "refEnum",
-        "enums": ["new","initializing","active","paused","stopped","error"],
+    "GenotypeInstanceDescriptor": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "created": {"dataType":"datetime","required":true},
+            "updated": {"dataType":"datetime","required":true},
+            "displayName": {"dataType":"string"},
+            "name": {"dataType":"string","required":true},
+            "symbols": {"dataType":"string","required":true},
+            "resId": {"ref":"ApiTimeResolution","required":true},
+            "baseSymbolId": {"dataType":"string","required":true},
+            "quoteSymbolId": {"dataType":"string","required":true},
+            "modeId": {"ref":"BotMode","required":true},
+            "genome": {"dataType":"string","required":true},
+            "fsmState": {"ref":"GeneticBotFsmState","required":true},
+            "duration": {"dataType":"object","required":true},
+            "numOrders": {"dataType":"double","required":true},
+            "totalProfit": {"ref":"BigNum","required":true},
+            "totalFees": {"ref":"BigNum","required":true},
+            "avgProfitPerDay": {"ref":"BigNum","required":true},
+            "avgProfitPctPerDay": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
@@ -108,8 +255,29 @@ export function RegisterRoutes(router: KoaRouter) {
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/orders/:workspaceId/strategies/:strategyId/orders',
+            async function OrderController_getBotOrderDescriptors(context: any, next: any) {
+            const args = {
+                    workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
+                    strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new OrderController();
+
+            const promise = controller.getBotOrderDescriptors.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         router.post('/api/sandbox/run',
-            async function Sandbox_runBacktest(context: any, next: any) {
+            async function SandboxController_runBacktest(context: any, next: any) {
             const args = {
                     req: {"in":"body","name":"req","required":true,"ref":"ApiBacktestRequest"},
             };
@@ -122,14 +290,14 @@ export function RegisterRoutes(router: KoaRouter) {
               context.throw(error.status, JSON.stringify({ fields: error.fields }));
             }
 
-            const controller = new Sandbox();
+            const controller = new SandboxController();
 
             const promise = controller.runBacktest.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         router.get('/api/sandbox/results/status/:instanceIdOrName',
-            async function Sandbox_getBotResultsStatus(context: any, next: any) {
+            async function SandboxController_getBotResultsStatus(context: any, next: any) {
             const args = {
                     instanceIdOrName: {"in":"path","name":"instanceIdOrName","required":true,"dataType":"string"},
             };
@@ -142,14 +310,14 @@ export function RegisterRoutes(router: KoaRouter) {
               context.throw(error.status, JSON.stringify({ fields: error.fields }));
             }
 
-            const controller = new Sandbox();
+            const controller = new SandboxController();
 
             const promise = controller.getBotResultsStatus.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         router.get('/api/sandbox/results/:instanceIdOrName',
-            async function Sandbox_getBotResults(context: any, next: any) {
+            async function SandboxController_getBotResults(context: any, next: any) {
             const args = {
                     instanceIdOrName: {"in":"path","name":"instanceIdOrName","required":true,"dataType":"string"},
             };
@@ -162,14 +330,14 @@ export function RegisterRoutes(router: KoaRouter) {
               context.throw(error.status, JSON.stringify({ fields: error.fields }));
             }
 
-            const controller = new Sandbox();
+            const controller = new SandboxController();
 
             const promise = controller.getBotResults.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         router.get('/api/sandbox/prices/:symbolPair',
-            async function Sandbox_getPrices(context: any, next: any) {
+            async function SandboxController_getPrices(context: any, next: any) {
             const args = {
                     symbolPair: {"in":"path","name":"symbolPair","required":true,"dataType":"string"},
                     res: {"in":"query","name":"res","dataType":"string"},
@@ -185,9 +353,74 @@ export function RegisterRoutes(router: KoaRouter) {
               context.throw(error.status, JSON.stringify({ fields: error.fields }));
             }
 
-            const controller = new Sandbox();
+            const controller = new SandboxController();
 
             const promise = controller.getPrices.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/workspaces/:workspaceId/strategies/:strategyId/instances/:status',
+            async function WorkspaceController_getRunningInstances(context: any, next: any) {
+            const args = {
+                    workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
+                    strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},
+                    status: {"in":"path","name":"status","required":true,"dataType":"string"},
+                    limit: {"in":"query","name":"limit","dataType":"double"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new WorkspaceController();
+
+            const promise = controller.getRunningInstances.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/workspaces/:workspaceId/strategies/:strategyId/backtests/top',
+            async function WorkspaceController_getTopBacktests(context: any, next: any) {
+            const args = {
+                    workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
+                    strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},
+                    limit: {"in":"query","name":"limit","dataType":"double"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new WorkspaceController();
+
+            const promise = controller.getTopBacktests.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/workspaces/:workspaceId/links',
+            async function WorkspaceController_getWorkspaceLinks(context: any, next: any) {
+            const args = {
+                    workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new WorkspaceController();
+
+            const promise = controller.getWorkspaceLinks.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

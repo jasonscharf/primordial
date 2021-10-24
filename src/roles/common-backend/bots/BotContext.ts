@@ -1,3 +1,4 @@
+import { Knex } from "knex";
 import env from "../env";
 import { AllocationItem } from "../../common/models/capital/AllocationItem";
 import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
@@ -6,13 +7,13 @@ import { BacktestRequest } from "../messages/testing";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotImplementation } from "./BotImplementation";
 import { BotInstance, BotInstanceStateInternal } from "../../common/models/bots/BotInstance";
+import { BotMode } from "../../common/models/system/Strategy";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { Genome } from "../../common/models/genetics/Genome";
 import { GeneticBotFsmState } from "../../common/models/bots/BotState";
-import { GeneticBot, GeneticBotState } from "./GeneticBot";
+import { GeneticBotState } from "./GeneticBot";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Logger } from "../../common/utils/Logger";
-import { Mode } from "../../common/models/system/Strategy";
 import { Money } from "../../common/numbers";
 import { NullLogger } from "../../common/utils/NullLogger";
 import { OrderStatusUpdateMessage } from "../messages/trading";
@@ -40,6 +41,7 @@ export interface BotContext<TState = GeneticBotState> {
     log: Logger;
     prices: Price[];
     indicators: Map<string, unknown>;
+    trx?: Knex.Transaction;
     backtestingOrders?: Partial<Order>[];
 
     placeLimitBuyOrder(ctx: BotContext, args: OrderDelegateArgs, tick: Price, instance: BotImplementation): Promise<Order>;
@@ -78,7 +80,7 @@ export async function buildBotContextForSignalsComputation(args: BacktestRequest
         currentGenome: genome,
         exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
         definitionId: def.id,
-        modeId: Mode.BACK_TEST,
+        modeId: BotMode.BACK_TEST,
         normalizedGenome: genome,
         prevTick: new Date(from.getTime() - 1),
         resId: res,
@@ -139,7 +141,6 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
             baseSymbolId,
             quoteSymbolId,
             botRunId,
-            strike: purchasePrice,
             stateId: OrderState.OPEN,
             opened: tick.ts,
         };
@@ -182,6 +183,7 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
         }
 
         const msg: OrderStatusUpdateMessage = {
+            instanceId: instance.id,
             exchangeOrder: null,
             primoOrder: order as Order,
         };
@@ -226,7 +228,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
     async function placeOrder(ctx: BotContext, args, tick: Price, liveInstance: BotImplementation, buy = true, backtestArgs: BacktestRequest = null) {
 
-        const { instance, state } = ctx as BotContext<GeneticBotState>;
+        const { instance, state, trx } = ctx as BotContext<GeneticBotState>;
         const { exchange, market } = args;
         const { id: botRunId } = run;
         const { baseSymbolId, quoteSymbolId } = ctx.stateInternal;
@@ -239,11 +241,10 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             baseSymbolId,
             quoteSymbolId,
             botRunId,
-            strike: purchasePrice,
             stateId: OrderState.OPEN,
         };
 
-        const isLive = record.modeId === Mode.LIVE || record.modeId === Mode.LIVE_TEST;
+        const isLive = record.modeId === BotMode.LIVE || record.modeId === BotMode.LIVE_TEST;
         const modeStr = isLive
             ? "LIVE"
             : "paper"
@@ -251,7 +252,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
         let savedOrder: Order;
 
-        const t = await capital.transact(instance.id, order.quoteSymbolId, order, async (item, trx) => {
+        const t = await capital.transact(instance.id, order.quoteSymbolId, order, trx, async (item, trx) => {
 
             const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item, buy);
 
@@ -300,7 +301,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             }
 
             // For forward tests, we put two synthetic order updates on the queue to simulate open and close
-            if (instance.modeId === Mode.FORWARD_TEST) {
+            if (instance.modeId === BotMode.FORWARD_TEST) {
 
                 // Note: Even though bot tick logic - which ultimately calls this handler - saves the bot
                 // after each tick, it's important than we save the bot _in this transaction_.
@@ -314,6 +315,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
 
                 // If this bot isn't live , we call its order status change handler directly instead of using the MQ.
                 const msg: OrderStatusUpdateMessage = {
+                    instanceId: instance.id,
                     exchangeOrder: null,
                     primoOrder: savedOrder,
                 };
@@ -346,24 +348,14 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             return transaction;
         });
 
-        if (instance.modeId === Mode.FORWARD_TEST) {
-            console.log(`Dispatching order updates for ${botIdentifier(instance)}`);
+        if (instance.modeId === BotMode.FORWARD_TEST) {
             const openMsg: OrderStatusUpdateMessage = {
+                instanceId: instance.id,
                 exchangeOrder: null,
                 primoOrder: savedOrder,
             };
 
             mq.addWorkerMessageHi(events.EVENT_ORDER_STATUS_UPDATE, openMsg);
-
-            // Note: The bot will save this dirty record once its done its close logic
-            savedOrder.stateId = OrderState.CLOSED;
-
-            const closeMsg: OrderStatusUpdateMessage = {
-                exchangeOrder: null,
-                primoOrder: savedOrder,
-            };
-
-            mq.addWorkerMessageHi(events.EVENT_ORDER_STATUS_UPDATE, closeMsg);
         }
 
         return savedOrder;
@@ -388,12 +380,13 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
 
     // TODO: Double-check PoC bot
     // TODO: Exchange-based fee structure
-    // TODO: Fees tracking
 
     const purchasePrice = tick.close;
 
     let amount: Money = null;
-    const fees = purchasePrice.mul("0.001");
+
+    // Binance
+    const fees = Money(constants.DEFAULT_EXCHANGE_FEE + "");
 
     let quantity: Money = null;
     if (buy) {
@@ -415,9 +408,16 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
         ? profitTargetGene.value
         : 0.002 // FIX/COMMENT
         ;
+
     const targetPrice = tick.close.add(tick.close.mul(profitTargetPct.toString()));
 
 
+    // IMPORTANT: NOTE: We are specifying fees here without knowing the actual cost (fills),
+    //  OR about any discounts, e.g. Binance's discount for holding BNB.
+    //  For sell orders, "fees" is initially AN APPROXIMATION until the order closes and we know
+    //  the fills and/or average price (or however fills are calculated per exchange).
+    // This works for backtesting, but properly handling fees in live trading is another (scheduled) topic.
+    order.fees = fees;
     order.botRunId = ctx.runId;
     order.quantity = quantity;
     order.price = purchasePrice;

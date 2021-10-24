@@ -5,10 +5,11 @@ import env from "../../../common-backend/env";
 import { ApiBacktestRequest } from "../../../common/messages/trading";
 import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
+import { BotMode } from "../../../common/models/system/Strategy";
 import { BotRunner } from "../../../common-backend/bots/BotRunner";
 import { ControllerBase } from "../ControllerBase";
-import { Mode } from "../../../common/models/system/Strategy";
 import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
+import { PrimoSerializableError } from "../../../common/errors/errors";
 import { RunState } from "../../../common/models/system/RunState";
 import { SymbolResultSet } from "../../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
@@ -18,11 +19,11 @@ import { millisecondsPerResInterval } from "../../../common/utils/time";
 import { randomName } from "../../../common-backend/utils/names";
 import { us } from "../../../common-backend/includes";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../../../common-backend/commands/bots/test";
-import { PrimoSerializableError } from "../../../common/errors/errors";
 
 
 @Route("sandbox")
-export class Sandbox extends ControllerBase {
+export class SandboxController extends ControllerBase {
+
 
     @Post("/run")
     async runBacktest(@Body() req: ApiBacktestRequest): Promise<any> {
@@ -79,7 +80,7 @@ export class Sandbox extends ControllerBase {
             instanceIdOrName = instance.id;
         }
 
-        if (instance.modeId === Mode.BACK_TEST && instance.runState === RunState.ACTIVE) {
+        if (instance.modeId === BotMode.BACK_TEST && instance.runState === RunState.ACTIVE) {
             return {
                 runState: RunState.ACTIVE,
             };
@@ -114,8 +115,8 @@ export class Sandbox extends ControllerBase {
             instance = await strats.getBotInstanceByName(workspace.id, instanceIdOrName);
             instanceIdOrName = instance.id;
         }
-        const run = await strats.getLatestRunForInstance(instanceIdOrName);
 
+        const run = await strats.getLatestRunForInstance(instanceIdOrName);
         if (!run) {
             throw new Error(`Bot hasn't run yet`);
         }

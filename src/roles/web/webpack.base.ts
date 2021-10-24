@@ -27,7 +27,7 @@ export const base = {
             {
                 test: /\.tsx?$/,
                 use: "ts-loader",
-
+                exclude: /node_modules|common-backend|src\/roles\/spooler|src\/roles\/worker|src\/roles\/api/,
             },
             {
                 test: /\.css?$/,

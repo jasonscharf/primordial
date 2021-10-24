@@ -1,5 +1,5 @@
-
 /* Hero image (Splash) */
+
 .hero-img-wrapper {
     flex: 1;
     display: flex;
@@ -24,7 +24,7 @@
     color: white;
 }
 
-.hero-text h1 { 
+.hero-text h1 {
     color: white;
     font-size: 300%;
 }
@@ -43,7 +43,110 @@
     padding: 2em;
 }
 
+/* AppFooter */
+
+.primo-app-footer {
+    text-align: right;
+    padding: 8px;
+    border-top: 1px solid #ddd;
+}
+
+/* AppHeader */
+
+.primo-app-header {
+    height: 48px;
+    box-shadow: 0px 2px 4px #ddd;
+    align-items: center;
+    text-transform: uppercase;
+    color: #333;
+    opacity: 0.8;
+}
+
+.primo-app-header button {
+    width: 48px;
+    height: 48px;
+}
+
+.primo-app-header-title {
+    display: flex;
+    height: 100%;
+    padding: auto;
+    letter-spacing: 3px;
+}
+
+.primo-app-header-title h1 {
+    text-align: left;
+    text-transform: uppercase;
+    font-size: 1.2em;
+}
+
+.primo-app-header-user-menu {
+    margin-left: auto;
+    padding: 12px;
+}
+
+/* AppMenu */
+
+.primo-app-menu {
+    bottom: 0;
+    z-index: 999;
+    width: 320px;
+    top: 48px;
+    height: 100%;
+    background: #59A5D8;
+    color: white;
+    font-weight: bold;
+}
+
+/* ScreenBase */
+
+.primo-screen-base {
+    max-width: 100%;
+}
+
+.primo-screen-base>.MuiGrid-item {
+    max-width: 100% !important;
+}
+
+.primo-screen-base-body {
+    display: flex;
+    flex: 1;
+    max-width: 100%;
+}
+
+/* Spinners */
+
+.primo-spinner-mini {
+    height: 128px;
+    padding: auto;
+    margin: auto;
+    align-items: "center";
+    align-content: stretch;
+    text-align: center;
+}
+
+/* CardHeader (custom) */
+
+.primo-card-header.MuiCardHeader-root {
+    text-transform: uppercase;
+}
+
+.primo-card-header.MuiCardHeader-root .MuiCardHeader-content {
+    padding: 8px;
+}
+
+.primo-card-header-title {
+    padding-left: 16px;
+    color: #333;
+    opacity: 0.8;
+}
+
+.primo-card-header-title-sub {
+    opacity: 0.6;
+}
+
 /* Info table */
+
 .primo-info-table {
     flex-direction: column;
     cursor: pointer;
@@ -61,8 +164,73 @@
 }
 
 /* Amount and Percent */
+
 .primo-amount, .primo-percent {
     font-weight: bold;
     display: inline-block;
     font-size: 120%;
+}
+
+/* Tables */
+
+.primo-table {}
+
+.primo-table .MuiTableRow-head {
+    background: #59A5D8;
+}
+
+.primo-order-table-advanced .MuiTableHead-root {
+    text-transform: uppercase;
+    color: #333;
+}
+
+/* Misc */
+
+.primo-button-strip {}
+
+/* MUI overrides */
+
+.MuiCard-root {
+    margin: 8px;
+}
+
+.MuiCardHeader-root {
+    padding: 0px;
+    font-weight: bold;
+    font-size: 100%;
+    border-bottom: 1px solid #ddd;
+}
+
+.MuiCardHeader-content {
+    padding: 0px;
+}
+
+.MuiCardContent-root p {
+    margin-bottom: 1em;
+}
+
+.MuiCardContent-root ul {
+    list-style-type: disc;
+    padding: 1em 0 2em 2em;
+}
+
+.MuiCardContent-root li {}
+
+.MuiCardHeader-title {
+    padding: 0;
+}
+
+.MuiCardActions-root {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.MuiListItemText-root.MuiListItemText-inset.MuiListItemText-dense {
+    padding-left: 16px;
+}
+
+.primo_order-table-advanced .MuiTableRow-head {}
+
+.primo-order-table-advanced .MuiCardContent-root {
+    font-size: 75%;
 }

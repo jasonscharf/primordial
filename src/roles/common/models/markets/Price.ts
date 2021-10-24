@@ -1,3 +1,4 @@
+import { BigNum } from "../BigNum";
 import { Money } from "../../numbers";
 
 
@@ -8,11 +9,11 @@ export interface Price {
     exchangeId: string;
     resId: string;
     ts: Date;
-    open: Money;
-    high: Money;
-    low: Money;
-    close: Money;
-    volume: Money;
+    open: BigNum;
+    high: BigNum;
+    low: BigNum;
+    close: BigNum;
+    volume: BigNum;
     openRaw: string;
     highRaw: string;
     lowRaw: string;

@@ -37,11 +37,15 @@ export class BotImplementationBase<TState = GeneticBotState> implements BotImple
         const { log } = ctx as any as BotContext<GeneticBotState>;
         const currState = genState.fsmState;
 
+        if (currState === GeneticBotFsmState.WAITING_FOR_SELL_OPP && newFsmState === GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF) {
+            debugger;
+        }
+
         if (newFsmState !== currState) {
             genState.prevFsmState = currState;
             genState.prevFsmStateChangeTs = new Date();
             genState.fsmState = newFsmState;
-            log.info(`Bot '${ctx.instance.id}' changes state from '${genState.prevFsmState}' to '${genState.fsmState}'`);
+            log.info(`Bot '${botIdentifier(ctx.instance)}' changes state from '${genState.prevFsmState}' to '${genState.fsmState}'`);
         }
 
         ctx.state = state;

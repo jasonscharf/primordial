@@ -34,10 +34,24 @@
     flex: 1;
 }
 
+
+/* Utility styles - Semantics */
+.primo-padding-small {
+    padding: 1em;
+}
+
+.primo-margin-small {
+    margin: 1em;
+}
+
 .primo-flex-valign {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.primo-ellipses {
+    text-overflow: ellipsis;
 }
 
 /* Cancels */

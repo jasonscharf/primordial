@@ -1,0 +1,38 @@
+import React, { useCallback, useEffect, useState } from "react";
+import { useHistory } from "react-router";
+import { CardHeader } from "../components/primitives/CardHeader";
+import { Button, Card, CardActions, CardContent, Grid, Typography } from "@mui/material";
+import { If } from "../components/primitives/If";
+import { InstanceList } from "../components/dash/InstanceList";
+import { ScreenBase } from "./Screenbase";
+import { routes } from "../../../common/app-routing";
+
+
+const DashScreen = () => {
+    const hist = useHistory();
+    const onClickViewAll = useCallback(() => {
+        hist.push(routes.FORWARD_TESTS);
+    }, []);
+
+    return (
+        <ScreenBase>
+            <Grid container spacing={1} direction="row" className="primo-fullsize primo-dash">
+                <Grid item xs={12} lg={6}>
+                    <Card>
+                        <CardHeader title="Active Forward Tests" />
+                        <CardContent>
+                            <InstanceList mode="test-forward" />
+                        </CardContent>
+                        <CardActions>
+                            <Button onClick={onClickViewAll} size="small" color="primary">
+                                View All&nbsp;&raquo;
+                            </Button>
+                        </CardActions>
+                    </Card>
+                </Grid>
+            </Grid>
+        </ScreenBase>
+    );
+};
+
+export default DashScreen;

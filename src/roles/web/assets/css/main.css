@@ -8,7 +8,11 @@ body {
     font-size: 0.8em;
 }
 
-#app-container {}
+.primo-app-container, #app-container {
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
 
 h1, h2, h3 {}
 
@@ -34,10 +38,17 @@ h3 {
 }
 
 /** Screens - Runner */
+
 .primo-screen-runner {
     height: 100%;
     background: url("../img/.moose-shake.jpg") no-repeat;
     background-size: cover;
+}
+
+/* Overrides */
+
+.primo-screen-run-backtest .primo-app-menu {
+    position: absolute;
 }
 
 .primo-screen-runner .primo-spinner {

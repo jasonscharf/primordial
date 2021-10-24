@@ -1,16 +1,29 @@
-import { Mode, Strategy } from "../common/models/system/Strategy";
+import { BotMode, Strategy } from "../common/models/system/Strategy";
+import { CommonQueryArgs } from "../common/models/CommonQueryArgs";
 
 
+export const defaults = {
+    DEFAULT_API_LIST_BACK_TESTS_COUNT: 100,
+    DEFAULT_API_COMMON_QUERY_ARGS: <CommonQueryArgs>{
+        limit: 100,
+        page: 0,
+    }
+};
+
+// TODO: Move into defaults
 export const DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT = 0.2;
 export const DEFAULT_ALLOCATION_MAX_WAGER = 0.1;
 
-export const DEFAULT_SYMBOL_PAIR = "BTC/TUSD";
+// Binance
+export const DEFAULT_EXCHANGE_FEE = 0.001;
+
+
 export const DEFAULT_GENOME = "RSIL=20|RSIH=60";
 export const DEFAULT_STRATEGY_NAME = "default";
 export const DEFAULT_STRATEGY: Partial<Strategy> = {
     displayName: DEFAULT_STRATEGY_NAME,
     name: DEFAULT_STRATEGY_NAME,
-    modeId: Mode.BACK_TEST,
+    modeId: BotMode.BACK_TEST,
 
     // Must be set by consumers
     workspaceId: null,
@@ -96,6 +109,7 @@ export const queries = {
     ALLOCS_GET_LEDGER: "allocations.get-ledger",
     ALLOCS_CREATE_TEST_ALLOC: "allocations.create-testing-alloc",
     ALLOCS_GET_ITEM_FOR_BOT: "allocations.get-item-for-bot",
+    BOTS_BACK_TESTS_TOP: "bots.back-tests.top",
     BOTS_DEFS_CREATE: "bots.defs.create",
     BOTS_DEFS_GET_BY_NAME: "bots.defs.gets.get-by-name",
     BOTS_GET_BOT_FOR_ORDER: "bots.get-for-order",
@@ -104,6 +118,7 @@ export const queries = {
     BOTS_INSTANCES_FORK: "bots.instances.fork",
     BOTS_INSTANCES_GET: "bots.instances.get",
     BOTS_INSTANCES_PAUSE: "bots.instances.pause",
+    BOTS_INSTANCES_RUNNING: "bots.instances.running.list",
     BOTS_INSTANCES_STOP: "bots.instances.stop",
     BOTS_INSTANCES_TO_INIT: "bots.instances.need-init",
     BOTS_INSTANCES_UPDATE: "bots.instances.update",
@@ -115,6 +130,7 @@ export const queries = {
     BOT_RUNS_UPDATE: "bots.runs.update",
     ORDERS_CREATE: "orders.create",
     ORDERS_FEES_SAVE: "orders.fees",
+    ORDERS_LIST: "orders.list",
     ORDERS_UPDATE: "orders.update",
     ORDERS_SAVE_FILLS: "orders.fills.create.bulk",
     RESULTS_ADD: "results.add",
@@ -132,6 +148,7 @@ export const queries = {
     SYMBOLS_LIST_NAMES: "symbols.list.names",
     SYMBOLS_PRICES_QUERY: "symbols.prices.query",
     SYMBOLS_PRICES_RANGES: "symbols.prices.ranges",
+    SYMBOLS_ACTIVE_PER_WORKSPACE: "symbols.active-per-workspace",
     SYSTEM_GET_SYSTEM_USER: "system.get-system-user",
     TASKS_ADD: "tasks.add",
     TASKS_GET_PENDING: "tasks.get.pending",
@@ -149,6 +166,9 @@ export const limits = {
     // 1000 is for Binance specifically.
     // This should be empirically adjusted when multi-exchange is used.
     MAX_API_PRICE_FETCH_OLHC_ENTRIES: 1000,
+
+    MAX_API_LIST_ACTIVE_FORWARD_TESTS: 100,
+    MAX_API_LIST_BACK_TESTS: 5000,
 };
 
 /**
@@ -161,4 +181,3 @@ export const queue = {
     CHANNEL_RPC_RESPONSE: "rpc.response",
     CHANNEL_RPC_RESPONSE_CLI: "rpc.response.cli",
 };
-

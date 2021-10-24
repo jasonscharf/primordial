@@ -1,11 +1,11 @@
+import { BotMode, Strategy } from "../models/system/Strategy";
 import { MutableEntity } from "../models/MutableEntity";
-import { Strategy, Mode } from "../models/system/Strategy";
 
 
 export class StrategyEntity extends MutableEntity implements Strategy {
     ownerId: string;
     workspaceId: string;
-    modeId: Mode;
+    modeId: BotMode;
     name: string;
 
 

@@ -1,46 +1,56 @@
-import React, { lazy, Suspense } from "react";
-import {
-    BrowserRouter as Router,
-    Link,
-    Route,
-    Switch,
-} from "react-router-dom";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { render } from "react-dom";
 import DateAdapter from "@mui/lab/AdapterLuxon";
+import { SnackbarProvider } from "notistack";
 import { LocalizationProvider } from "@mui/lab";
+import useDimensions from "react-cool-dimensions";
+import { AppRoutes } from "./AppRoutes";
+import { InfoContext, PresentationContext, ResponsiveBreakpoint, breakpoints } from "./contexts";
+import { InfoResponse } from "./client";
+import { client } from "./includes";
 
 
 const Loading = () => (
-    <div>Loading</div>
+    <div>Loading...</div>
 );
 
+const App = () => {
+    const [info, setInfo] = useState<InfoResponse>(null);
+    const [breakpoint, setBreakpoint] = useState<ResponsiveBreakpoint>("xs");
 
-const RunScreen = lazy(() => import("./screens/sandbox/RunScreen"));
-const BotResults = lazy(() => import("./screens/sandbox/BotResults"));
-const Splash = lazy(() => import("./components/Splash"));
+    const { observe, unobserve, width, height, entry } = useDimensions({
+        breakpoints,
 
+        updateOnBreakpointChange: true,
+        onResize: ({ currentBreakpoint }) => {
+            setBreakpoint(currentBreakpoint as ResponsiveBreakpoint);
+        },
+    });
 
-const app = (
-    <LocalizationProvider dateAdapter={DateAdapter}>
-    <Suspense fallback={<div />}>
-        <Router>
+    useEffect(() => {
+        client.info.getInfo()
+            .then(response => response.data)
+            .then(setInfo)
+            .catch(err => {
+                alert(`There was an error contacting the server`);
+            })
+    }, []);
 
-            {/* A <Switch> looks through its children <Route>s and
-                  renders the first one that matches the current URL. */}
-            <Switch>
-                <Route path="/run">
-                    <RunScreen />
-                </Route>
-                <Route path="/results/:instanceIdOrName">
-                    <BotResults />
-                </Route>
-                <Route exact path="/">
-                    <Splash />
-                </Route>
-            </Switch>
-        </Router>
-    </Suspense>
-    </LocalizationProvider>
-);
+    return (
+        <div className="primo-app-container" ref={observe}>
+            <LocalizationProvider dateAdapter={DateAdapter}>
+                <PresentationContext.Provider value={{ breakpoint }}>
+                    <SnackbarProvider maxSnack={3}>
+                        <InfoContext.Provider value={info}>
+                            <Suspense fallback={<div />}>
+                                <AppRoutes />
+                            </Suspense>
+                        </InfoContext.Provider>
+                    </SnackbarProvider>
+                </PresentationContext.Provider>
+            </LocalizationProvider>
+        </div>
+    );
+};
 
-render(app, document.getElementById("app-container"));
+render(<App />, document.getElementById("primo-app-container"));

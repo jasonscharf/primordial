@@ -1,9 +1,9 @@
-import { DateTime } from "luxon";
+import { Knex } from "knex";
 import env from "../../common-backend/env";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotInstance } from "../../common/models/bots/BotInstance";
-import { Knex } from "knex";
-import { Mode, Strategy } from "../../common/models/system/Strategy";
+import { BotMode, Strategy } from "../../common/models/system/Strategy";
+import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
 import { Money } from "../../common/numbers";
 import { Order, OrderState, OrderType } from "../../common/models/markets/Order";
 import { Price } from "../../common/models/markets/Price";
@@ -39,7 +39,7 @@ export const TEST_DEFAULT_NEW_BOT_DEF_PROPS: Partial<BotDefinition> = {
 
 export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
     runState: RunState.NEW,
-    modeId: Mode.BACK_TEST,
+    modeId: BotMode.BACK_TEST,
     exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
     currentGenome: "BBBBO",
 };
@@ -52,7 +52,7 @@ export function makeTestOrder(props?: Partial<Order>) {
         typeId: OrderType.LIMIT_BUY,
         baseSymbolId: "BTC",
         quoteSymbolId: "TUSD",
-        fees: Money("0.01"),
+        fees: Money(constants.DEFAULT_EXCHANGE_FEE + ""),
         limit: Money("50000"),
         strike: Money("50000"),
         quantity: Money("1"),
@@ -187,7 +187,7 @@ export async function getTestData(): Promise<TestDataCtx> {
         workspace,
         strategy,
         testSymbol1: symbols[0] as TradeSymbol,
-        testSymbol2: symbols[1]as TradeSymbol,
+        testSymbol2: symbols[1] as TradeSymbol,
     };
 }
 
@@ -334,13 +334,12 @@ function makeTestbot(props: Partial<BotInstance>) {
         currentGenome: constants.DEFAULT_GENOME,
         displayName: `testbot`,
         definitionId,
-        modeId: Mode.FORWARD_TEST,
+        modeId: BotMode.FORWARD_TEST,
         stateInternal: {
             baseSymbolId: "BTC",
             quoteSymbolId: "TUSD",
         },
-        stateJson: {
-        },
+        stateJson: {} as GeneticBotState,
     };
 
     return Object.assign({}, baseProps, props);

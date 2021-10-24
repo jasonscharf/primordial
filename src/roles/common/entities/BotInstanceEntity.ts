@@ -1,7 +1,8 @@
 import { BotInstance, BotInstanceStateInternal } from "../models/bots/BotInstance";
+import { BotMode } from "../models/system/Strategy";
 import { BotType } from "../models/bots/BotType";
+import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
 import { MutableEntity } from "../models/MutableEntity";
-import { Mode } from "../models/system/Strategy";
 import { RunState } from "../models/system/RunState";
 import { TimeResolution } from "../models/markets/TimeResolution";
 
@@ -9,11 +10,11 @@ import { TimeResolution } from "../models/markets/TimeResolution";
 /**
  * Represents a stored bot and its current state.
  */
-export class BotInstanceEntity<T> extends MutableEntity implements BotInstance<T> {
+export class BotInstanceEntity<T = GeneticBotState> extends MutableEntity implements BotInstance<T> {
     allocationId: string;
     definitionId: string;
     exchangeId: string;
-    modeId: Mode;
+    modeId: BotMode;
     resId: TimeResolution;
     typeId: BotType;
     runState: RunState;
@@ -70,7 +71,7 @@ export class BotInstanceEntity<T> extends MutableEntity implements BotInstance<T
         ];
     }
 
-    static fromRow<T>(row?: Partial<BotInstance<T>>, prefix = "") {
+    static fromRow<T = GeneticBotState>(row?: Partial<BotInstance<T>>, prefix = "") {
         return row ? new BotInstanceEntity(row, prefix) : null;
     }
 }

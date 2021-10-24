@@ -1,5 +1,6 @@
 import { BotRun } from "../models/bots/BotRun";
 import { MutableEntity } from "../models/MutableEntity";
+import { from } from "../utils/time";
 
 
 export class BotRunEntity extends MutableEntity implements BotRun {
@@ -15,8 +16,8 @@ export class BotRunEntity extends MutableEntity implements BotRun {
         if (row) {
             this.instanceId = row[prefix + "instanceId"];
             this.active = row[prefix + "active"];
-            this.from = row[prefix + "from"];
-            this.to = row[prefix + "to"];
+            this.from = from(row[prefix + "from"]);
+            this.to = from(row[prefix + "to"]);
         }
     }
 
