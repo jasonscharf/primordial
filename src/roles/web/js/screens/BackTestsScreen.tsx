@@ -9,7 +9,7 @@ const BackTestsScreen = () => {
         <ScreenBase>
             <Grid item xs={12} lg={4}>
                 <Card>
-                    <CardHeader title="Back Tests" />
+                    <CardHeader title="Backtests" />
                     <CardContent>
                         <p>
                             Placeholder for back tests screen.

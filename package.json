@@ -44,6 +44,7 @@
     "cli:debug": "yarn -s dc run --rm -p \"9234:9229\" spooler node --inspect-brk=\"0.0.0.0:9229\" /app/spooler/cli.js",
     "cli:debug:bot": "yarn -s cli:debug -- bot create --name foobaz --symbols ETH/BTC --genome \"RSIL=20\"",
     "primo": "docker exec -it primo_spooler_1 primo",
+    "restart": "yarn dc restart",
     "test": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up --remove-orphans --abort-on-container-exit --exit-code-from tests --build tests",
     "test:ci": "docker-compose -p primo -f docker-compose.yml -f docker-compose.tests.yml up --remove-orphans --abort-on-container-exit --exit-code-from tests --build tests",
     "test:debug:start": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up -d --build && docker logs -f primo_tests_debug_1",

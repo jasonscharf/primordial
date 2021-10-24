@@ -3,21 +3,24 @@ import React, { useContext, useEffect, useState } from "react";
 import { Amount } from "../primitives/Amount";
 import { Chip, Grid } from "@mui/material";
 import { GeneticBotFsmState } from "../../../../common/models/bots/BotState";
+import { GenotypeInstanceDescriptor } from "../../../../common/models/bots/GenotypeInstanceDescriptor";
+import { GenotypeInstanceDescriptorEntity } from "../../../../common/entities/GenotypeInstanceDescriptorEntity";
 import { Hashicon } from "@emeraldpay/hashicon-react";
 import { InfoContext } from "../../contexts";
-import { RunningBotDescriptor } from "../../client";
 import { SpinnerMini } from "../primitives/SpinnerMini";
 import { presentBotState } from "../../../../common/utils/presentation";
 import { useApiRequestEffect } from "../../hooks/useApiRequestEffect";
 
-export interface RunningBotTableProps {
+
+export interface InstanceListProps {
     workspaceId?: string;
     strategyId?: string;
-    mode: "test-forward" | "live";
+    mode: "test-back" | "test-forward" | "live";
+    limit?: number;
 }
 
-export const RunningBotTable = (props: RunningBotTableProps) => {
-    const [descriptors, setDescriptors] = useState<RunningBotDescriptor[]>([]);
+export const InstanceList = (props: InstanceListProps) => {
+    const [descriptors, setDescriptors] = useState<GenotypeInstanceDescriptor[]>([]);
     const info = useContext(InfoContext);
 
     const [, isLoading] = useApiRequestEffect(async (client) => {
@@ -26,13 +29,21 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
         }
 
         const { defaultStrategy, defaultWorkspace } = info;
-        let mode = props.mode;
+        const { limit, mode } = props;
 
         const workspaceId = props.workspaceId || defaultWorkspace;
         const strategyId = props.strategyId || defaultStrategy;
 
-        const { data } = await client.workspaces.getBots(workspaceId, strategyId, mode);
-        setDescriptors(data);
+        if (mode === 'test-forward') {
+            const { data } = await client.workspaces.getRunningInstances(workspaceId, strategyId, mode, { limit });
+            const items = data.map(item => GenotypeInstanceDescriptorEntity.fromRow(item as any as GenotypeInstanceDescriptor));
+            setDescriptors(items);
+        }
+        else if (mode === 'test-back') {
+            const { data } = await client.workspaces.getTopBacktests(workspaceId, strategyId, { limit });
+            const items = data.map(item => GenotypeInstanceDescriptorEntity.fromRow(item as any as GenotypeInstanceDescriptor));
+            setDescriptors(items);
+        }
 
     }, [info]);
 
@@ -43,7 +54,7 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
     return (
         <>
             {descriptors.length === 0
-                ? (<b>There are no active forward tests</b>)
+                ? (<b>No genotypes found</b>)
                 : descriptors.map((d, i) => (
                     <Grid key={i} item container spacing={1} style={{ flexWrap: "nowrap", marginBottom: "1em" }}>
                         <Grid item style={{ marginTop: "auto", marginBottom: "auto" }}>
@@ -65,7 +76,7 @@ export const RunningBotTable = (props: RunningBotTableProps) => {
                             </Grid>
                         </Grid>
                         <Grid item style={{ marginLeft: "auto" }}>
-                            <Amount amount={d.computedProfit} symbol={d.quoteSymbolId} />
+                            <Amount amount={d.totalProfit} symbol={d.quoteSymbolId} />
                         </Grid>
                     </Grid>))
             }

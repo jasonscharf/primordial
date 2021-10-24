@@ -318,8 +318,15 @@ export interface ApiBacktestRequest {
   returnEarly?: boolean;
 }
 
-export interface RunningBotDescriptor {
+export interface GenotypeInstanceDescriptor {
   id: string;
+
+  /** @format date-time */
+  created: string;
+
+  /** @format date-time */
+  updated: string;
+  displayName?: string;
   name: string;
   symbols: string;
   resId: ApiTimeResolution;
@@ -327,18 +334,16 @@ export interface RunningBotDescriptor {
   quoteSymbolId: string;
   genome: string;
   fsmState: GeneticBotFsmState;
-
-  /** @format date-time */
-  created: string;
-
-  /** @format date-time */
-  updated: string;
   duration: object;
 
   /** @format double */
   numOrders: number;
-  computedProfit: BigNum;
-  computedFees: BigNum;
+  totalProfit: BigNum;
+  totalFees: BigNum;
+  avgProfitPerDay: BigNum;
+
+  /** @format double */
+  avgProfitPctPerDay: number;
 }
 
 export type QueryParamsType = Record<string | number, any>;
@@ -653,13 +658,40 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @name GetBots
-     * @request GET:/workspaces/{workspaceId}/strategies/{strategyId}/bots/{status}
+     * @name GetRunningInstances
+     * @request GET:/workspaces/{workspaceId}/strategies/{strategyId}/instances/{status}
      */
-    getBots: (workspaceId: string, strategyId: string, status: string, params: RequestParams = {}) =>
-      this.request<RunningBotDescriptor[], any>({
-        path: `/workspaces/${workspaceId}/strategies/${strategyId}/bots/${status}`,
+    getRunningInstances: (
+      workspaceId: string,
+      strategyId: string,
+      status: string,
+      query?: { limit?: number },
+      params: RequestParams = {},
+    ) =>
+      this.request<GenotypeInstanceDescriptor[], any>({
+        path: `/workspaces/${workspaceId}/strategies/${strategyId}/instances/${status}`,
         method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetTopBacktests
+     * @request GET:/workspaces/{workspaceId}/strategies/{strategyId}/backtests/top
+     */
+    getTopBacktests: (
+      workspaceId: string,
+      strategyId: string,
+      query?: { limit?: number },
+      params: RequestParams = {},
+    ) =>
+      this.request<GenotypeInstanceDescriptor[], any>({
+        path: `/workspaces/${workspaceId}/strategies/${strategyId}/backtests/top`,
+        method: "GET",
+        query: query,
         format: "json",
         ...params,
       }),

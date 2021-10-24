@@ -129,14 +129,20 @@
 
 .primo-card-header.MuiCardHeader-root {
     text-transform: uppercase;
-    color: #333;
-    opacity: 0.8;
 }
 
 .primo-card-header.MuiCardHeader-root .MuiCardHeader-content {
     padding: 8px;
+}
+
+.primo-card-header-title {
     padding-left: 16px;
     color: #333;
+    opacity: 0.8;
+}
+
+.primo-card-header-title-sub {
+    opacity: 0.6;
 }
 
 /* Info table */

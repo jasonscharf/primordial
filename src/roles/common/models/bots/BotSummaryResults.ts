@@ -21,6 +21,9 @@ export interface BotRunReport {
     estProfitPerYearCompounded: number;
     avgProfitPerDay: number;
     avgProfitPctPerDay: number;
+    totalFees: number;
+    totalProfit: number;
+    totalProfitPct: number;
     exchange: string;
     symbols: string;
     base: string;

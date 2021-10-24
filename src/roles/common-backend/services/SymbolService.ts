@@ -809,7 +809,7 @@ export class SymbolService {
      * @param pair 
      */
     parseSymbolPair(pair: string): string[] {
-        const pieces = pair.split(/[_\/\\-]/);
+        const pieces = pair.toUpperCase().split(/[_\/\\-]/);
         if (pieces.length > 2 || pieces.length === 0) {
             throw new Error(`Malformed symbol pair '${pair}'`);
         }

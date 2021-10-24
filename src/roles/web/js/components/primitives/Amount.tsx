@@ -1,6 +1,7 @@
 import "react-dom";
 import React from "react";
 import classes from "classnames";
+import { BigNum } from "../../../../common/numbers";
 import { isNullOrUndefined } from "../../../../common/utils";
 
 
@@ -11,7 +12,7 @@ export enum AmountStyle {
 };
 
 export interface AmountProps {
-    amount?: string | number;
+    amount?: string | number | BigNum;
     symbol?: string;
     style?: string;
     neutral?: boolean;
@@ -19,11 +20,16 @@ export interface AmountProps {
 
 export const Amount = (props: AmountProps) => {
     let { amount, neutral, style, symbol } = props;
-
     let className: string = "";
 
     if (isNullOrUndefined(amount)) {
         neutral = true;
+    }
+    else if (amount instanceof BigNum) {
+        amount = amount.round(11).toNumber();
+    }
+    else if (typeof amount === "string") {
+        amount = parseFloat(amount.toString())
     }
 
     if (style) {
@@ -50,14 +56,14 @@ export const Amount = (props: AmountProps) => {
         amountStr = '---';
     }
     else {
-        const parsedAmount = parseFloat(amount.toString());
-
         // TODO: Rm. Total hack. Need currency info and conversion facilities.
-        if (symbol && symbol.indexOf("USD") > -1) {
-            amountStr = parsedAmount.toFixed(2).toString();
-        }
-        else {
-            amountStr = parsedAmount.toFixed(8).toString();
+        if (!isNullOrUndefined(amount)) {
+            if (symbol && symbol.indexOf("USD") > -1) {
+                amountStr = (amount as number).toFixed(2).toString();
+            }
+            else {
+                amountStr = (amount as number).toFixed(8).toString();
+            }
         }
     }
 

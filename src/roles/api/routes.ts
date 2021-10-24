@@ -3,6 +3,8 @@
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   import { Controller, ValidationService, FieldErrors, ValidateError, TsoaRoute, HttpStatusCodeLiteral, TsoaResponse } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { GenotypeController } from './controllers/GenotypeContoller';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { InfoController } from './controllers/InfoController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { OrderController } from './controllers/OrderController';
@@ -198,10 +200,13 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "RunningBotDescriptor": {
+    "GenotypeInstanceDescriptor": {
         "dataType": "refObject",
         "properties": {
             "id": {"dataType":"string","required":true},
+            "created": {"dataType":"datetime","required":true},
+            "updated": {"dataType":"datetime","required":true},
+            "displayName": {"dataType":"string"},
             "name": {"dataType":"string","required":true},
             "symbols": {"dataType":"string","required":true},
             "resId": {"ref":"ApiTimeResolution","required":true},
@@ -209,12 +214,12 @@ const models: TsoaRoute.Models = {
             "quoteSymbolId": {"dataType":"string","required":true},
             "genome": {"dataType":"string","required":true},
             "fsmState": {"ref":"GeneticBotFsmState","required":true},
-            "created": {"dataType":"datetime","required":true},
-            "updated": {"dataType":"datetime","required":true},
             "duration": {"dataType":"object","required":true},
             "numOrders": {"dataType":"double","required":true},
-            "computedProfit": {"ref":"BigNum","required":true},
-            "computedFees": {"ref":"BigNum","required":true},
+            "totalProfit": {"ref":"BigNum","required":true},
+            "totalFees": {"ref":"BigNum","required":true},
+            "avgProfitPerDay": {"ref":"BigNum","required":true},
+            "avgProfitPctPerDay": {"dataType":"double","required":true},
         },
         "additionalProperties": false,
     },
@@ -353,12 +358,13 @@ export function RegisterRoutes(router: KoaRouter) {
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        router.get('/api/workspaces/:workspaceId/strategies/:strategyId/bots/:status',
-            async function WorkspaceController_getBots(context: any, next: any) {
+        router.get('/api/workspaces/:workspaceId/strategies/:strategyId/instances/:status',
+            async function WorkspaceController_getRunningInstances(context: any, next: any) {
             const args = {
                     workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
                     strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},
                     status: {"in":"path","name":"status","required":true,"dataType":"string"},
+                    limit: {"in":"query","name":"limit","dataType":"double"},
             };
 
             let validatedArgs: any[] = [];
@@ -371,7 +377,29 @@ export function RegisterRoutes(router: KoaRouter) {
 
             const controller = new WorkspaceController();
 
-            const promise = controller.getBots.apply(controller, validatedArgs as any);
+            const promise = controller.getRunningInstances.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/workspaces/:workspaceId/strategies/:strategyId/backtests/top',
+            async function WorkspaceController_getTopBacktests(context: any, next: any) {
+            const args = {
+                    workspaceId: {"in":"path","name":"workspaceId","required":true,"dataType":"string"},
+                    strategyId: {"in":"path","name":"strategyId","required":true,"dataType":"string"},
+                    limit: {"in":"query","name":"limit","dataType":"double"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new WorkspaceController();
+
+            const promise = controller.getTopBacktests.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

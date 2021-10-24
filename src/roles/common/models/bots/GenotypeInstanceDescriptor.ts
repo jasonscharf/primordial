@@ -1,9 +1,11 @@
 import { ApiTimeResolution } from "../../messages/trading";
 import { BigNum } from "../BigNum";
+import { MutableModel } from "../MutableEntity";
 import { GeneticBotFsmState } from "./BotState";
 
 
-export interface RunningBotDescriptor {
+// Not a DB entity
+export interface GenotypeInstanceDescriptor extends MutableModel {
     id: string;
     name: string;
     symbols: string;
@@ -16,6 +18,8 @@ export interface RunningBotDescriptor {
     updated: Date;
     duration: object; // Actually a Postgres interval, but not sure if type is public
     numOrders: number;
-    computedProfit: BigNum;
-    computedFees: BigNum;
+    totalProfit: BigNum;
+    totalFees: BigNum;
+    avgProfitPerDay: BigNum;
+    avgProfitPctPerDay: number;
 }

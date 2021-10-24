@@ -1,6 +1,16 @@
 import { BotMode, Strategy } from "../common/models/system/Strategy";
+import { CommonQueryArgs } from "../common/models/CommonQueryArgs";
 
 
+export const defaults = {
+    DEFAULT_API_LIST_BACK_TESTS_COUNT: 100,
+    DEFAULT_API_COMMON_QUERY_ARGS: <CommonQueryArgs>{
+        limit: 100,
+        page: 0,
+    }
+};
+
+// TODO: Move into defaults
 export const DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT = 0.2;
 export const DEFAULT_ALLOCATION_MAX_WAGER = 0.1;
 
@@ -156,6 +166,9 @@ export const limits = {
     // 1000 is for Binance specifically.
     // This should be empirically adjusted when multi-exchange is used.
     MAX_API_PRICE_FETCH_OLHC_ENTRIES: 1000,
+
+    MAX_API_LIST_ACTIVE_FORWARD_TESTS: 100,
+    MAX_API_LIST_BACK_TESTS: 5000,
 };
 
 /**
@@ -168,4 +181,3 @@ export const queue = {
     CHANNEL_RPC_RESPONSE: "rpc.response",
     CHANNEL_RPC_RESPONSE_CLI: "rpc.response.cli",
 };
-

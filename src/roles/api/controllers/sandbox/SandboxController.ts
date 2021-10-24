@@ -115,8 +115,8 @@ export class SandboxController extends ControllerBase {
             instance = await strats.getBotInstanceByName(workspace.id, instanceIdOrName);
             instanceIdOrName = instance.id;
         }
-        const run = await strats.getLatestRunForInstance(instanceIdOrName);
 
+        const run = await strats.getLatestRunForInstance(instanceIdOrName);
         if (!run) {
             throw new Error(`Bot hasn't run yet`);
         }

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useHistory } from "react-router";
 import { CardHeader } from "../components/primitives/CardHeader";
 import { Button, Card, CardActions, CardContent, Grid, Typography } from "@mui/material";
-import { RunningBotTable } from "../components/dash/RunningBotTable";
+import { InstanceList } from "../components/dash/InstanceList";
 import { ScreenBase } from "./Screenbase";
 import { routes } from "../../../common/app-routing";
 
@@ -20,7 +20,7 @@ const DashScreen = () => {
                     <Card>
                         <CardHeader title="Active Forward Tests" />
                         <CardContent>
-                            <RunningBotTable mode="test-forward" />
+                            <InstanceList mode="test-forward" />
                         </CardContent>
                         <CardActions>
                             <Button onClick={onClickViewAll} size="small" color="primary">
