@@ -71,7 +71,10 @@ export const If: React.FC<IfProps> = props => {
             }
         }
         else {
-            if (breakpointResult !== false && xs && breakpoint === "xs") {
+            if ([xs, sm, md, lg, xl].every(isNullOrUndefined)) {
+                breakpointResult = true;
+            }
+            else if (breakpointResult !== false && xs && breakpoint === "xs") {
                 breakpointResult = true;
             }
             else if (breakpointResult !== false && sm && breakpoint === "sm") {
