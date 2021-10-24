@@ -19,16 +19,18 @@ export const AppFooter = () => {
 
     if (mode == "dev") {
         infoText = "development";
+        versionText = `alpha`;
     }
     else {
         infoText = mode;
-        versionText = `| ${(info as InfoResponse).buildInfo.version}`;
+        versionText = `${(info as InfoResponse).buildInfo.version}`;
     }
 
     return (
         <div className="primo-app-footer">
-            <i>{infoText}</i>
-            <i>{versionText}</i>
+            <span>{infoText}</span>
+            <span>&nbsp;&#124;&nbsp;</span>
+            <span>{versionText}</span>
         </div>
     );
 };
