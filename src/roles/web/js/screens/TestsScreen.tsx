@@ -83,8 +83,8 @@ const TestsScreen = () => {
                                     sx={{ fontSize: "0.8rem"}}
                                     defaultValue={"totalProfit"}
                                     onChange={evt => handleChangeBacktestSortOrder(evt.target.value)}>
-                                    {Object.keys(backtestSortOptions).map(opt => (
-                                        <MenuItem value={opt}>{backtestSortOptions[opt]}</MenuItem>
+                                    {Object.keys(backtestSortOptions).map((opt, i) => (
+                                        <MenuItem key={i} value={opt}>{backtestSortOptions[opt]}</MenuItem>
                                     ))}
                                 </Select>
                             </Grid>

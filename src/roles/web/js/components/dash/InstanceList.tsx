@@ -1,7 +1,7 @@
 import "react-dom";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { generatePath, useHistory } from "react-router";
-import { Chip, Grid, List, ListItem, Table, TableRow } from "@mui/material";
+import { Chip, Grid, List, ListItem, Table, TableBody, TableRow } from "@mui/material";
 import { CommonQueryArgs } from "../../../../common/models/CommonQueryArgs";
 import { GenotypeInstanceDescriptor } from "../../../../common/models/bots/GenotypeInstanceDescriptor";
 import { GenotypeInstanceDescriptorEntity } from "../../../../common/entities/GenotypeInstanceDescriptorEntity";
@@ -72,9 +72,11 @@ export const InstanceList = (props: InstanceListProps) => {
                 ? (<b>{noItems ?? "No genotypes found"}</b>)
                 : (
                     <Table className="primo-instance-list">
-                        {descriptors.map((d, i) => (
-                            <InstanceOverviewItem key={i} instance={d} />
-                        ))}
+                        <TableBody>
+                            {descriptors.map((d, i) => (
+                                <InstanceOverviewItem key={i} instance={d} />
+                            ))}
+                        </TableBody>
                     </Table>
                 )
             }

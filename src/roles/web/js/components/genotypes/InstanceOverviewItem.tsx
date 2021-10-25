@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { Hashicon } from "@emeraldpay/hashicon-react";
-import { Grid, List, ListItem, TableCell, TableRow } from "@mui/material";
+import { Grid, List, ListItem, TableCell, TableRow, Tooltip } from "@mui/material";
 import { Amount } from "../primitives/Amount";
 import { GeneticBotFsmState } from "../../../../common/models/bots/BotState";
 import { GenotypeInstanceDescriptor } from "../../../../common/models/bots/GenotypeInstanceDescriptor";
@@ -27,42 +27,47 @@ export const InstanceOverviewItem: React.FC<InstanceOverviewItemProps> = props =
     }, []);
 
     return (
+
         <TableRow
             onClick={() => handleClickListItem(instance)}
             sx={{ border: "none" }}
         >
-            <TableCell
-                align="left"
-                sx={{ border: "none", padding: 0 }}
-            >
-                <Grid item container spacing={1} style={{ flexWrap: "nowrap", paddingBottom: "1em" }}>
-                    <Grid item style={{ marginTop: "auto", marginBottom: "auto" }}>
-                        <Hashicon value={instance.id} size={32} />
-                    </Grid>
-                    <Grid item style={{}} className="primo-ellipses">
-                        {/*
+            <Tooltip title={instance.name}>
+                <TableCell
+                    align="left"
+                    sx={{ border: "none", padding: 0 }}
+                >
+                    <Grid item container spacing={1} style={{ flexWrap: "nowrap", paddingBottom: "1em" }}>
+                        <Grid item style={{ marginTop: "auto", marginBottom: "auto" }}>
+
+                            <Hashicon value={instance.id} size={32} />
+
+                        </Grid>
+                        <Grid item style={{}} className="primo-ellipses">
+                            {/*
                             <Grid item >
-                                <b>{d.name}</b>
-                            </Grid>*/}
-                        <Grid item>
-                            <b>{instance.symbols}</b>&nbsp;@&nbsp;<b>{instance.resId}</b>
-                        </Grid>
-                        <Grid item>
-                            <span>{instance.genome}</span>
-                        </Grid>
-                        <If exp={instance.modeId !== "test-back"}>
+                            <b>{d.name}</b>
+                        </Grid>*/}
                             <Grid item>
-                                <b>{presentBotState(instance.fsmState as any as GeneticBotFsmState)}</b>
+                                <b>{instance.symbols}</b>&nbsp;@&nbsp;<b>{instance.resId}</b>
                             </Grid>
-                        </If>
-                        <If exp={instance.modeId === "test-back"}>
                             <Grid item>
-                                <span>{presentDuration(instance.duration)}</span>
+                                <span>{instance.genome}</span>
                             </Grid>
-                        </If>
+                            <If exp={instance.modeId !== "test-back"}>
+                                <Grid item>
+                                    <b>{presentBotState(instance.fsmState as any as GeneticBotFsmState)}</b>
+                                </Grid>
+                            </If>
+                            <If exp={instance.modeId === "test-back"}>
+                                <Grid item>
+                                    <span>{presentDuration(instance.duration)}</span>
+                                </Grid>
+                            </If>
+                        </Grid>
                     </Grid>
-                </Grid>
-            </TableCell>
+                </TableCell>
+            </Tooltip >
             <TableCell
                 align="right"
                 sx={{ border: "none", padding: 0 }}
@@ -73,5 +78,6 @@ export const InstanceOverviewItem: React.FC<InstanceOverviewItemProps> = props =
             </TableCell>
 
         </TableRow>
+
     );
 };
