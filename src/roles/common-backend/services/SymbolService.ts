@@ -664,7 +664,7 @@ export class SymbolService {
             }
             catch (err) {
                 if (err.detail) {
-                    log.error(`[SYNC] Error: ${err.detail}`)
+                    log.error(`[SYNC] Error: ${err.detail}`);
                 }
                 else {
                     log.error(`Error updating '${symbolPair}' for ${from}-${to} from ${exchange}`, err);

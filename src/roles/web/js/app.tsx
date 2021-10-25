@@ -7,7 +7,9 @@ import useDimensions from "react-cool-dimensions";
 import { AppRoutes } from "./AppRoutes";
 import { InfoContext, PresentationContext, ResponsiveBreakpoint, breakpoints } from "./contexts";
 import { InfoResponse } from "./client";
+import { ThemeProvider } from "@mui/material";
 import { client } from "./includes";
+import { defaultTheme } from "./themes/default-theme";
 
 
 const Loading = () => (
@@ -38,17 +40,19 @@ const App = () => {
 
     return (
         <div className="primo-app-container" ref={observe}>
-            <LocalizationProvider dateAdapter={DateAdapter}>
-                <PresentationContext.Provider value={{ breakpoint }}>
-                    <SnackbarProvider maxSnack={3}>
-                        <InfoContext.Provider value={info}>
-                            <Suspense fallback={<div />}>
-                                <AppRoutes />
-                            </Suspense>
-                        </InfoContext.Provider>
-                    </SnackbarProvider>
-                </PresentationContext.Provider>
-            </LocalizationProvider>
+            <ThemeProvider theme={defaultTheme}>
+                <LocalizationProvider dateAdapter={DateAdapter}>
+                    <PresentationContext.Provider value={{ breakpoint }}>
+                        <SnackbarProvider maxSnack={3}>
+                            <InfoContext.Provider value={info}>
+                                <Suspense fallback={<div />}>
+                                    <AppRoutes />
+                                </Suspense>
+                            </InfoContext.Provider>
+                        </SnackbarProvider>
+                    </PresentationContext.Provider>
+                </LocalizationProvider>
+            </ThemeProvider>
         </div>
     );
 };

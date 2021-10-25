@@ -131,7 +131,7 @@ export class StrategyService {
                 SELECT
                     bi.id AS "id",
                     bi."name" AS "name",
-                    bi."symbols" AS "symbols",
+                    UPPER(bi."symbols") AS "symbols",
                     bi."created" AS "created",
                     bi."updated" AS "updated",
                     bi."modeId" AS "modeId",
@@ -139,8 +139,8 @@ export class StrategyService {
                     bi."currentGenome" AS "genome",
                     
                     bi."stateJson"->>'fsmState' AS "fsmState",
-                    bi."stateInternal"->>'baseSymbolId' AS "baseSymbolId",
-                    bi."stateInternal"->>'quoteSymbolId' AS "quoteSymbolId",
+                    UPPER(bi."stateInternal"->>'baseSymbolId') AS "baseSymbolId",
+                    UPPER(bi."stateInternal"->>'quoteSymbolId') AS "quoteSymbolId",
 
                     (results.results->>'from')::timestamp with time zone AS "from",
                     (results.results->>'to')::timestamp with time zone AS "to",

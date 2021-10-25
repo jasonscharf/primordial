@@ -7,6 +7,7 @@ import { client } from "../../includes";
 import { Spinner } from "../../components/primitives/Spinner";
 import { ScreenBase } from "../Screenbase";
 import { CardHeader } from "../../components/primitives/CardHeader";
+import { buttonStyles, smallControl } from "../../styles/util-styles";
 
 const DEFAULT_SYMBOLS = "BTC/USDT";
 const DEFAULT_GENOME = "RSI-L=33|RSI-H=66";
@@ -148,16 +149,17 @@ const RunScreen = () => {
                 isRunning
                     ? (<Spinner caption1="Running bot..." caption2="This may take a while..." />)
                     : (
-                        <Grid xs={12} lg={6}>
+                        <Grid item xs={12} lg={6}>
                             <Card>
                                 <CardHeader title="Run a Backtest" />
-                                <CardContent style={{ padding: "32px" }}>
-                                    <form noValidate autoComplete="off" onSubmit={handleClickRun}>
-                                        <Grid item container spacing={2} style={{ padding: "0px !important" }}>
+                                <CardContent>
+                                    <form noValidate autoComplete="off" onSubmit={handleClickRun} style={{ width: "auto" }}>
+                                        <Grid item container spacing={2} style={{ padding: "0px !important", width: "auto" }}>
                                             <Grid item container style={{ padding: 0 }}>
                                                 <Grid item container>
                                                     <Grid item xs={3}>
                                                         <TextField
+                                                            size="small"
                                                             fullWidth
                                                             id="outlined-basic"
                                                             label="Symbol Pair (Binance)"
@@ -166,8 +168,8 @@ const RunScreen = () => {
                                                             onChange={evt => handleChangeSymbols(evt.target.value)} />
                                                     </Grid>
                                                     <Grid item>
-
                                                         <Select
+                                                            size="small"
                                                             label="Interval"
                                                             id="demo-simple-select"
                                                             value={res}
@@ -178,26 +180,26 @@ const RunScreen = () => {
                                                             <MenuItem value={ApiTimeResolution.Type1H}>1 hour</MenuItem>
                                                         </Select>
                                                     </Grid>
-                                                    <Grid item xs={3} style={{ marginLeft: "auto" }}>
+                                                    <Grid item xs={3} sx={{ ...smallControl, marginLeft: "auto" }}>
                                                         <DateTimePicker
-                                                            label="from"
+                                                            label="From"
                                                             value={from}
                                                             onChange={handleChangeFrom}
-                                                            renderInput={(params) => <TextField {...params} />}
+                                                            renderInput={(params) => <TextField size="small" {...params} />}
                                                         />
                                                     </Grid>
                                                     <Grid item xs={3}>
                                                         <DateTimePicker
-                                                            label="to"
+                                                            label="To"
                                                             value={to}
                                                             onChange={handleChangeTo}
-                                                            renderInput={(params) => <TextField {...params} />}
+                                                            renderInput={(params) => <TextField size="small" {...params} />}
                                                         />
                                                     </Grid>
                                                     <Grid item>
                                                         <Button
                                                             variant="outlined"
-                                                            style={{ height: "55px" }}
+                                                            style={{ height: "100%" }}
                                                             onClick={handleClickSetEndNow}>
                                                             <span>&#9201;</span>
                                                         </Button>
@@ -208,6 +210,7 @@ const RunScreen = () => {
                                             <Grid item xs={12} style={{ paddingLeft: 0 }}>
                                                 <TextField
                                                     fullWidth
+                                                    size="small"
                                                     id="outlined-basic"
                                                     value={genome}
                                                     label="Genome"
@@ -223,14 +226,14 @@ const RunScreen = () => {
                                             <Alert key={i} severity="error">{err}</Alert>
                                         ))}
                                     </Grid>
-                                    <Grid item container spacing={2}>
+                                    <Grid item container spacing={2} sx={{ width: "auto" }}>
                                         <Grid item>
                                             <FormGroup>
                                                 <FormControlLabel control={<Checkbox checked={openInNewWindow} onChange={evt => handleCheckOpenInNewWindow(evt.target.checked)} />} label="Open in new window (popups might get blocked; check address bar)" />
                                             </FormGroup>
                                         </Grid>
                                         <Grid item style={{ marginLeft: "auto", textAlign: "right", }}>
-                                            <Button type="submit" onClick={handleClickRun} variant="contained">Run backtest</Button>
+                                            <Button type="submit" onClick={handleClickRun} variant="contained" sx={buttonStyles}>Run backtest</Button>
                                         </Grid>
                                     </Grid>
                                 </CardContent>
