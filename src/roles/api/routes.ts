@@ -17,6 +17,43 @@ import * as KoaRouter from '@koa/router';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
 const models: TsoaRoute.Models = {
+    "ApiForkGenotypeResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "ids": {"dataType":"array","array":{"dataType":"string"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BotType": {
+        "dataType": "refEnum",
+        "enums": ["root","clone-paper","desc"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BotMode": {
+        "dataType": "refEnum",
+        "enums": ["test-back","test-forward","live","test-live","paused"],
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApiForkGenotypeRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "workspaceId": {"dataType":"string","required":true},
+            "strategyId": {"dataType":"string","required":true},
+            "parentId": {"dataType":"string","required":true},
+            "allocationId": {"dataType":"string","required":true},
+            "typeId": {"ref":"BotType","required":true},
+            "modeId": {"ref":"BotMode","required":true},
+            "displayName": {"dataType":"string"},
+            "res": {"dataType":"string","required":true},
+            "maxWagerPct": {"dataType":"double"},
+            "overlayMutations": {"dataType":"boolean"},
+            "symbolPairs": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "mutations": {"dataType":"array","array":{"dataType":"string"}},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "BuildInfo": {
         "dataType": "refObject",
         "properties": {
@@ -63,11 +100,6 @@ const models: TsoaRoute.Models = {
     "Partial_BotDefinition_": {
         "dataType": "refAlias",
         "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"workspaceId":{"dataType":"string"},"name":{"dataType":"string"},"symbols":{"dataType":"string"},"genome":{"dataType":"string"},"description":{"dataType":"string"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "BotMode": {
-        "dataType": "refEnum",
-        "enums": ["test-back","test-forward","live","test-live","paused"],
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "TimeResolution": {
@@ -187,6 +219,8 @@ const models: TsoaRoute.Models = {
     "ApiBacktestRequest": {
         "dataType": "refObject",
         "properties": {
+            "workspaceId": {"dataType":"string","required":true},
+            "strategyId": {"dataType":"string","required":true},
             "from": {"dataType":"string","required":true},
             "to": {"dataType":"string","required":true},
             "genome": {"dataType":"string","required":true},
@@ -242,6 +276,26 @@ export function RegisterRoutes(router: KoaRouter) {
     //  NOTE: If you do not see routes for all of your controllers in this file, then you might not have informed tsoa of where to look
     //      Please look into the "controllerPathGlobs" config option described in the readme: https://github.com/lukeautry/tsoa
     // ###########################################################################################################
+        router.post('/api/genotypes/fork',
+            async function GenotypeController_forkGenotype(context: any, next: any) {
+            const args = {
+                    req: {"in":"body","name":"req","required":true,"ref":"ApiForkGenotypeRequest"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new GenotypeController();
+
+            const promise = controller.forkGenotype.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         router.get('/api/info',
             async function InfoController_getInfo(context: any, next: any) {
             const args = {

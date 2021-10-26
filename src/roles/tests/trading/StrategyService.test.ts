@@ -172,6 +172,16 @@ describe(StrategyService.name, () => {
         });
     });
 
+    describe(strats.getBotInstancesByIds.name, () => {
+        it("returns bot instances matching the given ids", async () => {
+            // TEST
+        });
+
+        it("only returns instances in the specified workspace", async () => {
+            // TEST
+        });
+    });
+
     describe(strats.getBotInstanceByName.name, () => {
         it("gets an instance by name", async () => {
             // TEST

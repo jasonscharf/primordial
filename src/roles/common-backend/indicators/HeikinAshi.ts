@@ -93,7 +93,7 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
         const { open, high, low, close } = tick;
         const isGreen = close.gt(open);
 
-        const { genome, instance} = ctx;
+        const { genome, instance } = ctx;
         const { resId } = instance;
 
         const intervalFloor = normalizePriceTime(resId, new Date(tick.ts.getTime() - 1)).getTime();

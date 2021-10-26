@@ -3,24 +3,8 @@
 import { BotDefinition } from "../models/bots/BotDefinition";
 import { BotInstance } from "../models/bots/BotInstance";
 import { BotRun } from "../models/bots/BotRun";
-import { Order, OrderState } from "../models/markets/Order";
-import { TimeResolution } from "../models/markets/TimeResolution";
+import { Order } from "../models/markets/Order";
 
-
-/**
- * Mirrors BacktestRequest
- */
-export interface ApiBacktestRequest {
-    from: string;
-    to: string;
-    genome: string;
-    res: ApiTimeResolution;
-    symbols: string;
-    maxWagerPct?: number;
-    remove?: boolean;
-    name?: string;
-    returnEarly?: boolean;
-}
 
 // FUN: TSOA capitalizes enum value names in keys for some silly reason, so "1m" and "1M" conflict...
 // TODO: Try and use correct enum

@@ -80,7 +80,7 @@ const TestsScreen = () => {
 
                                 <Select
                                     size={"small"}
-                                    sx={{ fontSize: "0.8rem"}}
+                                    sx={{ fontSize: "0.8rem" }}
                                     defaultValue={"totalProfit"}
                                     onChange={evt => handleChangeBacktestSortOrder(evt.target.value)}>
                                     {Object.keys(backtestSortOptions).map((opt, i) => (

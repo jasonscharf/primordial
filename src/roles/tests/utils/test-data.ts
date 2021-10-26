@@ -13,12 +13,19 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { User } from "../../common/models";
 import { Workspace } from "../../common/models/system/Workspace";
-import { capital, constants, db, strats, sym, tables, us, users } from "../../common-backend/includes";
+import { cache, capital, constants, db, strats, sym, tables, us, users } from "../../common-backend/includes";
 import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { query } from "../../common-backend/database/utils";
 import { randomName } from "../../common-backend/utils/names";
 import { randomString } from "../../common/utils";
 import { version } from "../../common/version";
+import { MarketDataSpecimen } from "./data-specimens";
+
+
+export const TEST_DEFAULT_BASE = "BTC";
+export const TEST_DEFAULT_QUOTE = "USDT";
+export const TEST_DEFAULT_PAIR = `${TEST_DEFAULT_BASE}/${TEST_DEFAULT_QUOTE}`;
+export const TEST_DEFAULT_BUDGET = `10000 ${TEST_DEFAULT_QUOTE}`;
 
 
 export interface TestDataCtx {
@@ -44,14 +51,13 @@ export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
     currentGenome: "BBBBO",
 };
 
-export const TEST_DEFAULT_BUDGET = "1000000 TUSD";
 
 export function makeTestOrder(props?: Partial<Order>) {
     const DEFAULTS: Partial<Order> = {
         exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
         typeId: OrderType.LIMIT_BUY,
-        baseSymbolId: "BTC",
-        quoteSymbolId: "TUSD",
+        baseSymbolId: TEST_DEFAULT_BASE,
+        quoteSymbolId: TEST_DEFAULT_QUOTE,
         fees: Money(constants.DEFAULT_EXCHANGE_FEE + ""),
         limit: Money("50000"),
         strike: Money("50000"),
@@ -95,7 +101,7 @@ export async function addNewBotDefAndInstance(budget = TEST_DEFAULT_BUDGET, star
             appliedDefProps.workspaceId = workspaceId;
         }
 
-        const ledger = await capital.createAllocationForBot(strat.id, "1000 TUSD");
+        const ledger = await capital.createAllocationForBot(strat.id, TEST_DEFAULT_BUDGET);
         const { alloc } = ledger;
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
         const instance = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
@@ -138,8 +144,8 @@ export async function clearTestData() {
 export function createTestPrice(props?: Partial<Price>) {
     const dummyPriceProps: Partial<Price> = {
         exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
-        baseSymbolId: "BTC",
-        quoteSymbolId: "TUSD",
+        baseSymbolId: TEST_DEFAULT_BASE,
+        quoteSymbolId: TEST_DEFAULT_QUOTE,
         resId: "1m",
         ts: new Date(),
         open: Money("0"),
@@ -165,8 +171,8 @@ export async function getTestData(): Promise<TestDataCtx> {
 
     // We're dealing a fresh test DB, so we need to add our own currencies for testing
     const symbols = [
-        makeSymbol({ id: "BTC" }),
-        makeSymbol({ id: "TUSD" }),
+        makeSymbol({ id: TEST_DEFAULT_BASE }),
+        makeSymbol({ id: TEST_DEFAULT_QUOTE }),
         makeSymbol({ id: "BUSD" }),
         makeSymbol({ id: "ETH" }),
         makeSymbol({ id: "ADA" }),
@@ -315,12 +321,12 @@ export async function generateTestPrices(exchange: string, pair: string, res: Ti
 }
 
 export async function fill(start = from("2010-01-01T00:00:00"), end = from("2010-01-01T23:59:59:999"), generator?: TestPriceGenerator) {
-    return fillRangeWithData(env.PRIMO_DEFAULT_EXCHANGE, "BTC/TUSD", TimeResolution.ONE_MINUTE, start, end);
+    return fillRangeWithData(env.PRIMO_DEFAULT_EXCHANGE, TEST_DEFAULT_PAIR, TimeResolution.ONE_MINUTE, start, end);
 }
 
 
 export async function getMissingRanges(start = from("2010-01-01T00:00:00"), end = from("2010-01-01T23:59:59:999"), res = TimeResolution.ONE_MINUTE): Promise<PriceDataRange[]> {
-    return sym.getMissingRanges(env.PRIMO_DEFAULT_EXCHANGE, "BTC/TUSD", res, start, end);
+    return sym.getMissingRanges(env.PRIMO_DEFAULT_EXCHANGE, TEST_DEFAULT_PAIR, res, start, end);
 }
 
 
@@ -336,11 +342,19 @@ function makeTestbot(props: Partial<BotInstance>) {
         definitionId,
         modeId: BotMode.FORWARD_TEST,
         stateInternal: {
-            baseSymbolId: "BTC",
-            quoteSymbolId: "TUSD",
+            baseSymbolId: TEST_DEFAULT_BASE,
+            quoteSymbolId: TEST_DEFAULT_PAIR,
         },
         stateJson: {} as GeneticBotState,
     };
 
     return Object.assign({}, baseProps, props);
+}
+
+export async function marketDataSpecimen(specimen: MarketDataSpecimen) {
+    const data = await cache.getObject("test", 60 * 5, async () => {
+        return await sym.getSymbolPriceData(specimen);
+    });
+
+    return data;
 }

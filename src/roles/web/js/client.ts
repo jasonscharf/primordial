@@ -9,6 +9,55 @@
  * ---------------------------------------------------------------
  */
 
+export interface ApiForkGenotypeResponse {
+  ids: string[];
+}
+
+/**
+ * Describes the nature of the type of a bot instance.
+ */
+export enum BotType {
+  Root = "root",
+  ClonePaper = "clone-paper",
+  Desc = "desc",
+}
+
+/**
+* NOTE: These constants are used in the database.
+DO NOT remove of change values here. Add and deprecate.
+*/
+export enum BotMode {
+  TestBack = "test-back",
+  TestForward = "test-forward",
+  Live = "live",
+  TestLive = "test-live",
+  Paused = "paused",
+}
+
+export interface ApiForkGenotypeRequest {
+  workspaceId: string;
+  strategyId: string;
+  parentId: string;
+  allocationId: string;
+
+  /** Describes the nature of the type of a bot instance. */
+  typeId: BotType;
+
+  /**
+   * NOTE: These constants are used in the database.
+   * DO NOT remove of change values here. Add and deprecate.
+   */
+  modeId: BotMode;
+  displayName?: string;
+  res: string;
+
+  /** @format double */
+  maxWagerPct?: number;
+  overlayMutations?: boolean;
+  symbolPairs: string[];
+  mutations?: string[];
+}
+
 export interface BuildInfo {
   version: string;
   hash: string;
@@ -57,18 +106,6 @@ export interface PartialBotDefinition {
   /** @format date-time */
   updated?: string;
   displayName?: string;
-}
-
-/**
-* NOTE: These constants are used in the database.
-DO NOT remove of change values here. Add and deprecate.
-*/
-export enum BotMode {
-  TestBack = "test-back",
-  TestForward = "test-forward",
-  Live = "live",
-  TestLive = "test-live",
-  Paused = "paused",
 }
 
 /**
@@ -301,10 +338,9 @@ export enum ApiTimeResolution {
   Type4H = "4h",
 }
 
-/**
- * Mirrors BacktestRequest
- */
 export interface ApiBacktestRequest {
+  workspaceId: string;
+  strategyId: string;
   from: string;
   to: string;
   genome: string;
@@ -581,6 +617,23 @@ export class HttpClient<SecurityDataType = unknown> {
  * Algorithmic trading platform
  */
 export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {
+  genotypes = {
+    /**
+     * No description
+     *
+     * @name ForkGenotype
+     * @request POST:/genotypes/fork
+     */
+    forkGenotype: (data: ApiForkGenotypeRequest, params: RequestParams = {}) =>
+      this.request<ApiForkGenotypeResponse, any>({
+        path: `/genotypes/fork`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+  };
   info = {
     /**
      * No description

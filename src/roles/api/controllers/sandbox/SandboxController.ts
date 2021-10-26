@@ -2,7 +2,7 @@ import Koa from "koa";
 import { DateTime } from "luxon";
 import { Body, Get, Post, Query, Request, Route } from "tsoa";
 import env from "../../../common-backend/env";
-import { ApiBacktestRequest } from "../../../common/messages/trading";
+import { ApiBacktestRequest } from "../../../common/messages";
 import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
 import { BotMode } from "../../../common/models/system/Strategy";

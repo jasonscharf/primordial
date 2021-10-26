@@ -5,7 +5,7 @@ import { Money, sleep } from "../../common/utils";
 import { Price } from "../../common/models/markets/Price";
 import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS } from "../../common-backend/services/SymbolService";
-import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator } from "../utils/test-data";
+import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator, TEST_DEFAULT_QUOTE, TEST_DEFAULT_BASE, TEST_DEFAULT_PAIR  } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
@@ -19,7 +19,7 @@ describe(SymbolService.name, () => {
 
     // Defaults
     const exchange = env.PRIMO_DEFAULT_EXCHANGE;
-    const symbolPair = "BTC/TUSD";
+    const symbolPair = TEST_DEFAULT_PAIR;
     const res = TimeResolution.ONE_MINUTE;
 
     let ctx: TestDataCtx = null;
@@ -137,8 +137,8 @@ describe(SymbolService.name, () => {
 
             const priceProps1 = createTestPrice({
                 resId: TimeResolution.ONE_MINUTE,
-                baseSymbolId: "BTC",
-                quoteSymbolId: "TUSD",
+                baseSymbolId: TEST_DEFAULT_BASE,
+                quoteSymbolId: TEST_DEFAULT_QUOTE,
                 ts: sameMinute,
                 close: Money("888"),
             });

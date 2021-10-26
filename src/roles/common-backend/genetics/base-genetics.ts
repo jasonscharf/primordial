@@ -64,7 +64,9 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
     [names.GENETICS_C_SELL]: new Chromosome(names.GENETICS_C_SELL, "Buying", "Controls selling behaviour", [
         new Gene<number>(names.GENETICS_C_SELL_G_THRESHOLD, GeneticValueType.NUMBER, -1, "Signal threshold [0, 1] at whicht o consider a signal sellable"),
     ]),
-    [names.GENETICS_C_SYM]: new Chromosome(names.GENETICS_C_SYM, "Symbols", "Controls which symbols to trade", []),
+    [names.GENETICS_C_SYM]: new Chromosome(names.GENETICS_C_SYM, "Symbols", "Controls which symbols to trade", [
+        // TODO: Should expose to mutation mechanism
+    ]),
     [names.GENETICS_C_RSI]: new RsiIndicatorChromosome(names.GENETICS_C_RSI, "RSI", "Behaviour involving the Relative Strength Indictor", [
         new Gene(names.GENETICS_C_RSI_G_L, GeneticValueType.NUMBER, 33, "Lower RSI threshold to use as a buy signal"),
         new Gene(names.GENETICS_C_RSI_G_H, GeneticValueType.NUMBER, 66, "Upper RSI threshold to use as a sell signal"),

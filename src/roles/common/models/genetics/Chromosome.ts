@@ -34,14 +34,18 @@ export class Chromosome {
     copy() {
         const genes = Array.from(this.genes.entries())
             .map(([k, gene]) => gene.copy())
+            .reduce((map, gene) => {
+                map.set(gene.name, gene);
+                return map;
+            }, new Map<string, Gene>())
             ;
 
         const newChromo = Object.create(Object.getPrototypeOf(this));
         newChromo.name = this.name;
         newChromo.title = this.title;
         newChromo.desc = this.desc;
-        newChromo.genes = this.genes;
-        newChromo.active = genes.some(g => g.active);
+        newChromo.genes = genes;
+        newChromo.active = Array.from(genes.values()).some(g => g.active);
         return newChromo;
     }
 
@@ -49,11 +53,11 @@ export class Chromosome {
      * Gets a gene by name. Throws if it does not exist.
      * @param name 
      */
-    getGene(name: string) {
+    getGene<T>(name: string): Gene<T> {
         if (!this.genes.has(name)) {
             throw new Error(`Missing gene '${name}' in chromosome '${this.name}'`);
         }
 
-        return this.genes.get(name);
+        return this.genes.get(name) as Gene<T>;
     }
 }

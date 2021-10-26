@@ -32,7 +32,6 @@ export function moneytize(obj: unknown) {
  * @returns 
  */
 export async function query<T>(name: string, fn: (trx: Knex.Transaction) => Promise<T>, trx?: Knex.Transaction): Promise<T> {
-
     try {
         // TODO: Log level, timing, etc
         // console.log(`Run query '${name}'...`);

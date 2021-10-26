@@ -6,12 +6,14 @@ import { BotDefinitionEntity } from "../../common/entities/BotDefinitionEntity";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotInstanceDescriptor } from "../../common/models/BotInstanceDescriptor";
 import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
+import { BotMode, Strategy } from "../../common/models/system/Strategy";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunEntity } from "../../common/entities/BotRunEntity";
 import { GeneticBotState } from "../bots/GeneticBot";
 import { GenotypeInstanceDescriptor } from "../../common/models/bots/GenotypeInstanceDescriptor";
 import { GenotypeInstanceDescriptorEntity } from "../../common/entities/GenotypeInstanceDescriptorEntity";
-import { BotMode, Strategy } from "../../common/models/system/Strategy";
+import { Mutation } from "../../common/models/genetics/Mutation";
+import { MutationEntity } from "../../common/entities/MutationEntity";
 import { OrderEntity } from "../../common/entities/OrderEntity";
 import { PrimoUnknownName, PrimoValidationError } from "../../common/errors/errors";
 import { RunState } from "../../common/models/system/RunState";
@@ -691,14 +693,38 @@ export class StrategyService {
     async getBotInstanceById<TState = GeneticBotState>(instanceId: string, trx: Knex.Transaction = null): Promise<BotInstance<TState>> {
         const bot = await query(queries.BOTS_INSTANCES_GET, async db => {
             const [row] = <BotInstance<TState>[]>await db(tables.BotInstances)
-                .where({ id: instanceId })
                 .select("*")
+                .where({ id: instanceId })
+                .limit(1)
                 ;
 
             return BotInstanceEntity.fromRow<TState>(row);
         }, trx);
 
         return bot;
+    }
+
+    async getBotInstancesByIds(requestingUserId: string, workspaceId: string, strategyId: string, ids: string[], trx: Knex.Transaction = null): Promise<BotInstance[]> {
+        const instances = await query(queries.BOTS_INSTANCES_GET_BY_IDS, async db => {
+
+            const includeDeleted = false;
+            const query = db(tables.BotInstances)
+                .innerJoin(tables.BotDefinitions, ref(tables.BotInstances, "definitionId"), ref(tables.BotDefinitions))
+                .innerJoin(tables.Workspaces, ref(tables.BotDefinitions, "workspaceId"), ref(tables.Workspaces))
+                .where(ref(tables.Workspaces), "=", workspaceId)
+                .andWhere(ref(tables.Workspaces, "ownerId"), "=", requestingUserId)
+                ;
+
+            query.whereIn(ref(tables.BotInstances, "id"), ids);
+
+            if (!includeDeleted) {
+                query.andWhere(ref(tables.BotInstances, "deleted"), "=", false);
+            }
+
+            const rows = <BotInstance[]>await query;
+            return rows.map(row => BotInstanceEntity.fromRow(row));
+        }, trx);
+        return [];
     }
 
     /**
@@ -1015,6 +1041,16 @@ export class StrategyService {
                 .returning("*")
                 ;
 
+            return BotInstanceEntity.fromRow(row);
+        }, trx);
+    }
+
+    async createNewInstance(props: Partial<BotInstance>, trx: Knex.Transaction = null): Promise<BotInstance> {
+        return query(queries.BOTS_INSTANCES_CREATE, async db => {
+            const [row] = <BotInstance[]>await db(tables.BotInstances)
+                .insert(props)
+                .returning("*")
+                ;
             return BotInstanceEntity.fromRow(row);
         }, trx);
     }

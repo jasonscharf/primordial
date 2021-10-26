@@ -70,6 +70,7 @@ export enum tables {
     Fees = "fees",
     Markets = "markets",
     Modes = "modes",
+    Mutations = "bot_mutations",
     Orders = "orders",
     OrderFills = "order_fills",
     OrderStates = "order_states",
@@ -106,6 +107,7 @@ export const caching = {
  * Query names for logging and performance tracking purposes.
  */
 export const queries = {
+    ALLOCS_GET_BY_ID: "allocations.get-by-id",
     ALLOCS_GET_LEDGER: "allocations.get-ledger",
     ALLOCS_CREATE_TEST_ALLOC: "allocations.create-testing-alloc",
     ALLOCS_GET_ITEM_FOR_BOT: "allocations.get-item-for-bot",
@@ -114,9 +116,11 @@ export const queries = {
     BOTS_DEFS_GET_BY_NAME: "bots.defs.gets.get-by-name",
     BOTS_GET_BOT_FOR_ORDER: "bots.get-for-order",
     BOTS_INSTANCES_ACTIVE_LIST_ALL: "bots.instances.active.list.all",
+    BOTS_INSTANCES_CREATE: "bots.instances.create",
     BOTS_INSTANCES_CREATE_FROM_DEF: "bots.instances.create.from-def",
     BOTS_INSTANCES_FORK: "bots.instances.fork",
     BOTS_INSTANCES_GET: "bots.instances.get",
+    BOTS_INSTANCES_GET_BY_IDS: "bots.instances.get-by-ids",
     BOTS_INSTANCES_PAUSE: "bots.instances.pause",
     BOTS_INSTANCES_RUNNING: "bots.instances.running.list",
     BOTS_INSTANCES_STOP: "bots.instances.stop",
@@ -128,6 +132,7 @@ export const queries = {
     BOTS_RUNS_LIST: "bots.runs.list",
     BOTS_RUNS_STOP: "bots.runs.stop",
     BOT_RUNS_UPDATE: "bots.runs.update",
+    MUTATIONS_CREATE: "mutations.create",
     ORDERS_CREATE: "orders.create",
     ORDERS_FEES_SAVE: "orders.fees",
     ORDERS_LIST: "orders.list",

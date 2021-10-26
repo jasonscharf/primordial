@@ -1,7 +1,8 @@
 import { dbm } from "../common-backend/includes";
+import { assert, env } from "./includes";
 
 
-//import "./trading/ResultsService.test"; /*
+//import "./genetics/genetics.test"; /*
 
 import "./system/database.test";
 import "./system/numbers.test";
@@ -11,10 +12,12 @@ import "./system/ResultsService.test";
 import "./system/SpoolerService.test";
 import "./system/TimeSeriesCache.test";
 import "./system/UserService.test";
-import "./genetics/GeneticParser.test";
+import "./genetics/genetics.test";
 import "./trading/StrategyService.test";
 import "./trading/SymbolService.test";
 import "./trading/CapitalService.test";
+import "./genetics/GenotypeService.test";
+
 //*/
 
 
@@ -23,6 +26,9 @@ intern.on("beforeRun", async () => {
     await dbm.rollback(true);
     console.log(`Migrating test database...`);
     await dbm.migrate();
+
+    console.log(`Verifying test environment flag...`);
+    assert.isTrue(env.isTest(), "expected test environment flag to be set");
 });
 
 intern.on("afterRun", () => {

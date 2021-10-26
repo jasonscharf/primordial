@@ -46,7 +46,7 @@ export class CapitalService {
 
     /**
      * Parses a string such as "0.15 BTC" into a normalized AssetAmount.
-     * Supports multiple asset amounts, e.g. "0.15 BTC, 8000 DOGE, 2500 TUSD"
+     * Supports multiple asset amounts, e.g. "0.15 BTC, 8000 DOGE, 2500 USDT"
      * Amounts can be positive or negative.
      */
     async parseAssetAmounts(amountsRaw: string): Promise<AssetAmount[]> {
@@ -331,5 +331,21 @@ export class CapitalService {
             await trx.rollback();
             throw err;
         }
+    }
+
+    async getAllocationById(id: string, trx: Knex.Transaction = null): Promise<Allocation> {
+        return query(queries.ALLOCS_GET_BY_ID, async db => {
+            const [row] = <Allocation[]>await db(tables.Allocations)
+                .select("*")
+                .where({ id })
+                .limit(1)
+                ;
+
+            if (!row) {
+                throw new Error(`Unknown allocation '${id}'`);
+            }
+
+            return AllocationEntity.fromRow(row);
+        }, trx);
     }
 }

@@ -35,7 +35,7 @@ export interface PriceDataRange {
 
 export const DEFAULT_PRICE_DATA_PARAMETERS: Partial<PriceDataParameters> = {
     exchange: env.PRIMO_DEFAULT_EXCHANGE,
-    symbolPair: "BTC/TUSD",
+    symbolPair: "BTC/USDT",
     res: TimeResolution.ONE_MINUTE,
     from: DateTime.fromISO("2010-01-01").toJSDate(),
     to: new Date(),
