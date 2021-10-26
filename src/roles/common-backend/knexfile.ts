@@ -7,7 +7,7 @@ export const pool: Knex.PoolConfig = {
     max: 50,
 };
 
-export const KNEX_CONFIG: Knex.Config<any> = {
+const KNEX_CONFIG: Knex.Config<any> = {
     client: "pg",
     connection: {
         host: env.PRIMO_DB_HOSTNAME,
@@ -20,10 +20,9 @@ export const KNEX_CONFIG: Knex.Config<any> = {
     },
     migrations: {
         tableName: "knex_migrations",
-        directory: `${__dirname}/migrations`,
+        directory: `${__dirname}/database/migrations`,
         loadExtensions: [".js"]
     }
 };
 
-
-module.exports = KNEX_CONFIG;
+export default KNEX_CONFIG;

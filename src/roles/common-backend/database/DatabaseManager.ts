@@ -2,6 +2,7 @@ import knex, { Knex } from "knex";
 import { OnlyInstantiableByContainer, Inject } from "typescript-ioc";
 import env from "../../common-backend/env";
 import { log } from "../../common-backend/includes";
+import KNEX_CONFIG from "../knexfile";
 
 
 @OnlyInstantiableByContainer
