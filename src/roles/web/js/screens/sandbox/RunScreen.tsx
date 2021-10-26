@@ -1,18 +1,20 @@
 import { DateTime } from "luxon";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { Button, Card, CardContent, Grid, TextField, Alert, Checkbox, FormGroup, FormControlLabel, InputLabel, MenuItem, Select } from "@mui/material";
 import DateTimePicker from "@mui/lab/DateTimePicker";
 import { ApiBacktestRequest, ApiTimeResolution } from "../../client";
+import { InfoContext } from "../../contexts";
 import { client } from "../../includes";
 import { Spinner } from "../../components/primitives/Spinner";
 import { ScreenBase } from "../Screenbase";
 import { CardHeader } from "../../components/primitives/CardHeader";
-import { buttonStyles, smallControl } from "../../styles/util-styles";
+import { actionButton, smallControl } from "../../styles/util-styles";
 
 const DEFAULT_SYMBOLS = "BTC/USDT";
 const DEFAULT_GENOME = "RSI-L=33|RSI-H=66";
 
 const RunScreen = () => {
+    const { defaultWorkspace: workspaceId, defaultStrategy: strategyId } = useContext(InfoContext);
 
     const prevFrom = window.localStorage["runner-prev-from"];
     const prevTo = window.localStorage["runner-prev-to"];
@@ -79,6 +81,8 @@ const RunScreen = () => {
     const handleClickRun = useCallback(async () => {
         try {
             const args: ApiBacktestRequest = {
+                workspaceId,
+                strategyId,
                 res,
                 symbols: symbolPairs,
                 from: from.toISO(),
@@ -233,7 +237,7 @@ const RunScreen = () => {
                                             </FormGroup>
                                         </Grid>
                                         <Grid item style={{ marginLeft: "auto", textAlign: "right", }}>
-                                            <Button type="submit" onClick={handleClickRun} variant="contained" sx={buttonStyles}>Run backtest</Button>
+                                            <Button type="submit" onClick={handleClickRun} variant="contained" sx={actionButton}>Run backtest</Button>
                                         </Grid>
                                     </Grid>
                                 </CardContent>

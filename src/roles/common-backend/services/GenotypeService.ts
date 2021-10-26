@@ -2,10 +2,12 @@ import { Knex } from "knex";
 import { ApiForkGenotypeRequest, ApiForkGenotypeResponse } from "../../common/messages/genetic";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
-import { Genome } from "../../common/models/genetics/Genome";
+import { BotMode } from "../../common/models/system/Strategy";
+import { defaultBaseGenetics, Genome } from "../../common/models/genetics/Genome";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Mutation } from "../../common/models/genetics/Mutation";
 import { MutationEntity } from "../../common/entities/MutationEntity";
+import { PrimoValidationError } from "../../common/errors/errors";
 import { RunState } from "../../common/models/system/RunState";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { version } from "../../common/version";
@@ -16,9 +18,12 @@ import { capital, db, genos, results, strats } from "../includes";
 import { log } from "../logger";
 import { randomName } from "../utils/names";
 import * as validate from "../validation";
+import { MutationSet } from "../../common/models/genetics/MutationSet";
+import { MutationSetEntity } from "../../common/entities/MutationSetEntity";
 
 
 export interface GenotypeForkArgs extends ApiForkGenotypeRequest {
+    system: boolean;
 }
 
 export interface GenotypeForkResponse extends ApiForkGenotypeResponse {
@@ -34,12 +39,12 @@ export class GenotypeService {
      * @param args 
      * @returns 
      */
-    async fork(args: GenotypeForkArgs, trx: Knex.Transaction = null): Promise<GenotypeForkResponse> {
+    async fork(requestingUserId: string, args: GenotypeForkArgs, trx: Knex.Transaction = null): Promise<GenotypeForkResponse> {
         const newTransaction = !trx;
         trx = trx || await db.transaction();
         try {
 
-            const { allocationId, displayName, modeId, mutations: rawMutations, parentId, res, strategyId, symbolPairs: symbols, typeId, workspaceId } = args;
+            const { allocationId, displayName, modeId, mutations: rawMutations, parentId, res, strategyId, symbolPairs: symbols, system, typeId, workspaceId } = args;
 
             const parentInstance = await strats.getBotInstanceById(parentId, trx);
             validate.isNotNullOrUndefined(parentInstance, "parent");
@@ -57,14 +62,22 @@ export class GenotypeService {
             }
 
 
-            // ... validate state logic with allocation
-
+            // Ensure we don't run live bots with test allocations
+            if (modeId === BotMode.LIVE || modeId === BotMode.LIVE_TEST) {
+                if (!allocation.live) {
+                    throw new Error(`Cannot fork to a live instance using a test allocation`);
+                }
+            }
+            else if (modeId === BotMode.BACK_TEST || modeId === BotMode.FORWARD_TEST) {
+                if (allocation.live) {
+                    throw new Error(`Cannot fork to a test instance with a live allocation`);
+                }
+            }
 
             const name = randomName();
             const startInstance = true;
             const parsed = new GenomeParser();
             const { genome: parsedGenotype } = parsed.parse(parentInstance.currentGenome);
-
 
 
             // Produce mutation candidates
@@ -75,7 +88,7 @@ export class GenotypeService {
 
             // Create instances from mutations
             for (const m of unsavedMutations) {
-                const overlay = m.overlay;
+                const overlay = new Genome(defaultBaseGenetics, m.raw);
                 parsedGenotype.overlay(overlay.overlaidChromosomes);
 
                 const possiblyMutatedResId = parsedGenotype.getGene<TimeResolution>(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_RES).value;
@@ -83,7 +96,7 @@ export class GenotypeService {
                 const possiblyMutatedSymbols = original.symbols.toUpperCase();
 
                 const instanceProps: Partial<BotInstance> = {
-                    exchangeId: parentInstance.exchangeId,
+                    //exchangeId: parentInstance.exchangeId,
                     definitionId: parentDef.id,
                     allocationId,
                     resId: possiblyMutatedResId,
@@ -111,6 +124,15 @@ export class GenotypeService {
             for (const pair of Array.from(unsavedInstances.entries())) {
                 const [mutation, props] = pair;
                 const savedInstance = await strats.createNewInstance(props, trx);
+
+                const setProps: Partial<MutationSet> = {
+                    displayName: ``,
+                    desc: ``,
+                    ownerId: requestingUserId,
+                    meta: JSON.stringify(args),
+                    system,
+                };
+                const savedMutationSet = await this.createNewMutationSet(props, trx);
 
                 mutation.childId = savedInstance.id;
                 const savedMutation = await this.createNewMutation(mutation, trx);
@@ -161,7 +183,7 @@ export class GenotypeService {
         seed.setGene(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_RES, original.resId);
         genotypes.push(seed);
 
-        // Mutate TIME-RES
+        // Mutate TIME-RES. This should be done by the specific genome in the longer term.
         const { mutations: timeResMutations } = await this.mutateTimeResolutions(parser, original, args, genotypes);
         const allMutations = timeResMutations.concat();
 
@@ -199,7 +221,7 @@ export class GenotypeService {
                 const genotype = g.copyWithMutation(chromo, gene, value);
                 const mutation: Partial<Mutation> = {
                     parentId1: original.id,
-                    overlay: genotype.overlaid,
+                    raw: genotype.overlaid.toString(),
                     chromo,
                     gene,
                     value,
@@ -224,6 +246,16 @@ export class GenotypeService {
                 .returning("*")
                 ;
             return MutationEntity.fromRow(row);
+        }, trx);
+    }
+
+    async createNewMutationSet(props: Partial<MutationSet>, trx: Knex.Transaction = null): Promise<MutationSet> {
+        return query(queries.MUTATION_SETS_CREATE, async db => {
+            const [row] = <Mutation[]>await db(tables.MutationSets)
+                .insert(props)
+                .returning("*")
+                ;
+            return MutationSetEntity.fromRow(row);
         }, trx);
     }
 }

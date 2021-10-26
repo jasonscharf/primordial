@@ -1,9 +1,15 @@
-import { Gene } from "./Gene";
+import { Gene, GeneJson } from "./Gene";
 import { GeneticValueType } from "./GeneticValueType";
 import { TimeResolution } from "../markets/TimeResolution";
 
 
 const UNKNOWN = "unknown";
+
+export interface ChromosomeJson {
+    name: string;
+    active: boolean;
+    genes: { [key: string]: GeneJson };
+}
 
 /**
  * Describes a group of related genes, e.g. an "RSI" chromosome bearing "RSI-L" and "RSI-H" genes.
@@ -25,6 +31,21 @@ export class Chromosome {
         for (const gene of genes) {
             this.genes.set(gene.name, gene);
         }
+    }
+
+    toJson(activeGenesOnly = true): ChromosomeJson {
+        const obj: ChromosomeJson = {
+            name: this.name,
+            active: this.active,
+            genes: {}
+        };
+        const genes = Array.from(this.genes.values())
+        .filter(g => !activeGenesOnly || g.active)
+        .forEach(gene => {
+            obj.genes[gene.name] = gene.toJson();
+        });
+
+        return obj;
     }
 
     /**

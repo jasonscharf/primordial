@@ -1,30 +1,34 @@
 
-import * as React from "react";
+import React, { useCallback, useContext } from "react";
+import { DateTime } from "luxon";
+import { useSnackbar } from "notistack";
 import classNames from "classnames";
-
 import { useEffect, useState } from "react";
 import { Hashicon } from "@emeraldpay/hashicon-react";
 
-import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar } from "@mui/material";
+import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar, Dialog, DialogContentText, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { useParams } from "react-router";
 import { Amount } from "../../components/primitives/Amount";
 import BotRunChart from "../../charts/BotRunChart";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
 import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
-import { DateTime } from "luxon";
 import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../../../common/entities/PriceEntity";
 import { OrderEntity } from "../../../../common/entities/OrderEntity";
 import { SimpleOrderTable } from "../../components/SimpleOrderTable";
 import { Percent } from "../../components/primitives/Percent";
-import { RunState } from "../../client";
+import { ApiForkGenotypeRequest, BotMode, BotType, RunState } from "../../client";
 import { ScreenBase } from "../Screenbase";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
 import { client } from "../../includes";
 import { isNullOrUndefined, sleep } from "../../../../common/utils";
 import { Spinner } from "../../components/primitives/Spinner";
 import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
+import { actionButton } from "../../styles/util-styles";
+import { useApiRequest, useApiRequestEffect } from "../../hooks/useApiRequestEffect";
+import { Genome } from "../../../../common/models/genetics/Genome";
+import { InfoContext } from "../../contexts";
 
 
 
@@ -36,9 +40,13 @@ const DEFAULT_BOT_RESULTS_POLL_MS = 500;
  * Shows results for a bot run, including OLHCV data, indicators, and events.
  */
 const BotResults = () => {
-    const args = useParams<{ instanceName: string }>();
+    const { defaultStrategy: strategyId, defaultWorkspace: workspaceId } = useContext(InfoContext);
     const [results, setResults] = useState<BotResultsApiResponse>(null);
+    const [isCreatingForwardTest, setIsCreatingForwardTest] = useState(false);
+    const [forkDialogOpen, setForkDialogOpen] = React.useState(false);
+    const args = useParams<{ instanceName: string }>();
     const [displayHeikinAshi, setDisplayHeikinAshi] = useState<boolean>(false);
+    const { enqueueSnackbar } = useSnackbar();
 
     const imap: IndicatorMap = new Map<string, Map<string, number>>();
 
@@ -163,15 +171,49 @@ const BotResults = () => {
         }
     }, []);
 
-    const handleToggleHeikinAshi = React.useCallback(() => {
+    const handleToggleHeikinAshi = useCallback(() => {
         setDisplayHeikinAshi(!displayHeikinAshi);
     }, [displayHeikinAshi]);
+
+    const handleClickRunAsForwardTest = useCallback(() => {
+        setForkDialogOpen(true);
+    }, []);
+
+    const handleCloseRunAsForwardTest = useCallback(() => {
+        setForkDialogOpen(false);
+    }, []);
+
+    const handleConfirmRunAsForwardTest = useCallback(() => {
+        setIsCreatingForwardTest(true);
+        const [data, isLoading] = useApiRequest(async client => {
+            const mutations: string[] = [
+            ];
+            const args: ApiForkGenotypeRequest = {
+                allocationId: null,
+                parentId: instanceId,
+                symbolPairs: [results.report.symbols],
+                res: results.report.timeRes,
+                modeId: BotMode.TestForward,
+                typeId: BotType.Desc,
+                strategyId,
+                workspaceId,
+                mutations,
+                overlayMutations: true,
+            };
+
+            const result = await client.genotypes.forkGenotype(args);
+            debugger;
+            enqueueSnackbar("Success! Forward test created", { variant: "success" });
+        }, []);
+    }, [results]);
+
 
     if (!results) {
         return (
             <Spinner caption1={"Loading bot results..."} caption2={"This may take a moment"} />
         );
     }
+
     const {
         report,
         prices,
@@ -199,7 +241,7 @@ const BotResults = () => {
                 <Grid item>
                     <Grid item>
                         <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#40;{runType}&#41;
-                        &nbsp;<span>@</span><b><span>{report.timeRes}</span></b>
+                        &nbsp;<span>@</span>&nbsp;<b>{report.timeRes}</b>
                     </Grid>
                     <Grid item>
                         <span>&#129516;&nbsp;<b>{report.genome}</b></span>
@@ -213,7 +255,7 @@ const BotResults = () => {
                 </Grid>
                 <Grid item style={{ marginLeft: "auto", textAlign: "right" }}>
                     <Grid item>
-                        <b>{shortDateAndTime(report.from)}</b> - <b>{shortDateAndTime(report.to)}</b>
+                        <b>{shortDateAndTime(report.from)}</b>&nbsp;-&nbsp;<b>{shortDateAndTime(report.to)}</b>
                     </Grid>
                     <Grid item>
                         <span>profit</span>&nbsp;<b><Amount amount={report.totalProfit} symbol={quote} /></b>
@@ -235,9 +277,13 @@ const BotResults = () => {
                 />
             </Grid>
 
-            <Grid container spacing={2} style={{ borderBottom: "1px solid #ddd" }}>
-                <Grid item style={{ marginLeft: "auto", padding: "8px " }}>
-                    <Button onClick={handleToggleHeikinAshi} variant="contained">Heikin Ashi {displayHeikinAshi ? "off" : "on"}</Button>
+            <Grid container sx={{ borderBottom: "1px solid #ddd" }}>
+                <Grid item sx={{ marginLeft: "auto" }}></Grid>
+                <Grid item>
+                    <Button sx={actionButton} variant="contained" onClick={handleToggleHeikinAshi}>Heikin Ashi {displayHeikinAshi ? "off" : "on"}</Button>
+                </Grid>
+                <Grid item>
+                    <Button sx={actionButton} variant="contained" onClick={handleClickRunAsForwardTest}>Fork Genotype&nbsp;&raquo;</Button>
                 </Grid>
             </Grid>
 
@@ -303,6 +349,20 @@ const BotResults = () => {
                     <SimpleOrderTable orders={orders} />
                 </Grid>
             </Grid>
+
+            <Dialog open={forkDialogOpen} onClose={handleCloseRunAsForwardTest}>
+                <DialogTitle>Run as Forward Test</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you would like to create a new forward test from
+                        this backtest?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseRunAsForwardTest}>Cancel</Button>
+                    <Button onClick={handleConfirmRunAsForwardTest}>Run Forward</Button>
+                </DialogActions>
+            </Dialog>
         </ScreenBase>
     );
 };

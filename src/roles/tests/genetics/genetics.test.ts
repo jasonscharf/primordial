@@ -64,7 +64,7 @@ describe("genetics", () => {
                 const gene = genome.getGene<number>(names.GENETICS_C_RSI, names.GENETICS_C_RSI_G_L);
                 assert.exists(gene);
 
-                const { defaultValue, value } = gene;
+                const { default: defaultValue, value } = gene;
                 assert.isNumber(defaultValue);
                 assert.isNumber(value);
             });
@@ -73,7 +73,7 @@ describe("genetics", () => {
                 const genome = new Genome(defaultBaseGenetics, "RSI-H=888|HA|BOLL");
                 const rsiGene = genome.getGene<number>(names.GENETICS_C_RSI, names.GENETICS_C_RSI_G_H);
                 const haChromo = genome.getChromo(names.GENETICS_C_HEIKIN_ASHI);
-                const bollChromo = genome.getChromo(names.GENETICS_C_BOLL); 
+                const bollChromo = genome.getChromo(names.GENETICS_C_BOLL);
 
                 assert.exists(rsiGene);
                 assert.exists(haChromo);
@@ -82,7 +82,7 @@ describe("genetics", () => {
                 const all = genome.chromosomesAll;
                 assert.lengthOf(all, Object.keys(DEFAULT_GENETICS).length);
 
-                const active = genome.chromosomesEnabled;
+                const active = genome.activeChromosomes;
                 assert.lengthOf(active, 3);
             });
         });
@@ -112,6 +112,47 @@ describe("genetics", () => {
             it("modifies the genome but not the base", async () => {
                 // TEST
             });
+        });
+
+        describe("sanity", () => {
+            it("handles shorthand chromosome activation", async () => {
+                const geno = Genome.fromString("RSI|HA|BOLL");
+                const activeChromos = geno.activeChromosomes;
+                assert.equal(activeChromos.length, 3);
+                assert.ok(activeChromos.every(c => c.active));
+
+                const str = geno.toString();
+                assert.equal(str, "BOLL|HA|RSI");
+            });
+
+            it("emits genes when they don't match their default values", async () => {
+                const geno = Genome.fromString("BOLL-BB=y");
+                const bollChromo = geno.getChromo("BOLL");
+                const bbGene = geno.getGene("BOLL", "BB");
+                assert.isTrue(bollChromo.active);
+                assert.isTrue(bbGene.active);
+                assert.equal(geno.toString(), "BOLL-BB=Y");
+            });
+
+            it("emits nothing when a gene is set to its default value", async () => {
+                const geno = Genome.fromString("BOLL-BB=n");
+                assert.equal(geno.toString(), "BOLL-BB=N");
+            });
+
+            it("handles specific gene activation", async () => {
+                const geno = Genome.fromString("RSI-L=34"); 
+
+                const str = geno.toString();
+                assert.equal(str, "RSI-L=34");
+            });
+
+            // TEST: Whole bunch of round trips!!!
+
+            /* Not supported yet 
+            it("handles shorthand gene flag activation", async () => {
+                const geno = Genome.fromString("BOLL-BB");
+                assert.equal(geno.toString(), "BOLL-BB");
+            });*/
         });
     });
 
@@ -189,7 +230,7 @@ describe("genetics", () => {
             const raw = "TIME-RES=1m|RSI-H=66|BOLL-BB";
             const { genome, warnings, errors } = parser.parse(raw);
             assert.exists(genome);
-            const { chromosomesAll, chromosomesEnabled } = genome;
+            const { chromosomesAll, activeChromosomes: chromosomesEnabled } = genome;
             assert.equal(chromosomesAll.length, Object.keys(DEFAULT_GENETICS).length);
             assert.equal(chromosomesEnabled.length, 3);
         });
@@ -197,18 +238,18 @@ describe("genetics", () => {
         it("correctly overlays genes on the base", async () => {
             const baseGene = DEFAULT_GENETICS["RSI"].getGene("L");
             assert.exists(baseGene);
-            assert.equal(baseGene.defaultValue, 33);
+            assert.equal(baseGene.default, 33);
             assert.isFalse(baseGene.active);
             assert.isNull(baseGene.value, null);
 
             const raw = "RSI-L=20";
             const { genome, warnings, errors } = parser.parse(raw);
-            const { chromosomesAll, chromosomesEnabled } = genome;
+            const { chromosomesAll, activeChromosomes: chromosomesEnabled } = genome;
             assert.lengthOf(chromosomesEnabled, 1);
             const overlaidGene = genome.getGene("RSI", "L");
             assert.exists(overlaidGene);
             assert.equal(overlaidGene.value, 20);
-            assert.equal(overlaidGene.defaultValue, baseGene.defaultValue);
+            assert.equal(overlaidGene.default, baseGene.default);
             assert.equal(overlaidGene.name, baseGene.name);
             assert.equal(overlaidGene.type, baseGene.type);
             assert.equal(overlaidGene.desc, baseGene.desc);
@@ -229,21 +270,21 @@ describe("genetics", () => {
             assert.exists(genome);
             assert.lengthOf(warnings, 0);
             assert.lengthOf(errors, 0);
-            const { chromosomesAll, chromosomesEnabled } = genome;
+            const { chromosomesAll, activeChromosomes: chromosomesEnabled } = genome;
 
             assert.lengthOf(chromosomesEnabled, 1);
             const [chromo] = chromosomesEnabled;
             {
                 const gene = chromo.getGene("LIMIT");
                 assert.exists(gene);
-                const { defaultValue, name, value } = gene;
+                const { default: defaultValue, name, value } = gene;
                 assert.equal(name, "LIMIT");
                 assert.equal(value.toString(), "999");
                 assert.equal(defaultValue.toString(), "888");
             }
             {
                 const gene = genome.getGene("MONEY", "LIMIT");
-                const { defaultValue, name, value } = gene;
+                const { default: defaultValue, name, value } = gene;
                 assert.equal(name, "LIMIT");
                 assert.equal(value.toString(), "999");
                 assert.equal(defaultValue.toString(), "888");
