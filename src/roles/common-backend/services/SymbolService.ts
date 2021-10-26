@@ -264,14 +264,6 @@ export class SymbolService {
     async addSymbolPrice(props: Partial<Price>): Promise<Price> {
         return query(queries.SYMBOLS_PRICES_ADD, async trx => {
 
-            // Ensure we are reflecting the raw (string-form) values as well (for now)
-            const priceProps: Partial<Price> = Object.assign({}, props, <Partial<Price>>{
-                openRaw: props.open.toString(),
-                closeRaw: props.close.toString(),
-                lowRaw: props.low.toString(),
-                highRaw: props.high.toString(),
-            });
-
             const cols = [
                 "baseSymbolId",
                 "quoteSymbolId",
@@ -283,32 +275,24 @@ export class SymbolService {
                 "low",
                 "close",
                 "volume",
-                "openRaw",
-                "highRaw",
-                "lowRaw",
-                "closeRaw",
             ].map(col => `"${col}"`);
 
             const { rows } = await db
                 .raw(`
                 INSERT INTO ${tables.Prices} (${cols.join(", ")})
-                VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?::decimal, ?::decimal, ?::decimal, ?::decimal, ?::decimal)
                 ON CONFLICT DO NOTHING
                 RETURNING *`, [
-                    priceProps.baseSymbolId,
-                    priceProps.quoteSymbolId,
-                    priceProps.exchangeId,
-                    priceProps.resId,
-                    priceProps.ts,
-                    priceProps.open.toString(),
-                    priceProps.high.toString(),
-                    priceProps.low.toString(),
-                    priceProps.close.toString(),
-                    priceProps.volume.toString(),
-                    priceProps.openRaw,
-                    priceProps.highRaw,
-                    priceProps.lowRaw,
-                    priceProps.closeRaw,
+                    props.baseSymbolId,
+                    props.quoteSymbolId,
+                    props.exchangeId,
+                    props.resId,
+                    props.ts,
+                    props.open.toString(),
+                    props.high.toString(),
+                    props.low.toString(),
+                    props.close.toString(),
+                    props.volume.toString(),
                 ])
                 .transacting(trx)
                 ;
@@ -354,7 +338,6 @@ export class SymbolService {
                 "quoteSymbolId" VARCHAR,
                 "exchangeId" VARCHAR,
                 "resId" VARCHAR,
-                "openRaw" VARCHAR, "closeRaw" VARCHAR, "lowRaw" VARCHAR, "highRaw" VARCHAR,
                 "volume" VARCHAR,
                 "open" VARCHAR,
                 "close" VARCHAR,
@@ -395,7 +378,7 @@ export class SymbolService {
             // Note the inclusive logic in the WHERE - this is to match up with buckets.
             const q = await trx.raw(
                 `
-                INSERT INTO ${tables.Prices} ("ts", "baseSymbolId", "quoteSymbolId", "exchangeId", "resId", "openRaw", "closeRaw", "lowRaw", "highRaw",
+                INSERT INTO ${tables.Prices} ("ts", "baseSymbolId", "quoteSymbolId", "exchangeId", "resId",
                     "volume", "open", "close", "low", "high") (
                         WITH time_series AS (
                             SELECT generate_series(:start::timestamp, :end::timestamp, interval '${tsdbTimeframe}') as tf
@@ -406,11 +389,6 @@ export class SymbolService {
                             :quote AS "quoteSymbolId",
                             :exchange AS "exchangeId",
                             :res AS "resId",
-
-                            last("openRaw", ts),
-                            last("closeRaw", ts),
-                            last("lowRaw", ts),
-                            last("highRaw", ts),
 
                             COALESCE(
                                 LAST(volume::${numType}, ts),

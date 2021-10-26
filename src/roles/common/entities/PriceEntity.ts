@@ -14,10 +14,6 @@ export class PriceEntity implements Price {
     low: BigNum;
     close: BigNum;
     volume: BigNum;
-    openRaw: string;
-    highRaw: string;
-    lowRaw: string;
-    closeRaw: string;
 
 
     constructor(row?: Partial<Price>) {
@@ -32,10 +28,6 @@ export class PriceEntity implements Price {
             this.low = BigNum(row.low);
             this.close = BigNum(row.close);
             this.volume = BigNum(row.volume);
-            this.openRaw = row.openRaw;
-            this.highRaw = row.highRaw;
-            this.lowRaw = row.lowRaw;
-            this.closeRaw = row.closeRaw;
         }
     }
 

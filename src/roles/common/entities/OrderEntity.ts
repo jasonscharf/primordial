@@ -16,6 +16,7 @@ export class OrderEntity extends MutableEntity implements Order {
     typeId: OrderType;
     opened?: Date;
     closed?: Date;
+    capital: BigNum;
     quantity: BigNum;
     price: BigNum;
     gross: BigNum;

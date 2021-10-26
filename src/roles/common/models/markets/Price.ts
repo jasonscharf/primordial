@@ -14,8 +14,4 @@ export interface Price {
     low: BigNum;
     close: BigNum;
     volume: BigNum;
-    openRaw: string;
-    highRaw: string;
-    lowRaw: string;
-    closeRaw: string;
 }

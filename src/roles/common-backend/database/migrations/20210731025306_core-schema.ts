@@ -5,7 +5,7 @@ import { OrderState } from "../../../common/models/markets/Order";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
 import { TradeSymbolType } from "../../../common/models/markets/TradeSymbol";
 import { addUpdateTimestampTrigger } from "../../../common/utils";
-import { createCommonEntityFields as createMutableEntityFields, createMonetaryColumn, enableCompression as enableTimescaleDbCompression } from "../utils";
+import { createCommonEntityFields as createMutableEntityFields, createMonetaryColumnLegacy, enableCompression as enableTimescaleDbCompression } from "../utils";
 import env from "../../env";
 import { db, log, tables } from "../../includes";
 import { transpile } from "typescript";
@@ -118,11 +118,11 @@ export async function createCoreSchema(knex: Knex) {
         // Disallow prices for the same time and pair on a given exchange (at the specified res)
         table.unique(["ts", "baseSymbolId", "quoteSymbolId", "exchangeId", "resId"]);
 
-        createMonetaryColumn(knex, table, "open");
-        createMonetaryColumn(knex, table, "high");
-        createMonetaryColumn(knex, table, "low");
-        createMonetaryColumn(knex, table, "close");
-        createMonetaryColumn(knex, table, "volume");
+        createMonetaryColumnLegacy(knex, table, "open");
+        createMonetaryColumnLegacy(knex, table, "high");
+        createMonetaryColumnLegacy(knex, table, "low");
+        createMonetaryColumnLegacy(knex, table, "close");
+        createMonetaryColumnLegacy(knex, table, "volume");
 
         // These are for long-term QA on numeric handling :)
         table.string("openRaw");
@@ -248,13 +248,13 @@ export async function createCoreSchema(knex: Knex) {
 
         table.string("extOrderId").notNullable();
 
-        createMonetaryColumn(knex, table, "quantity");
-        createMonetaryColumn(knex, table, "price");
-        createMonetaryColumn(knex, table, "gross");
-        createMonetaryColumn(knex, table, "fees");
-        createMonetaryColumn(knex, table, "strike");
-        createMonetaryColumn(knex, table, "limit");
-        createMonetaryColumn(knex, table, "stop");
+        createMonetaryColumnLegacy(knex, table, "quantity");
+        createMonetaryColumnLegacy(knex, table, "price");
+        createMonetaryColumnLegacy(knex, table, "gross");
+        createMonetaryColumnLegacy(knex, table, "fees");
+        createMonetaryColumnLegacy(knex, table, "strike");
+        createMonetaryColumnLegacy(knex, table, "limit");
+        createMonetaryColumnLegacy(knex, table, "stop");
     });
 
     // Fill
@@ -266,8 +266,8 @@ export async function createCoreSchema(knex: Knex) {
         table.uuid("orderId").notNullable();
         table.foreign("orderId").references(`${tables.Orders}.id`);
 
-        createMonetaryColumn(knex, table, "quantity");
-        createMonetaryColumn(knex, table, "price");
+        createMonetaryColumnLegacy(knex, table, "quantity");
+        createMonetaryColumnLegacy(knex, table, "price");
     });
 
 

@@ -6,7 +6,7 @@ import { User } from "../../../common/models/user/User";
 import { Workspace } from "../../../common/models/system/Workspace";
 import { WorkspaceEntity } from "../../../common/entities/WorkspaceEntity";
 import { constants, log, strats, users } from "../../includes";
-import { createCommonEntityFields, createMonetaryColumn, query, ref } from "../utils";
+import { createCommonEntityFields, createMonetaryColumnLegacy, query, ref } from "../utils";
 import { DEFAULT_STRATEGY, tables } from "../../constants";
 import env from "../../env";
 import { create } from "domain";
@@ -69,8 +69,8 @@ export async function up(knex: Knex): Promise<void> {
         table.string("assetId").notNullable();
         table.foreign("assetId").references(`${tables.TradeSymbols}.id`);
 
-        createMonetaryColumn(knex, table, "amount");
-        createMonetaryColumn(knex, table, "rate");
+        createMonetaryColumnLegacy(knex, table, "amount");
+        createMonetaryColumnLegacy(knex, table, "rate");
     });
 
     // Allocation
@@ -97,7 +97,7 @@ export async function up(knex: Knex): Promise<void> {
         table.string("symbolId").notNullable();
         table.foreign("symbolId").references(`${tables.TradeSymbols}.id`);
 
-        createMonetaryColumn(knex, table, "amount");
+        createMonetaryColumnLegacy(knex, table, "amount");
 
         table.decimal("maxWagerPct")
             .notNullable()
@@ -139,7 +139,7 @@ export async function up(knex: Knex): Promise<void> {
         table.string("typeId").notNullable();
         table.foreign("typeId").references(`${tables.AllocationTransactionTypes}`);
 
-        createMonetaryColumn(knex, table, "amount");
+        createMonetaryColumnLegacy(knex, table, "amount");
     });
 
     // Add fields to BotInstance

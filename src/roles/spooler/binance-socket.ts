@@ -101,11 +101,6 @@ export function handleCandle(symbolPair: string, res: TimeResolution, candle: Ca
         const close = Money(candle.close);
         const volume = Money(candle.volume);
 
-        const openRaw = candle.open;
-        const lowRaw = candle.low;
-        const closeRaw = candle.close;
-        const highRaw = candle.high;
-
         const price: Partial<Price> = {
             exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
             baseSymbolId: baseSymbol.id,
@@ -117,10 +112,6 @@ export function handleCandle(symbolPair: string, res: TimeResolution, candle: Ca
             high,
             close,
             volume,
-            openRaw,
-            lowRaw,
-            closeRaw,
-            highRaw,
         };
 
 

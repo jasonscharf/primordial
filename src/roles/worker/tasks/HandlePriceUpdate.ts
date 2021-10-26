@@ -29,10 +29,6 @@ export function handlePriceUpdate(msg: QueueMessage<PriceUpdateMessage>) {
         resId: TimeResolution.ONE_SECOND,
         ts: DateTime.fromISO(payload.ts as any).toJSDate(),
         volume: Money(payload.volume),
-        openRaw: "",
-        lowRaw: "",
-        highRaw: "",
-        closeRaw: "",
     };
 
     // ... for each strategy

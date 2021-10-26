@@ -30,6 +30,7 @@ export interface Order extends MutableModel {
     typeId: OrderType;
     opened?: Date;
     closed?: Date;
+    capital?: BigNum;
     quantity: BigNum;
     price: BigNum;
     gross: BigNum;

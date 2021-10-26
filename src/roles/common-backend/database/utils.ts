@@ -113,15 +113,33 @@ export function createCommonEntityFields(knex: Knex, table: Knex.CreateTableBuil
 
 
 /**
+ * DEPRECATED
  * Creates a high-precision numeric column suitable for use with cryptocurrencies,
  * where some currencies have indivisible units into 12 digits or more.
+ * @deprecated
  * @param knex 
  * @param table 
  * @param colName 
  */
-export function createMonetaryColumn(knex: Knex, table: Knex.CreateTableBuilder, colName: string) {
+export function createMonetaryColumnLegacy(knex: Knex, table: Knex.CreateTableBuilder, colName: string) {
     return table
         .decimal(colName, env.PRIMO_CURRENCY_PRECISION, env.PRIMO_CURRENCY_SCALE)
+        .notNullable()
+        .defaultTo(0)
+        ;
+}
+
+/**
+ * Creates an unconstrained decimal column in the DB.
+ * See: https://stackoverflow.com/questions/40686571/performance-of-numeric-type-with-high-precisions-and-scales-in-postgresql
+ * @param knex 
+ * @param table 
+ * @param colName 
+ * @returns 
+ */
+export function createBigNumber(knex: Knex, table: Knex.CreateTableBuilder, colName: string) {
+    return table
+        .decimal(colName)
         .notNullable()
         .defaultTo(0)
         ;
