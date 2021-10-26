@@ -1,14 +1,19 @@
 import { BigNum } from "../../numbers";
-import { Chromosome } from "./Chromosome";
-import { Gene } from "./Gene";
+import { Chromosome, ChromosomeJson } from "./Chromosome";
+import { Gene, GeneJson } from "./Gene";
 import { GeneticValueType } from "./GeneticValueType";
 import { GenomeParseResult } from "../../../common-backend/genetics/GenomeParseResult";
+import { PartialPropSet } from "../../../common/utils/types";
 import { PrimoMalformedGenomeError } from "../../errors/errors";
 import { TimeResolution } from "../markets/TimeResolution";
 import { isNullOrUndefined } from "../../utils";
 import { DEFAULT_GENETICS } from "../../../common-backend/genetics/base-genetics";
 
 
+const compare = (a: string, b: string) => a < b ? -1 : (a > b ? 1 : 0);
+
+
+export type GenomeJson = { [Property in keyof typeof DEFAULT_GENETICS]: ChromosomeJson };
 
 /**
  * Represents the genetic material of a bot or strategy.
@@ -54,10 +59,10 @@ export class Genome {
         return unique;
     }
 
-    get chromosomesEnabled(): Chromosome[] {
+    get activeChromosomes(): Chromosome[] {
         const enabled = new Map<string, Chromosome>();
 
-        const enabledOnBase = !this._base ? [] : this._base.chromosomesEnabled;
+        const enabledOnBase = !this._base ? [] : this._base.activeChromosomes;
         const uniqueMap = enabledOnBase.concat(Array.from(this._overlaid.entries()).map(([key, value]) => value))
             .filter(chromo => chromo.active)
             .reduce((map, chromo) => {
@@ -68,6 +73,89 @@ export class Genome {
 
         const unique = Array.from(uniqueMap.values());
         return unique;
+    }
+
+    static fromString(str: string, base = defaultBaseGenetics) {
+        return new Genome(base, str);
+    }
+
+    toString() {
+        const pieces: string[] = [];
+
+        const chromos = Array.from(this._overlaid.values())
+            .filter(c => c.active)
+            .sort((a, b) => compare(a.name, b.name))
+            ;
+
+        // Only emit genes for active chromosomes
+        for (const chromo of chromos) {
+            const genes = Array.from(chromo.genes.values())
+                .filter(g => g.active)
+                .filter(g => !isNullOrUndefined(g.value))
+                //.filter(g => g.value !== g.defaultValue)
+                .sort((a, b) => compare(a.name, b.name))
+                ;
+
+            // It is possible to have an active chromosome with no active genes.
+            // This is useful for activating indicators and using them for viz/research,
+            // but not actual signals.
+            if (genes.length === 0) {
+                pieces.push(chromo.name);
+            }
+            else {
+                pieces.push(...genes.map(gene => `${chromo.name}-${gene.name}=${gene.serialize(gene.value)}`));
+            }
+        }
+
+        return pieces.join("|");
+    }
+
+    toJson() {
+        const obj: GenomeJson = {
+        };
+
+        const chromos = Array.from(this._overlaid.values())
+            .filter(c => c.active)
+            .sort((a, b) => compare(a.name, b.name))
+            ;
+
+        // Only emit genes for active chromosomes
+        for (const chromo of chromos) {
+            const genes = Array.from(chromo.genes.values())
+                .filter(g => g.active)
+                .sort((a, b) => compare(a.name, b.name))
+                ;
+
+            const { active, genes: chromoGenes, name } = chromo;
+
+            // It is possible to have an active chromosome with no active gene.
+            // This is useful for activating indicators and using them for viz/research,
+            // but not actual signals.
+            if (genes.length === 0) {
+                obj[chromo.name] = {
+                    active,
+                    name,
+                    genes: {},
+                };
+            }
+            else {
+                obj[chromo.name] = {
+                    active,
+                    name,
+                    genes: {},
+                };
+
+                genes.forEach(gene => {
+                    obj[chromo.name].genes[gene.name] = gene.toJson();
+                });
+            }
+        }
+
+        return obj;
+    }
+
+    fromJson(json: GenomeJson) {
+
     }
 
     setChromosome(chromo: Chromosome, freeze = false) {
@@ -143,7 +231,7 @@ export class Genome {
             if (gene) {
                 const copy = gene.copy() as Gene<T>;
                 if (!copy.value) {
-                    copy.value = copy.defaultValue;
+                    copy.value = copy.default;
                 }
 
                 //copy.active = true;
@@ -156,7 +244,7 @@ export class Genome {
         }
 
         const copy = gene.copy() as Gene<T>;
-        copy.value = copy.defaultValue;
+        copy.value = copy.default;
         return copy;
     }
 
@@ -218,8 +306,6 @@ export class Genome {
                 throw new PrimoMalformedGenomeError(`Unknown chromosome '${chromosomeName}'`);
             }
 
-
-
             const geneNameFull = `${chromosomeName}-${geneName}`;
 
             let parsingChromo: Chromosome = null;
@@ -235,6 +321,9 @@ export class Genome {
 
             if (keyValues.length === 1) {
                 parsingChromo.active = true;
+
+                // TODO: Think about this more. May be possible to active chromos and
+                //  leave some optional genes inactive.
                 parsingChromo.genes.forEach(g => g.active = true);
                 continue;
             }
@@ -245,27 +334,28 @@ export class Genome {
                 }
             }
 
+            let orig: string = null;
+
             // Extract value, if present
             if (gene.type == GeneticValueType.FLAG) {
                 if (keyValues.length === 1) {
                     parsedValue = true;
                 }
                 else {
-                    const rawValue = keyValues[1].trim();
-                    let parsedValue: unknown = null;
+                    orig = keyValues[1].trim();
 
-                    const isTrueFlag = ACCEPTABLE_FLAG_VALUES_FOR_TRUE.indexOf(rawValue.toLowerCase());
-                    if (isTrueFlag > 0) {
+                    const isTrueFlag = ACCEPTABLE_FLAG_VALUES_FOR_TRUE.indexOf(orig.toLowerCase()) > -1;
+                    if (isTrueFlag) {
                         parsedValue = true;
                     }
 
-                    const isFalseFlag = ACCEPTABLE_FLAG_VALUES_FOR_FALSE.indexOf(rawValue.toLowerCase());
-                    if (isFalseFlag > 0) {
+                    const isFalseFlag = ACCEPTABLE_FLAG_VALUES_FOR_FALSE.indexOf(orig.toLowerCase()) > -1;
+                    if (isFalseFlag) {
                         parsedValue = false;
                     }
 
                     if (parsedValue === null) {
-                        throw new PrimoMalformedGenomeError(`Invalid flag value '${rawValue}' for gene '${geneNameFull}'`);
+                        throw new PrimoMalformedGenomeError(`Invalid flag value '${orig}' for gene '${geneNameFull}'`);
                     }
                 }
             }
@@ -274,41 +364,43 @@ export class Genome {
                     throw new PrimoMalformedGenomeError(`Missing monetary value for gene '${geneNameFull}'`);
                 }
                 else {
-                    const rawValue = keyValues[1];
-                    parsedValue = BigNum(rawValue);
+                    orig = keyValues[1];
+                    parsedValue = BigNum(orig);
                 }
             }
             else if (gene.type === GeneticValueType.NUMBER || gene.type === GeneticValueType.PERCENT) {
-                const rawValue = keyValues[1].trim();
-                if (keyValues.length === 1 || isNullOrUndefined(rawValue)) {
+                orig = keyValues[1].trim();
+                if (keyValues.length === 1 || isNullOrUndefined(orig)) {
                     throw new PrimoMalformedGenomeError(`Invalid numeric value for gene '${geneNameFull}'`)
                 }
                 else {
-                    parsedValue = parseFloat(rawValue);
+                    parsedValue = parseFloat(orig);
                     if (isNaN(parsedValue as number)) {
                         throw new PrimoMalformedGenomeError(`Invalid numeric value for gene '${geneNameFull}'`);
                     }
                 }
             }
             else if (gene.type === GeneticValueType.TIME_RES) {
-                const rawValue = keyValues[1].trim();
-                if (keyValues.length === 1 || isNullOrUndefined(rawValue)) {
+                orig = keyValues[1].trim();
+                if (keyValues.length === 1 || isNullOrUndefined(orig)) {
                     throw new PrimoMalformedGenomeError(`Invalid time resolution value for gene '${geneNameFull}'`)
                 }
                 else {
-                    const ix = ACCEPTABLE_TIME_RES_VALUES.indexOf(rawValue);
+                    const ix = ACCEPTABLE_TIME_RES_VALUES.indexOf(orig);
                     if (ix < 0) {
-                        throw new PrimoMalformedGenomeError(`Unknown/invalid time resolution '${rawValue}' for gene '${geneNameFull}'`);
+                        throw new PrimoMalformedGenomeError(`Unknown/invalid time resolution '${orig}' for gene '${geneNameFull}'`);
                     }
 
-                    parsedValue = rawValue as TimeResolution;
+                    parsedValue = orig as TimeResolution;
                 }
             }
             else {
                 throw new Error(`Unknown/unsupported gene value type '${gene.type}'`);
             }
 
-            const newGene = new Gene(gene.name, gene.type, gene.defaultValue, gene.desc);
+            const newGene = new Gene(gene.name, gene.type, gene.default, gene.desc);
+
+            // Specifying a gene makes it active, even if it matches the default
             newGene.active = true;
             newGene.value = parsedValue;
 
@@ -338,8 +430,8 @@ export const ACCEPTABLE_FLAG_VALUES = [
     ...ACCEPTABLE_FLAG_VALUES_FOR_TRUE,
     ...ACCEPTABLE_FLAG_VALUES_FOR_FALSE,
 ];
-export const ACCEPTABLE_TIME_RES_VALUES = Object.keys(TimeResolution).map(k => TimeResolution[k]);
 
+export const ACCEPTABLE_TIME_RES_VALUES = Object.keys(TimeResolution).map(k => TimeResolution[k]);
 
 
 export const defaultBaseGenetics: Genome = new Genome(null);

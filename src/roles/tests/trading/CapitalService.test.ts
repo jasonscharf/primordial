@@ -5,7 +5,7 @@ import { CapitalService } from "../../common-backend/services/CapitalService";
 import { Money, randomString } from "../../common/utils";
 import { Order, OrderState } from "../../common/models/markets/Order";
 import { Strategy } from "../../common/models/system/Strategy";
-import { TestDataCtx, getTestData, addNewBotDefAndInstance, makeTestOrder, clearTestData, TEST_DEFAULT_BUDGET } from "../utils/test-data";
+import { TestDataCtx, getTestData, addNewBotDefAndInstance, makeTestOrder, clearTestData, TEST_DEFAULT_BUDGET, TEST_DEFAULT_QUOTE, TEST_DEFAULT_BASE } from "../utils/test-data";
 import { User } from "../../common/models";
 import { Workspace } from "../../common/models/system/Workspace";
 import { assert, describe, before, env, it } from "../includes";
@@ -68,7 +68,7 @@ describe(CapitalService.name, () => {
 
     describe(cap.createAllocationForBot.name, () => {
         it("creates a new allocation record", async () => {
-            const allocStr = "1000 TUSD";
+            const allocStr = "1000 USDT";
             const { def, instance } = await addNewBotDefAndInstance();
             const { alloc, items, transactions } = await cap.createAllocationForBot(defaultStrategy.id, allocStr);
             assert.equal(alloc.strategyId, defaultStrategy.id);
@@ -79,7 +79,7 @@ describe(CapitalService.name, () => {
             const [item] = items;
             assert.equal(item.allocationId, alloc.id);
             assert.equal(item.amount.toString(), "1000");
-            assert.equal(item.symbolId, "TUSD");
+            assert.equal(item.symbolId, TEST_DEFAULT_QUOTE);
 
             assert.lengthOf(transactions, 1);
             const [transaction] = transactions;
@@ -113,7 +113,7 @@ describe(CapitalService.name, () => {
             const order = makeTestOrder({ botRunId: run.id });
 
             let delegateExecuted = false;
-            const transaction = await cap.transact(instance.id, "TUSD", order, null, async (item, trx) => {
+            const transaction = await cap.transact(instance.id, TEST_DEFAULT_QUOTE, order, null, async (item, trx) => {
                 delegateExecuted = true;
 
                 const savedOrder = await orders.addOrderToDatabase(order);
@@ -136,7 +136,7 @@ describe(CapitalService.name, () => {
             const order = makeTestOrder({ botRunId: run.id });
 
             let delegateExecuted = false;
-            const transaction = await cap.transact(instance.id, "TUSD", order, null, async (item, trx) => {
+            const transaction = await cap.transact(instance.id, TEST_DEFAULT_QUOTE, order, null, async (item, trx) => {
                 delegateExecuted = true;
                 const fakeTransaction: Partial<AllocationTransaction> = {
                     allocationItemId: item.id,
@@ -152,7 +152,7 @@ describe(CapitalService.name, () => {
             const { instance, run } = await addNewBotDefAndInstance(TEST_DEFAULT_BUDGET, true);
             const order = makeTestOrder({ botRunId: run.id });
 
-            await assertRejects(() => cap.transact(instance.id, "TUSD", order, null, async (item, trx) => {
+            await assertRejects(() => cap.transact(instance.id, TEST_DEFAULT_QUOTE, order, null, async (item, trx) => {
                 throw new Error(`Something went wrong in the transaction`);
             }));
         });

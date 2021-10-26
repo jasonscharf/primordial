@@ -17,8 +17,8 @@ export class RsiIndicatorChromosome extends IndicatorChromosome {
         const buyWeightGene = genome.getGene<number>("RSI", "BW");
         const sellWeightGene = genome.getGene<number>("RSI", "SW");
 
-        const buyWeight = buyWeightGene.value || buyWeightGene.defaultValue;
-        const sellWeight = sellWeightGene.value || sellWeightGene.defaultValue;
+        const buyWeight = buyWeightGene.value || buyWeightGene.default;
+        const sellWeight = sellWeightGene.value || sellWeightGene.default;
 
         return [buyWeight, sellWeight];
     }

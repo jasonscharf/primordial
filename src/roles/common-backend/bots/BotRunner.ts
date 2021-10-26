@@ -18,10 +18,11 @@ import { PriceDataParameters } from "../../common/models/system/PriceDataParamet
 import { PriceEntity } from "../../common/entities/PriceEntity";
 import { PriceUpdateMessage } from "../messages/trading";
 import { RunState } from "../../common/models/system/RunState";
+import { SymbolResultSet } from "../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { TimeSeriesCache, TimeSeriesCacheArgs } from "../system/TimeSeriesCache";
 import { botFactory } from "./RobotFactory";
-import { capital, db, log, results, strats, users } from "../includes";
+import { cache, capital, db, log, results, strats, users } from "../includes";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { names } from "../genetics/base-genetics";
 import { sym } from "../services";
@@ -197,7 +198,7 @@ export class BotRunner {
      * @returns 
      */
     async calculateIndicatorsAndSignals(args: BacktestRequest): Promise<IndicatorsAndSignals> {
-        let { budget, name, from, genome: genomeStr, /*maxWagerPct,*/ to } = args;
+        let { budget, name, from, genome: genomeStr, to } = args;
 
         const signals = [];
         const indicators = new Map<string, number[]>();
@@ -490,7 +491,28 @@ export class BotRunner {
                 //  Think about a deployment rollout
                 const beginLoadPrices = Date.now();
 
-                const sus = await sym.getSymbolPriceData(params);
+                // Testing only
+                // Use Redis to avoid pulling multiple times, i.e. during tests.
+                const useCache = false;//env.isTest();
+                let sus: SymbolResultSet = null;
+                if (!env.isTest() || !useCache) {
+                    sus = await sym.getSymbolPriceData(params);
+                }
+                else {
+                    const cacheKey = `${params.exchange}-${params.res}-${params.symbolPair}-${params.from.toISOString()}-${params.to.toISOString()}`;
+
+                    // Use 59 seconds 
+                    const raw = await cache.getObject(cacheKey, 59, async () => {
+                        return sym.getSymbolPriceData(params);
+                    });
+
+                    const p = raw.prices.map(r => PriceEntity.fromRow(r));
+                    sus = {
+                        ...raw,
+                        prices: p,
+                    };
+                }
+
                 const { missingRanges, prices, warnings } = sus;
 
                 ctx.prices = prices;
@@ -598,7 +620,7 @@ export class BotRunner {
                 tr.numOrders = orders.length;
                 tr.numTrades = tr.numOrders / 2;
                 const testLenMs = tr.to.getTime() - tr.from.getTime();
-                const days = Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY));
+                const days = Math.max(1, Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY)));
                 tr.avgProfitPerDay = totalProfit.div(days + "").round(2).toNumber();
                 tr.avgProfitPctPerDay = parseFloat((tr.totalProfitPct / days).toPrecision(3));
                 tr.length = human(testLenMs);

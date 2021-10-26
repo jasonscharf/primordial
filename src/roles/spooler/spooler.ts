@@ -226,7 +226,11 @@ async function refreshTasksForExecution(state?: unknown) {
 async function addStreamingPriceWatchers() {
     // ... pull watchlist from database
     // ... if no listener exists for each symbol, add it!
-    await connectToBinanceWebSocket();
+
+    // Spooler does not connect live sockets during test runs
+    if (!env.isTest()) {
+        await connectToBinanceWebSocket();
+    }
 }
 
 async function shutdown() {

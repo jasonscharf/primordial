@@ -10,6 +10,6 @@ export enum BotType {
     // into slippage and real world performance vs backtest.
     PAPER_CLONE = "clone-paper",
 
-    // Descendant of a seed
+    // Descendant of a seed or another descendant
     DESCENDANT = "desc",
 }

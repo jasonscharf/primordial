@@ -1,13 +1,6 @@
 import { GenotypeInstanceDescriptor } from "./models/bots/GenotypeInstanceDescriptor";
+import { PartialPropSet } from "./utils/types";
 
-
-type PropSet<T> = {
-    [Property in keyof T];
-};
-
-type PartialPropSet<T> = {
-    [Property in keyof Partial<T>];
-};
 
 export const DEFAULT_INSTANCE_SORT_FIELD = "totalProfit";
 

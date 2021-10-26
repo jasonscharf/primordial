@@ -119,7 +119,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
     async computeIndicatorsForTick(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage): Promise<Map<string, unknown>> {
         const { prices, state } = ctx;
 
-        const activeIndicators = ctx.genome.chromosomesEnabled
+        const activeIndicators = ctx.genome.activeChromosomes
             .filter(c => c.active)
             .filter(c => c instanceof IndicatorChromosome) as IndicatorChromosome[]
             ;
@@ -165,7 +165,7 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
         const { genome, instance, log, prices, state } = ctx;
 
         // Compute buy/sell signals
-        const activeIndicators = ctx.genome.chromosomesEnabled
+        const activeIndicators = ctx.genome.activeChromosomes
             .filter(c => c.active)
             .filter(c => c instanceof IndicatorChromosome) as IndicatorChromosome[]
             ;

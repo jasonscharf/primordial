@@ -1,5 +1,6 @@
 import { BigNum } from "../../common/numbers";
 import { Price } from "../models/markets/Price";
+import { from } from "../utils/time";
 
 
 export class PriceEntity implements Price {
@@ -25,7 +26,7 @@ export class PriceEntity implements Price {
             this.quoteSymbolId = row.quoteSymbolId;
             this.exchangeId = row.exchangeId;
             this.resId = row.resId;
-            this.ts = row.ts;
+            this.ts = from(row.ts);
             this.open = BigNum(row.open);
             this.high = BigNum(row.high);
             this.low = BigNum(row.low);
