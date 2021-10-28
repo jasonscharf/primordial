@@ -76,7 +76,7 @@ export class Chromosome {
      */
     getGene<T>(name: string): Gene<T> {
         if (!this.genes.has(name)) {
-            throw new Error(`Missing gene '${name}' in chromosome '${this.name}'`);
+            throw new Error(`Unknown or malformed gene '${name}' in chromosome '${this.name}'`);
         }
 
         return this.genes.get(name) as Gene<T>;

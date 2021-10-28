@@ -104,7 +104,7 @@ const models: TsoaRoute.Models = {
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "TimeResolution": {
         "dataType": "refEnum",
-        "enums": ["1s","2s","1m","5m","15m","1h","1d","1w"],
+        "enums": ["1s","2s","1m","5m","15m","1h","2h","4h","6h","12h","1d","1w"],
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "RunState": {
@@ -157,6 +157,7 @@ const models: TsoaRoute.Models = {
             "displayName": {"dataType":"string"},
             "allocationId": {"dataType":"string","required":true},
             "definitionId": {"dataType":"string","required":true},
+            "msid": {"dataType":"string"},
             "exchangeId": {"dataType":"string","required":true},
             "modeId": {"ref":"BotMode","required":true},
             "resId": {"ref":"TimeResolution","required":true},
@@ -177,7 +178,7 @@ const models: TsoaRoute.Models = {
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Partial_BotInstance_": {
         "dataType": "refAlias",
-        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"allocationId":{"dataType":"string"},"definitionId":{"dataType":"string"},"exchangeId":{"dataType":"string"},"modeId":{"ref":"BotMode"},"resId":{"ref":"TimeResolution"},"typeId":{"dataType":"string"},"name":{"dataType":"string"},"type":{"dataType":"string"},"build":{"dataType":"string"},"prevTick":{"dataType":"datetime"},"symbols":{"dataType":"string"},"currentGenome":{"dataType":"string"},"normalizedGenome":{"dataType":"string"},"runState":{"ref":"RunState"},"stateInternal":{"ref":"BotInstanceStateInternal"},"stateJson":{"ref":"BotInstance"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"allocationId":{"dataType":"string"},"definitionId":{"dataType":"string"},"msid":{"dataType":"string"},"exchangeId":{"dataType":"string"},"modeId":{"ref":"BotMode"},"resId":{"ref":"TimeResolution"},"typeId":{"dataType":"string"},"name":{"dataType":"string"},"type":{"dataType":"string"},"build":{"dataType":"string"},"prevTick":{"dataType":"datetime"},"symbols":{"dataType":"string"},"currentGenome":{"dataType":"string"},"normalizedGenome":{"dataType":"string"},"runState":{"ref":"RunState"},"stateInternal":{"ref":"BotInstanceStateInternal"},"stateJson":{"ref":"BotInstance"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Partial_BotRun_": {
@@ -197,7 +198,7 @@ const models: TsoaRoute.Models = {
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Partial_Order_": {
         "dataType": "refAlias",
-        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"botRunId":{"dataType":"string"},"baseSymbolId":{"dataType":"string"},"quoteSymbolId":{"dataType":"string"},"exchangeId":{"dataType":"string"},"stopLossOrderId":{"dataType":"string"},"relatedOrderId":{"dataType":"string"},"extOrderId":{"dataType":"string"},"stateId":{"ref":"OrderState"},"typeId":{"ref":"OrderType"},"opened":{"dataType":"datetime"},"closed":{"dataType":"datetime"},"quantity":{"ref":"BigNum"},"price":{"ref":"BigNum"},"gross":{"ref":"BigNum"},"fees":{"ref":"BigNum"},"strike":{"ref":"BigNum"},"limit":{"ref":"BigNum"},"stop":{"ref":"BigNum"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{"botRunId":{"dataType":"string"},"baseSymbolId":{"dataType":"string"},"quoteSymbolId":{"dataType":"string"},"exchangeId":{"dataType":"string"},"stopLossOrderId":{"dataType":"string"},"relatedOrderId":{"dataType":"string"},"extOrderId":{"dataType":"string"},"stateId":{"ref":"OrderState"},"typeId":{"ref":"OrderType"},"opened":{"dataType":"datetime"},"closed":{"dataType":"datetime"},"capital":{"ref":"BigNum"},"quantity":{"ref":"BigNum"},"price":{"ref":"BigNum"},"gross":{"ref":"BigNum"},"fees":{"ref":"BigNum"},"strike":{"ref":"BigNum"},"limit":{"ref":"BigNum"},"stop":{"ref":"BigNum"},"id":{"dataType":"string"},"created":{"dataType":"datetime"},"updated":{"dataType":"datetime"},"displayName":{"dataType":"string"}},"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ApiBotOrderDescriptor": {
@@ -213,7 +214,7 @@ const models: TsoaRoute.Models = {
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ApiTimeResolution": {
         "dataType": "refAlias",
-        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["5m"]},{"dataType":"enum","enums":["15m"]},{"dataType":"enum","enums":["1h"]},{"dataType":"enum","enums":["4h"]}],"validators":{}},
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["5m"]},{"dataType":"enum","enums":["15m"]},{"dataType":"enum","enums":["1h"]},{"dataType":"enum","enums":["4h"]},{"dataType":"enum","enums":["6h"]},{"dataType":"enum","enums":["12h"]},{"dataType":"enum","enums":["1d"]},{"dataType":"enum","enums":["1w"]}],"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ApiBacktestRequest": {
@@ -293,6 +294,26 @@ export function RegisterRoutes(router: KoaRouter) {
             const controller = new GenotypeController();
 
             const promise = controller.forkGenotype.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.post('/api/genotypes/fork/back-to-fwd',
+            async function GenotypeController_forkBacktestToForwardTest(context: any, next: any) {
+            const args = {
+                    req: {"in":"body","name":"req","required":true,"ref":"ApiForkGenotypeRequest"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (error) {
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new GenotypeController();
+
+            const promise = controller.forkBacktestToForwardTest.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

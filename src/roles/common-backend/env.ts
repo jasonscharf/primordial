@@ -1,4 +1,5 @@
-
+// NOTE: This file and knexfile are symlinked to /app in containers.
+//  Avoid adding imports.
 
 /**
  * These variables are used to configure the entire system.

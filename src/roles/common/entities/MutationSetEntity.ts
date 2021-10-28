@@ -7,7 +7,8 @@ export class MutationSetEntity extends MutableEntity implements MutationSet {
     workspaceId: string;
     strategyId: string;
     ownerId: string;
-    desc: string;
+    psid?: string;
+    type: string;
     system: boolean;
     meta: unknown;
 
@@ -19,7 +20,8 @@ export class MutationSetEntity extends MutableEntity implements MutationSet {
             this.workspaceId = row[prefix + "workspaceId"];
             this.strategyId = row[prefix + "strategyId"];
             this.ownerId = row[prefix + "ownerId"];
-            this.desc = row[prefix + "desc"];
+            this.psid = row[prefix + "psid"];
+            this.type = row[prefix + "type"];
             this.system = row[prefix + "system"];
             this.meta = row[prefix + "meta"];
         }

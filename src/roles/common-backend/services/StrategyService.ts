@@ -709,6 +709,7 @@ export class StrategyService {
 
             const includeDeleted = false;
             const query = db(tables.BotInstances)
+                .select(ref(tables.BotInstances, "*"))
                 .innerJoin(tables.BotDefinitions, ref(tables.BotInstances, "definitionId"), ref(tables.BotDefinitions))
                 .innerJoin(tables.Workspaces, ref(tables.BotDefinitions, "workspaceId"), ref(tables.Workspaces))
                 .where(ref(tables.Workspaces), "=", workspaceId)
@@ -724,7 +725,8 @@ export class StrategyService {
             const rows = <BotInstance[]>await query;
             return rows.map(row => BotInstanceEntity.fromRow(row));
         }, trx);
-        return [];
+
+        return instances;
     }
 
     /**

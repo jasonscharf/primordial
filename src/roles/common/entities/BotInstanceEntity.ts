@@ -14,6 +14,7 @@ export class BotInstanceEntity<T = GeneticBotState> extends MutableEntity implem
     allocationId: string;
     definitionId: string;
     exchangeId: string;
+    msid?: string;
     modeId: BotMode;
     resId: TimeResolution;
     typeId: BotType;
@@ -35,6 +36,7 @@ export class BotInstanceEntity<T = GeneticBotState> extends MutableEntity implem
         if (row) {
             this.allocationId = row[prefix + "allocationId"];
             this.definitionId = row[prefix + "definitionId"];
+            this.msid = row[prefix + "msid"];
             this.exchangeId = row[prefix + "exchangeId"];
             this.modeId = row[prefix + "modeId"];
             this.resId = row[prefix + "resId"];
@@ -57,6 +59,7 @@ export class BotInstanceEntity<T = GeneticBotState> extends MutableEntity implem
             ...MutableEntity.cols,
             "allocationId",
             "definitionId",
+            "msid",
             "currentGenome",
             "modeId",
             "resId",

@@ -18,25 +18,36 @@ export async function up(knex: Knex): Promise<void> {
         table.uuid("strategyId").notNullable();
         table.foreign("strategyId").references(`${ref(tables.Strategies)}.id`);
 
+        table.uuid("psid").nullable();
+        table.foreign("psid").references(`${ref(tables.MutationSets)}.id`);
+
         table.boolean("system").notNullable();
         table.string("desc").nullable();
 
         table.jsonb("meta").nullable();
+
+        // Not mapped to an enum table until mutation type values decided
+        table.string("type").notNullable();
     });
 
     // Add Mutation
     await knex.schema.createTable(tables.Mutations, table => {
-        table.uuid("setId").notNullable();
-        table.foreign("setId").references(`${ref(tables.MutationSets)}.id`);
+        table.uuid("id")
+            .primary()
+            .defaultTo(knex.raw("uuid_generate_v4()"));
 
-        table.uuid("parentId1").nullable();
-        table.foreign("parentId1").references(`${ref(tables.BotInstances)}.id`);
+        // ID of parent MutationSet
+        table.uuid("msid").nullable();
+        table.foreign("msid").references(`${ref(tables.MutationSets)}.id`);
 
-        table.uuid("parentId2").nullable();
-        table.foreign("parentId2").references(`${ref(tables.BotInstances)}.id`);
+        table.uuid("pid1").nullable();
+        table.foreign("pid1").references(`${ref(tables.BotInstances)}.id`);
 
-        table.uuid("childId").notNullable();
-        table.foreign("childId").references(`${ref(tables.BotInstances)}.id`);
+        table.uuid("pid2").nullable();
+        table.foreign("pid2").references(`${ref(tables.BotInstances)}.id`);
+
+        table.uuid("chid").notNullable();
+        table.foreign("chid").references(`${ref(tables.BotInstances)}.id`);
 
         table.string("raw").notNullable();
         table.string("chromo").notNullable();
@@ -44,9 +55,18 @@ export async function up(knex: Knex): Promise<void> {
         table.string("value").notNullable();
         table.boolean("toggle").notNullable().defaultTo(false);
     });
+
+    // Link instances to MutationSet
+    await knex.schema.alterTable(tables.BotInstances, table => {
+        table.uuid("msid").nullable();
+        table.foreign("msid").references(`${ref(tables.MutationSets)}`);
+    });
 }
 
 export async function down(knex: Knex): Promise<void> {
+    await knex.schema.alterTable(tables.BotInstances, table => {
+        table.dropColumn("msid");
+    });
     await knex.schema.dropTable(tables.Mutations);
     await knex.schema.dropTable(tables.MutationSets);
 }

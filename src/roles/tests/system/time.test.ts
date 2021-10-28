@@ -91,9 +91,22 @@ describe("time handling", () => {
         test(TimeResolution.FIFTEEN_MINUTES, "00:59:59:999", "00:45:00:000");
 
         test(TimeResolution.ONE_HOUR, "00:00:00:000", "00:00:00:000");
-        test(TimeResolution.ONE_HOUR, "00:01:01:001", "00:00:00:000");
-        test(TimeResolution.ONE_HOUR, "00:59:00:000", "00:00:00:000");
-        test(TimeResolution.ONE_HOUR, "01:45:55:555", "01:00:00:000");
+        test(TimeResolution.ONE_HOUR, "00:59:59:999", "00:00:00:000");
+        test(TimeResolution.ONE_HOUR, "01:00:00:000", "01:00:00:000");
+        test(TimeResolution.ONE_HOUR, "01:59:59:999", "01:00:00:000");
+        test(TimeResolution.ONE_HOUR, "02:45:55:555", "02:00:00:000");
+
+        test(TimeResolution.TWO_HOURS, "00:00:00:000", "00:00:00:000");
+        test(TimeResolution.TWO_HOURS, "01:59:59:000", "00:00:00:000"); 
+        test(TimeResolution.TWO_HOURS, "02:00:00:000", "02:00:00:000");
+        test(TimeResolution.TWO_HOURS, "03:45:55:555", "02:00:00:000");
+        test(TimeResolution.TWO_HOURS, "04:00:00:000", "04:00:00:000");
+
+        test(TimeResolution.FOUR_HOURS, "00:00:00:000", "00:00:00:000");
+        test(TimeResolution.FOUR_HOURS, "03:59:59:000", "00:00:00:000"); 
+        test(TimeResolution.FOUR_HOURS, "04:00:00:000", "04:00:00:000");
+        test(TimeResolution.FOUR_HOURS, "05:45:55:555", "04:00:00:000");
+        test(TimeResolution.FOUR_HOURS, "08:00:00:000", "08:00:00:000");
 
         // TODO: Week and month
     });

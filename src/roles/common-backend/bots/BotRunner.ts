@@ -24,7 +24,7 @@ import { TimeSeriesCache, TimeSeriesCacheArgs } from "../system/TimeSeriesCache"
 import { botFactory } from "./RobotFactory";
 import { cache, capital, db, log, results, strats, users } from "../includes";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
-import { names } from "../genetics/base-genetics";
+import { genes, names } from "../genetics/base-genetics";
 import { sym } from "../services";
 import { version } from "../../common/version";
 
@@ -85,9 +85,9 @@ export class BotRunner {
 
             const { genome } = ctx;
             const symbolPair = instanceRecord.symbols;
-            const botType = genome.getGene<string>("META", "IMPL").value;
-            const res = genome.getGene<TimeResolution>("TIME", "RES").value;
-            const instance = botFactory.create(botType) as BotImplementation;
+            const impl = genome.getGene<string>(genes.META_IMPL).value;
+            const res = instanceRecord.resId;
+            const instance = botFactory.create(impl) as BotImplementation;
 
 
             // Initialize new bots in a transaction to ensure we don't initialize it multiple times
@@ -399,7 +399,7 @@ export class BotRunner {
             //appliedInstanceProps.normalizedGenome = appliedInstanceProps.currentGenome;
         }
         if (!appliedInstanceProps.resId) {
-            appliedInstanceProps.resId = genome.getGene<TimeResolution>("TIME", "RES").value;
+            appliedInstanceProps.resId = genome.getGene<TimeResolution>(genes.META_TR).value;
         }
 
         appliedInstanceProps.modeId = BotMode.BACK_TEST;

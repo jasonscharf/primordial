@@ -72,7 +72,7 @@ export function floorToTwoSeconds(ts: Date) {
 }
 
 /**
- * Floors a timestamp down to the most 5-minute mark
+ * Floors a timestamp down to the nearest minute mark
  * Ex:
  *  12:07:03 -> 12:05:00
  * @param ts 
@@ -82,6 +82,21 @@ export function floorToMinutes(ts: Date, mins = 1) {
     ret.setMilliseconds(0);
     ret.setSeconds(0);
     ret.setMinutes(Math.floor(ts.getMinutes() / mins) * mins);
+    return ret;
+}
+
+/**
+ * Floors a timestamp down to the nearest hour mark
+ * Ex:
+ *  12:07:03 -> 12:05:00
+ * @param ts 
+ */
+ export function floorToHours(ts: Date, hours = 1) {
+    const ret = new Date(ts);
+    ret.setMilliseconds(0);
+    ret.setSeconds(0);
+    ret.setMinutes(0);
+    ret.setHours(Math.floor(ts.getHours() / hours) * hours);
     return ret;
 }
 
@@ -135,9 +150,13 @@ export function normalizePriceTime(res: TimeResolution, ts: Date): Date {
         case TimeResolution.ONE_MINUTE: return removeSeconds(ts);
         case TimeResolution.FIVE_MINUTES: return floorToMinutes(ts, 5);
         case TimeResolution.FIFTEEN_MINUTES: return floorToMinutes(ts, 15);
-        case TimeResolution.ONE_HOUR: return removeMinutes(ts);
+        case TimeResolution.ONE_HOUR: return floorToHours(ts, 1);
+        case TimeResolution.TWO_HOURS: return floorToHours(ts, 2);
+        case TimeResolution.SIX_HOURS: return floorToHours(ts, 6);
+        case TimeResolution.FOUR_HOURS: return floorToHours(ts, 4);
+        case TimeResolution.TWELVE_HOURS: return floorToHours(ts, 12);
         case TimeResolution.ONE_DAY: return removeHours(ts);
-        
+
         // See note on TimeResolution re: TSOA codegen
         //case TimeResolution.ONE_MONTH: return removeDays(ts);
         case "1M" as TimeResolution: return removeDays(ts);
@@ -162,11 +181,18 @@ export function getPostgresDatePartForTimeRes(res: TimeResolution): string {
             return "minute";
 
         case TimeResolution.ONE_HOUR:
+        case TimeResolution.TWO_HOURS:
+        case TimeResolution.FOUR_HOURS:
+        case TimeResolution.SIX_HOURS:
+        case TimeResolution.TWELVE_HOURS:
             return "hour";
+
         case TimeResolution.ONE_DAY:
             return "day";
+
         case TimeResolution.ONE_WEEK:
             return "week";
+
         //case TimeResolution.ONE_MONTH:
         //    return "month";
     }
@@ -184,6 +210,10 @@ export function getTimeframeForResolution(res: TimeResolution): string {
         case TimeResolution.FIVE_MINUTES: return "5 minutes";
         case TimeResolution.FIFTEEN_MINUTES: return "15 minutes";
         case TimeResolution.ONE_HOUR: return "1 hour";
+        case TimeResolution.TWO_HOURS: return "2 hours";
+        case TimeResolution.FOUR_HOURS: return "4 hours";
+        case TimeResolution.SIX_HOURS: return "6 hours";
+        case TimeResolution.TWELVE_HOURS: return "12 hours";
         case TimeResolution.ONE_DAY: return "1 day";
         case TimeResolution.ONE_WEEK: return "1 week";
         //case TimeResolution.ONE_MONTH: return "1 month";
@@ -204,6 +234,10 @@ export function millisecondsPerResInterval(res: TimeResolution): number {
         case TimeResolution.FIVE_MINUTES: return 5 * 60 * 1000;
         case TimeResolution.FIFTEEN_MINUTES: return 15 * 60 * 1000;
         case TimeResolution.ONE_HOUR: return 1 * 60 * 60 * 1000;
+        case TimeResolution.TWO_HOURS: return 2 * 60 * 60 * 1000;
+        case TimeResolution.FOUR_HOURS: return 4 * 60 * 60 * 1000;
+        case TimeResolution.SIX_HOURS: return 6 * 60 * 60 * 1000;
+        case TimeResolution.TWELVE_HOURS: return 12 * 60 * 60 * 1000;
         case TimeResolution.ONE_DAY: return 1 * 24 * 60 * 60 * 1000;
 
         //case TimeResolution.ONE_MONTH:

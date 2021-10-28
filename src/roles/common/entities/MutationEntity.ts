@@ -3,10 +3,12 @@ import { Mutation } from "../models/genetics/Mutation";
 
 
 export class MutationEntity extends ImmutableEntity implements Mutation {
-    setId: string;
-    parentId1?: string;
-    parentId2?: string;
-    childId: string;
+    
+    // Parent mutation
+    msid?: string;
+    pid1?: string;
+    pid2?: string;
+    chid: string;
     raw: string;
     chromo: string;
     gene: string;
@@ -18,11 +20,11 @@ export class MutationEntity extends ImmutableEntity implements Mutation {
         super(row);
 
         if (row) {
-            this.setId = row[prefix + "setId"];
-            this.parentId1 = row[prefix + "parentId1"];
-            this.parentId2 = row[prefix + "parentId2"];
-            this.childId = row[prefix + "childId"];
-            this.raw = row[prefix + "overlayRaw"];
+            this.msid = row[prefix + "msid"];
+            this.pid1 = row[prefix + "pid1"];
+            this.pid2 = row[prefix + "pid2"];
+            this.chid = row[prefix + "chid"];
+            this.raw = row[prefix + "raw"];
             this.chromo = row[prefix + "chromo"];
             this.gene = row[prefix + "gene"];
             this.value = row[prefix + "value"];

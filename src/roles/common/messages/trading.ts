@@ -8,7 +8,7 @@ import { Order } from "../models/markets/Order";
 
 // FUN: TSOA capitalizes enum value names in keys for some silly reason, so "1m" and "1M" conflict...
 // TODO: Try and use correct enum
-export type ApiTimeResolution = "5m" | "15m" | "1h" | "4h";
+export type ApiTimeResolution = "5m" | "15m" | "1h" | "4h" | "6h" | "12h" | "1d" | "1w";
 
 export interface ApiBacktestResponse {
     id: string;

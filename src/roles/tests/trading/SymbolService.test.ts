@@ -5,7 +5,7 @@ import { Money, sleep } from "../../common/utils";
 import { Price } from "../../common/models/markets/Price";
 import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS } from "../../common-backend/services/SymbolService";
-import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator, TEST_DEFAULT_QUOTE, TEST_DEFAULT_BASE, TEST_DEFAULT_PAIR  } from "../utils/test-data";
+import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator, TEST_DEFAULT_QUOTE, TEST_DEFAULT_BASE, TEST_DEFAULT_PAIR } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
@@ -304,7 +304,6 @@ describe(SymbolService.name, () => {
         it("produces the correct range for 1m resolution", async () => {
             await clearTestPrices();
 
-
             const start = from("2000-01-01T00:00:00");
             const end = from("2000-01-01T01:00:00");
             const res = TimeResolution.ONE_MINUTE;
@@ -326,27 +325,125 @@ describe(SymbolService.name, () => {
             // TODO: Handle the weird null values at end...
         });
 
-        it("produces the correct range for 5m resolution", async () => {
-            await clearTestPrices();
+        // 1m: less-than
+        testTimeRangeAtRes(
+            TimeResolution.ONE_MINUTE,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:00:59.999"),
+            1,
+            from("2000-01-01T00:00:00"));
 
-            const symbolPair = `${ctx.testSymbol1.id}/${ctx.testSymbol2.id}`;
-            const start = from("2000-01-01T00:00:00");
-            const end = from("2000-01-01T01:00:00");
-            const res = TimeResolution.FIVE_MINUTES;
-            await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
-            const prices = await sym.queryPricesForRange({
-                res,
-                from: start,
-                to: end,
-                symbolPair,
-            });
+        // 1m: on-the-dot
+        testTimeRangeAtRes(
+            TimeResolution.ONE_MINUTE,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:01:00"),
+            1,
+            from("2000-01-01T00:00:00"));
 
-            assert.lengthOf(prices, 12);
-            assert.equal(prices[0].ts.getTime(), start.getTime());
+        // 1m: more-than
+        testTimeRangeAtRes(
+            TimeResolution.ONE_MINUTE,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:02:00"),
+            2,
+            from("2000-01-01T00:01:00"));
 
-            const expectedEnd = DateTime.fromISO("2000-01-01T00:55:00").toJSDate();
-            assert.equal(prices[prices.length - 1].ts.getTime(), expectedEnd.getTime());
-        });
+        // 5m: less-than
+        testTimeRangeAtRes(
+            TimeResolution.FIVE_MINUTES,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:04:59.999"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 5m: on-the-dot
+        testTimeRangeAtRes(
+            TimeResolution.FIVE_MINUTES,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:05:00"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 5m: more-than
+        testTimeRangeAtRes(
+            TimeResolution.FIVE_MINUTES,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:06:00"),
+            2,
+            from("2000-01-01T00:05:00"));
+
+        // 15m: less-than
+        testTimeRangeAtRes(
+            TimeResolution.FIFTEEN_MINUTES,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:14:59.999"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 15m: on-the-dot
+        testTimeRangeAtRes(
+            TimeResolution.FIFTEEN_MINUTES,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:15:00"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 15m: more-than
+        testTimeRangeAtRes(
+            TimeResolution.FIFTEEN_MINUTES,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:16:00"),
+            2,
+            from("2000-01-01T00:15:00"));
+
+        // 1h: less-than
+        testTimeRangeAtRes(
+            TimeResolution.ONE_HOUR,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T00:59:59.999"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 1h: on-the-dot
+        testTimeRangeAtRes(
+            TimeResolution.ONE_HOUR,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T01:00:00"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 1h: more-than
+        testTimeRangeAtRes(
+            TimeResolution.ONE_HOUR,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T02:00:00"),
+            2,
+            from("2000-01-01T01:00:00"));
+
+        // 4h: less-than
+        testTimeRangeAtRes(
+            TimeResolution.FOUR_HOURS,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T03:59:59.999"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 4h: on-the-dot
+        testTimeRangeAtRes(
+            TimeResolution.FOUR_HOURS,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T04:00:00"),
+            1,
+            from("2000-01-01T00:00:00"));
+
+        // 4h: more-than
+        testTimeRangeAtRes(
+            TimeResolution.FOUR_HOURS,
+            from("2000-01-01T00:00:00"),
+            from("2000-01-01T05:00:00"),
+            2,
+            from("2000-01-01T04:00:00"));
 
         // TEST: other time resolutions, resolution overlaps (e.g. 5m separate from 1m)
 
@@ -522,5 +619,24 @@ describe(SymbolService.name, () => {
         });
     });
 
+    function testTimeRangeAtRes(res: TimeResolution, start: Date, end: Date, expectedCount: number, expectedEnd: Date) {
+        it(`produces the correct range for ${res} resolution for ${start.toISOString()} to ${end.toISOString()}`, async () => {
+            await clearTestPrices();
 
+            const symbolPair = `${ctx.testSymbol1.id}/${ctx.testSymbol2.id}`;
+            await fillRangeWithData(exchange, symbolPair, res, start, end, sineGenerator);
+            const prices = await sym.queryPricesForRange({
+                res,
+                from: start,
+                to: end,
+                symbolPair,
+            });
+
+            assert.lengthOf(prices, expectedCount);
+            assert.equal(prices[0].ts.getTime(), start.getTime());
+            assert.equal(prices[prices.length - 1].ts.getTime(), expectedEnd.getTime());
+        });
+    }
 });
+
+

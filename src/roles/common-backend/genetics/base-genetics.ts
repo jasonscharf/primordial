@@ -1,3 +1,4 @@
+import { BotMode } from "../../common/models/system/Strategy";
 import { Chromosome } from "../../common/models/genetics/Chromosome";
 import { Gene } from "../../common/models/genetics/Gene";
 import { GeneticValueType } from "../../common/models/genetics/GeneticValueType";
@@ -12,21 +13,42 @@ export const DEFAULT_BOT_IMPL = "genetic-bot.vanilla.v1";
 export const DEFAULT_PROFIT_TARGET = 0.02;
 export const DEFAULT_STOPLOSS_ABS = -0.01;
 
+
+const pair = (a, b) => `${a}-${b}`;
+
+export const genes = {
+    META_IMPL: pair(names.GENETICS_C_META, names.GENETICS_C_META_G_IMPL),
+    META_MODE: pair(names.GENETICS_C_META, names.GENETICS_C_META_G_MODE),
+    META_SYM: pair(names.GENETICS_C_META, names.GENETICS_C_META_G_SYM),
+    META_TR: pair(names.GENETICS_C_META, names.GENETICS_C_META_G_TIME_RES),
+};
+
+
 export const enum names {
     GENETICS_C_META = "META",
     GENETICS_C_META_G_IMPL = "IMPL",
+    GENETICS_C_META_G_MODE = "MODE",
+    GENETICS_C_META_G_SYM = "SYM",
+    GENETICS_C_META_G_TIME_RES = "TR",
+
     GENETICS_C_TIME = "TIME",
-    GENETICS_C_TIME_G_RES = "RES",
     GENETICS_C_TIME_G_MAX_INTERVALS = "MI",
+
+    // @deprecated
+    GENETICS_C_TIME_G_RES = "RES",
+
     GENETICS_C_PROFIT = "PRF",
     GENETICS_C_PROFIT_G_TARGET = "TGT",
+    
     GENETICS_C_STOPLOSS = "SL",
     GENETICS_C_STOPLOSS_G_ABS = "ABS",
+    
     GENETICS_C_BUY = "BUY",
     GENETICS_C_BUY_G_THRESHOLD = "T",
+    
     GENETICS_C_SELL = "SELL",
     GENETICS_C_SELL_G_THRESHOLD = "T",
-    GENETICS_C_SYM = "SYM",
+    
     GENETICS_C_RSI = "RSI",
     GENETICS_C_RSI_G_L = "L",
     GENETICS_C_RSI_G_H = "H",
@@ -45,8 +67,12 @@ export const enum names {
 
 
 export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
-    [names.GENETICS_C_META]: new Chromosome(names.GENETICS_C_META, "Meta", "Phenotype metadata", [
+    [names.GENETICS_C_META]: new Chromosome(names.GENETICS_C_META, "Meta", "Genotype metadata", [
         new Gene<string>(names.GENETICS_C_META_G_IMPL, GeneticValueType.STRING, DEFAULT_BOT_IMPL, "Bot implementation variant to use"),
+
+        // This is primarily to allow elevation (i.e. BT to FT) to be represented by a mutation set
+        new Gene<string>(names.GENETICS_C_META_G_MODE, GeneticValueType.STRING, BotMode.BACK_TEST, "Mode to run the bot in, i.e. back- or forward-test"),
+        new Gene<string>(names.GENETICS_C_META_G_SYM, GeneticValueType.STRING, "", "Symbol pairs to run the bot against"),
     ]),
     [names.GENETICS_C_TIME]: new Chromosome(names.GENETICS_C_TIME, "Time", "Controls time related behaviour, notably time resolution", [
         new Gene<TimeResolution>(names.GENETICS_C_TIME_G_RES, GeneticValueType.TIME_RES, TimeResolution.FIFTEEN_MINUTES, "Specifies the time resolution to trade at, e.g. '1m', '15m', '1h', etc"),
@@ -63,9 +89,6 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
     ]),
     [names.GENETICS_C_SELL]: new Chromosome(names.GENETICS_C_SELL, "Buying", "Controls selling behaviour", [
         new Gene<number>(names.GENETICS_C_SELL_G_THRESHOLD, GeneticValueType.NUMBER, -1, "Signal threshold [0, 1] at whicht o consider a signal sellable"),
-    ]),
-    [names.GENETICS_C_SYM]: new Chromosome(names.GENETICS_C_SYM, "Symbols", "Controls which symbols to trade", [
-        // TODO: Should expose to mutation mechanism
     ]),
     [names.GENETICS_C_RSI]: new RsiIndicatorChromosome(names.GENETICS_C_RSI, "RSI", "Behaviour involving the Relative Strength Indictor", [
         new Gene(names.GENETICS_C_RSI_G_L, GeneticValueType.NUMBER, 33, "Lower RSI threshold to use as a buy signal"),

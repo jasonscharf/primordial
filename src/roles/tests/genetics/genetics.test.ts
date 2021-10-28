@@ -4,6 +4,7 @@ import { GeneticValueType } from "../../common/models/genetics/GeneticValueType"
 import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
 import { GenotypeService } from "../../common-backend/services/GenotypeService";
 import { Money } from "../../common/numbers";
+import { RsiIndicatorChromosome } from "../../common-backend/indicators/RSI";
 import { TestDataCtx, getTestData } from "../utils/test-data";
 import { assert, describe, before, env, it } from "../includes";
 import { beforeEach } from "intern/lib/interfaces/tdd";
@@ -140,10 +141,16 @@ describe("genetics", () => {
             });
 
             it("handles specific gene activation", async () => {
-                const geno = Genome.fromString("RSI-L=34"); 
+                const geno = Genome.fromString("RSI-L=34");
 
                 const str = geno.toString();
                 assert.equal(str, "RSI-L=34");
+            });
+
+            it("constructs the correct runtime chromosome type", async () => {
+                const geno = Genome.fromString("RSI");
+                const rsiGene = geno.getChromo("RSI");
+                assert.ok(rsiGene instanceof RsiIndicatorChromosome);
             });
 
             // TEST: Whole bunch of round trips!!!
@@ -156,7 +163,66 @@ describe("genetics", () => {
         });
     });
 
-    describe(parser.parse.name, () => {
+    // TODO: Run these through all parsing methods
+    const wellformedParts = [
+        "TIME-RES",
+        "TIME-RES=5h",
+        "TIME-RES = 15m",
+        // TODO: Percents?
+    ];
+
+    const malformedParts = [
+        "A=1",
+        "1=A",
+        "FOO-BAZ=$",
+        "$=FOO",
+        "123",
+        "^",
+        "@",
+        "\n\t",
+    ];
+
+    const validSequences = [
+        "",
+    ];
+
+    const invalidSequences = [
+        "",
+    ];
+
+    const unknownParts = [
+        "FOO-RES",
+        "META-FOO",
+    ];
+
+
+    describe(Genome.parseParts.name, () => {
+        it("handles valid parts", async () => {
+            wellformedParts.forEach(part => {
+                assert.doesNotThrow(() => parser.parse(part), null, part);
+            });
+        });
+
+        it("throws on invalid parts", async () => {
+            malformedParts.forEach(part => {
+                assert.throws(() => parser.parse(part), null, part);
+            });
+        });
+
+        it("respects options", async () => {
+
+        });
+
+        // TEST: options
+    });
+
+    describe(Genome.parseSingle.name, () => {
+        it("throws on multiple parts", async () => {
+            // TEST
+        });
+    });
+
+    describe(Genome.parse.name, () => {
         it("throws on unknown gene", async () => {
             const raw = "BANANACAT";
             assert.throws(() => parser.parse(raw));

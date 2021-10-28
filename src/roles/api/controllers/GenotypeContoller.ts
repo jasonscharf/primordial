@@ -1,15 +1,15 @@
 import { Knex } from "knex";
 import Koa from "koa";
+import { ApiForkGenotypeRequest, ApiForkGenotypeResponse } from "../../common/messages";
 import { Body, Get, Post, Query, Request, Route } from "tsoa";
 import { BotMode } from "../../common/models/system/Strategy";
+import { BotType } from "../../common/models/bots/BotType";
 import { ControllerBase } from "./ControllerBase";
+import { GenotypeForkArgs } from "../../common-backend/services/GenotypeService";
+import { MutationSetType } from "../../common/models/genetics/MutationSetType";
 import { PrimoSerializableError, PrimoValidationError } from "../../common/errors/errors";
 import { genos, strats, sym, users } from "../../common-backend/includes";
-import { ApiBacktestRequest, ApiForkGenotypeRequest, ApiForkGenotypeResponse } from "../../common/messages";
-import { BotInstance } from "../../common/models/bots/BotInstance";
 import * as validate from "../../common-backend/validation";
-import { GenotypeForkArgs } from "../../common-backend/services/GenotypeService";
-import { BotType } from "../../common/models/bots/BotType";
 
 
 @Route("genotypes")
@@ -46,9 +46,13 @@ export class GenotypeController extends ControllerBase {
             mutations,
             symbolPairs: symbols,
             res,
+            system: false,
         };
 
-        const result = await genos.fork(args);
+        // SECURITY
+        const user = await users.getSystemUser();
+
+        const result = await genos.fork(user.id, args);
         return result;
     }
 }

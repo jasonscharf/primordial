@@ -118,6 +118,10 @@ export enum TimeResolution {
   Type5M = "5m",
   Type15M = "15m",
   Type1H = "1h",
+  Type2H = "2h",
+  Type4H = "4h",
+  Type6H = "6h",
+  Type12H = "12h",
   Type1D = "1d",
   Type1W = "1w",
 }
@@ -176,6 +180,7 @@ export interface BotInstance {
   displayName?: string;
   allocationId: string;
   definitionId: string;
+  msid?: string;
   exchangeId: string;
 
   /**
@@ -209,6 +214,7 @@ export interface BotInstance {
 export interface PartialBotInstance {
   allocationId?: string;
   definitionId?: string;
+  msid?: string;
   exchangeId?: string;
 
   /**
@@ -300,6 +306,7 @@ export interface PartialOrder {
 
   /** @format date-time */
   closed?: string;
+  capital?: BigNum;
   quantity?: BigNum;
   price?: BigNum;
   gross?: BigNum;
@@ -336,6 +343,10 @@ export enum ApiTimeResolution {
   Type15M = "15m",
   Type1H = "1h",
   Type4H = "4h",
+  Type6H = "6h",
+  Type12H = "12h",
+  Type1D = "1d",
+  Type1W = "1w",
 }
 
 export interface ApiBacktestRequest {
@@ -627,6 +638,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     forkGenotype: (data: ApiForkGenotypeRequest, params: RequestParams = {}) =>
       this.request<ApiForkGenotypeResponse, any>({
         path: `/genotypes/fork`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name ForkBacktestToForwardTest
+     * @request POST:/genotypes/fork/back-to-fwd
+     */
+    forkBacktestToForwardTest: (data: ApiForkGenotypeRequest, params: RequestParams = {}) =>
+      this.request<ApiForkGenotypeResponse, any>({
+        path: `/genotypes/fork/back-to-fwd`,
         method: "POST",
         body: data,
         type: ContentType.Json,

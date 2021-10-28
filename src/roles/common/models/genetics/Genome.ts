@@ -8,6 +8,7 @@ import { PrimoMalformedGenomeError } from "../../errors/errors";
 import { TimeResolution } from "../markets/TimeResolution";
 import { isNullOrUndefined } from "../../utils";
 import { DEFAULT_GENETICS } from "../../../common-backend/genetics/base-genetics";
+import { DEFAULT_GENE_PARSE_OPTIONS, GeneticParseResult, GeneticParseOptions } from "../../../common-backend/genetics/GeneParseResult";
 
 
 const compare = (a: string, b: string) => a < b ? -1 : (a > b ? 1 : 0);
@@ -223,10 +224,18 @@ export class Genome {
         }
     }
 
-    getGene<T>(chromosomeName: string, geneName: string): Gene<T> {
+    getGene<T>(chromoOrPair: string, geneName: string = null): Gene<T> {
+        let chromo = chromoOrPair;
         let gene: Gene<T>;
-        if (this._overlaid.has(chromosomeName)) {
-            const overlaidChromosome = this._overlaid.get(chromosomeName);
+
+        if (isNullOrUndefined(geneName)) {
+            const parsed = Genome.parseSingle(chromoOrPair);
+            chromo = parsed.chromo;
+            geneName = parsed.gene;
+        }
+
+        if (this._overlaid.has(chromo)) {
+            const overlaidChromosome = this._overlaid.get(chromo);
             gene = overlaidChromosome.getGene(geneName);
             if (gene) {
                 const copy = gene.copy() as Gene<T>;
@@ -240,7 +249,7 @@ export class Genome {
         }
 
         if (!gene && this._base) {
-            gene = this._base.getGene<T>(chromosomeName, geneName);
+            gene = this._base.getGene<T>(chromo, geneName);
         }
 
         const copy = gene.copy() as Gene<T>;
@@ -255,6 +264,80 @@ export class Genome {
         else if (this._base && this._base.has(chromoName)) {
             return true;
         }
+    }
+
+    static parseSingle<T = unknown>(raw: string): GeneticParseResult<T> {
+        // TODO: Extract default settigns to constant
+        const [res] = Genome.parseParts<T>(raw, {
+            allowValues: false,
+            allowMutationSpecifiers: false,
+            singleFragmentOnly: true
+        });
+
+        if (!res) {
+            throw new PrimoMalformedGenomeError(`Malformed or invalid genetics '${raw}'`);
+        }
+
+        return res;
+    }
+
+    static parseParts<T = unknown>(raw: string, opts?: GeneticParseOptions): GeneticParseResult<T>[] {
+        const appliedOpts = Object.assign({}, DEFAULT_GENE_PARSE_OPTIONS, opts);
+        const { allowValues, allowMutationSpecifiers, singleFragmentOnly } = appliedOpts;
+
+        const rawGenes = raw
+            .split(GENOTYPE_SPLIT_EXPR)
+            .map(str => str.trim())
+            ;
+
+        if (rawGenes.length === 0) {
+            throw new Error(`Empty or invalid genetics '${raw}'`);
+        }
+
+        if (singleFragmentOnly && rawGenes.length > 1) {
+            throw new Error(`Invalid genetics '${raw}'`);
+        }
+
+        const results: GeneticParseResult<T>[] = [];
+        for (const rawGene of rawGenes) {
+            const keyValues = rawGene.split(/=/);
+            const pieces = keyValues[0].split(/-/);
+            const [chromo, ...geneChain] = pieces;
+
+            if (geneChain.some(g => !g)) {
+                throw new PrimoMalformedGenomeError(`Invalid gene chain for '${geneChain.join("-")}'`);
+            }
+
+            const gene = geneChain.join("");
+            let orig: string = null;
+            let value: T = null;
+            if (keyValues.length > 1) {
+                if (!allowValues) {
+                    throw new PrimoMalformedGenomeError(`Genetic value passed in invalid context for '${raw}'`);
+                }
+                else {
+                    // TODO: Refactor value parsing
+
+                }
+            }
+
+            // Validation
+            /*
+            const chromo = base.getChromo(chromosomeName);
+            if (!chromo) {
+                throw new PrimoMalformedGenomeError(`Unknown chromosome '${chromosomeName}'`);
+            }*/
+
+            const res: GeneticParseResult<T> = {
+                chromo,
+                gene,
+                orig,
+                value,
+            };
+            results.push(res);
+        }
+
+        return results;
     }
 
     /**
@@ -394,6 +477,9 @@ export class Genome {
                     parsedValue = orig as TimeResolution;
                 }
             }
+            else if (gene.type === GeneticValueType.STRING) {
+                parsedValue = orig = keyValues[1].trim();
+            }
             else {
                 throw new Error(`Unknown/unsupported gene value type '${gene.type}'`);
             }
@@ -402,6 +488,7 @@ export class Genome {
 
             // Specifying a gene makes it active, even if it matches the default
             newGene.active = true;
+            newGene.orig = orig;
             newGene.value = parsedValue;
 
             parsingChromo.genes.set(newGene.name, newGene);

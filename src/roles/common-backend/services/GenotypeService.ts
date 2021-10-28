@@ -1,25 +1,25 @@
 import { Knex } from "knex";
 import { ApiForkGenotypeRequest, ApiForkGenotypeResponse } from "../../common/messages/genetic";
 import { BotInstance } from "../../common/models/bots/BotInstance";
-import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
 import { BotMode } from "../../common/models/system/Strategy";
-import { defaultBaseGenetics, Genome } from "../../common/models/genetics/Genome";
 import { GenomeParser } from "../genetics/GenomeParser";
 import { Mutation } from "../../common/models/genetics/Mutation";
 import { MutationEntity } from "../../common/entities/MutationEntity";
-import { PrimoValidationError } from "../../common/errors/errors";
+import { MutationSet } from "../../common/models/genetics/MutationSet";
+import { MutationSetEntity } from "../../common/entities/MutationSetEntity";
+import { MutationSetType } from "../../common/models/genetics/MutationSetType";
 import { RunState } from "../../common/models/system/RunState";
-import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { TimeResolution, SUPPORTED_TIME_RESOLUTIONS } from "../../common/models/markets/TimeResolution";
 import { version } from "../../common/version";
 import { queries, tables } from "../constants";
 import { query } from "../database/utils";
-import { names } from "../genetics/base-genetics";
+import { genes, names } from "../genetics/base-genetics";
 import { capital, db, genos, results, strats } from "../includes";
 import { log } from "../logger";
 import { randomName } from "../utils/names";
 import * as validate from "../validation";
-import { MutationSet } from "../../common/models/genetics/MutationSet";
-import { MutationSetEntity } from "../../common/entities/MutationSetEntity";
+import { isNullOrUndefined } from "../utils";
+import { defaultBaseGenetics, Genome } from "../../common/models/genetics/Genome";
 
 
 export interface GenotypeForkArgs extends ApiForkGenotypeRequest {
@@ -28,6 +28,7 @@ export interface GenotypeForkArgs extends ApiForkGenotypeRequest {
 
 export interface GenotypeForkResponse extends ApiForkGenotypeResponse {
     mutations: Mutation[];
+    mutationSet: MutationSet;
 }
 
 export class GenotypeService {
@@ -44,7 +45,22 @@ export class GenotypeService {
         trx = trx || await db.transaction();
         try {
 
-            const { allocationId, displayName, modeId, mutations: rawMutations, parentId, res, strategyId, symbolPairs: symbols, system, typeId, workspaceId } = args;
+            const {
+                allocationId,
+                displayName,
+                modeId,
+                mutations: rawMutations,
+                parentId,
+                strategyId,
+                symbolPairs: symbols,
+                system,
+                typeId,
+                workspaceId,
+            } = args;
+
+            if ((!rawMutations || rawMutations.length < 1) && (!symbols || symbols.length < 1)) {
+                throw new Error(`No mutations specified`);
+            }
 
             const parentInstance = await strats.getBotInstanceById(parentId, trx);
             validate.isNotNullOrUndefined(parentInstance, "parent");
@@ -61,6 +77,10 @@ export class GenotypeService {
                 throw new Error(`Could not fork allocation '${parentId}': Missing allocation`);
             }
 
+            // Annotate the MutationSet so we know what it's for
+            const parentMode = parentInstance.modeId;
+            const mutationType = this.computeMutationTypeFromModes(parentMode, modeId, system);
+
 
             // Ensure we don't run live bots with test allocations
             if (modeId === BotMode.LIVE || modeId === BotMode.LIVE_TEST) {
@@ -74,16 +94,54 @@ export class GenotypeService {
                 }
             }
 
+            // Maintain topology between mutations
+            const tempIds = new Map<string, string>();
+
             const name = randomName();
             const startInstance = true;
             const parsed = new GenomeParser();
             const { genome: parsedGenotype } = parsed.parse(parentInstance.currentGenome);
 
+            // These are the forked instances we will create
+            const unsavedInstances = new Map<Partial<Mutation>, Partial<BotInstance>>();
+
+
+            // Are we elevating? Mutate the "META-MODE" gene so this fork can participate in future genetic analysis
+            let elevationMutation: Partial<Mutation> = null;
+            if (this.isElevating(mutationType)) {
+                const modeChromo = names.GENETICS_C_META;
+                const modeGene = names.GENETICS_C_META_G_MODE;
+                const newGeno = parsedGenotype.copyWithMutation(names.GENETICS_C_META, names.GENETICS_C_META_G_MODE, modeId);
+
+                elevationMutation = {
+                    pid1: parentInstance.id,
+                    raw: newGeno.overlaid.toString(),
+                    chromo: modeChromo,
+                    gene: modeGene,
+                    value: modeId,
+                };
+            }
 
             // Produce mutation candidates
             const { original, mutations: unsavedMutations } = await this.produceMutations(parentInstance, args);
 
-            const unsavedInstances = new Map<Partial<Mutation>, Partial<BotInstance>>();
+            // Track elevations, i.e. from backtest to fwd
+            if (elevationMutation) {
+                unsavedMutations.unshift(elevationMutation);
+            }
+
+            // Create a MutationSet, linking it to the instance's parent set
+            const setProps: Partial<MutationSet> = {
+                workspaceId,
+                strategyId,
+                psid: parentInstance.msid,
+                type: mutationType,
+                displayName: system ? `System` : `Manual`,
+                ownerId: requestingUserId,
+                meta: JSON.stringify(args),
+                system,
+            };
+            const savedMutationSet = await this.createNewMutationSet(setProps, trx);
 
 
             // Create instances from mutations
@@ -98,12 +156,13 @@ export class GenotypeService {
                 const instanceProps: Partial<BotInstance> = {
                     //exchangeId: parentInstance.exchangeId,
                     definitionId: parentDef.id,
+                    msid: savedMutationSet.id,
                     allocationId,
                     resId: possiblyMutatedResId,
                     typeId,
                     modeId,
                     name: randomName(),
-                    runState: RunState.NEW,
+                    runState: modeId === BotMode.BACK_TEST ? RunState.PAUSED : RunState.NEW,
                     build: version.full,
                     currentGenome: parsedGenotype.toString(),
                     symbols: possiblyMutatedSymbols,
@@ -121,20 +180,13 @@ export class GenotypeService {
             const ids: string[] = [];
             const savedMutations: Mutation[] = [];
 
+
             for (const pair of Array.from(unsavedInstances.entries())) {
                 const [mutation, props] = pair;
-                const savedInstance = await strats.createNewInstance(props, trx);
+                const savedInstance = await strats.createNewInstance(props, trx); 
 
-                const setProps: Partial<MutationSet> = {
-                    displayName: ``,
-                    desc: ``,
-                    ownerId: requestingUserId,
-                    meta: JSON.stringify(args),
-                    system,
-                };
-                const savedMutationSet = await this.createNewMutationSet(props, trx);
-
-                mutation.childId = savedInstance.id;
+                mutation.msid = savedMutationSet.id;
+                mutation.chid = savedInstance.id;
                 const savedMutation = await this.createNewMutation(mutation, trx);
 
                 ids.push(savedInstance.id);
@@ -149,6 +201,7 @@ export class GenotypeService {
             const result: GenotypeForkResponse = {
                 ids,
                 mutations: savedMutations,
+                mutationSet: savedMutationSet,
             };
             return result;
         }
@@ -161,6 +214,35 @@ export class GenotypeService {
         }
     }
 
+    computeMutationTypeFromModes(parentMode: BotMode, modeId: BotMode, system: boolean) {
+        let mutationType: MutationSetType = null;
+        if (parentMode === BotMode.BACK_TEST && modeId === BotMode.FORWARD_TEST) {
+            mutationType = system
+                ? MutationSetType.SYSTEM_ELEVATE_TO_FWD
+                : MutationSetType.MANUAL_ELEVATE_TO_FWD
+                ;
+        }
+        else if (parentMode === BotMode.BACK_TEST && modeId === BotMode.BACK_TEST) {
+            mutationType = system
+                ? MutationSetType.SYSTEM_BACK_TEST_MUTATE
+                : MutationSetType.MANUAL_BACK_TEST_MUTATE
+                ;
+        }
+        else if (parentMode === BotMode.FORWARD_TEST && modeId === BotMode.LIVE_TEST) {
+            mutationType = system
+                ? MutationSetType.SYSTEM_ELEVATE_TO_LIVE_TEST
+                : MutationSetType.MANUAL_ELEVATE_TO_LIVE_TEST
+                ;
+        }
+
+        // For safety, since this logic involves live instances
+        if (isNullOrUndefined(mutationType)) {
+            throw new Error(`Unknown/invalid mutation set type for ${parentMode} -> ${modeId} (system? ${system})`);
+        }
+
+        return mutationType;
+    }
+
     /**
      * Derives new genotypes given some parameters for mutation.
      * @param original 
@@ -169,7 +251,7 @@ export class GenotypeService {
      */
     async produceMutations(original: BotInstance, args: GenotypeForkArgs): Promise<MutationResult> {
         const { currentGenome, resId, symbols: originalSymbols } = original;
-        const { mutations, overlayMutations, res, symbolPairs } = args;
+        const { mutations: argMutations, overlayMutations, symbolPairs } = args;
         const parser = new GenomeParser();
 
         // 
@@ -183,15 +265,19 @@ export class GenotypeService {
         seed.setGene(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_RES, original.resId);
         genotypes.push(seed);
 
+        let allMutations: Partial<Mutation>[] = [];
+
         // Mutate TIME-RES. This should be done by the specific genome in the longer term.
-        const { mutations: timeResMutations } = await this.mutateTimeResolutions(parser, original, args, genotypes);
-        const allMutations = timeResMutations.concat();
+        if (argMutations && argMutations.indexOf(genes.META_TR) > -1) {
+            const { mutations: timeResMutations } = await this.mutateTimeResolutions(parser, original, args, genotypes);
+            allMutations = allMutations.concat(timeResMutations);
+        }
 
-        // Mutate SYMBOLS
-
+        // TODO: Call out to chromosomes for mutations
+        // TODO: Check stategy for live/live-test elevation permissions
         // TODO: Remove time-res and symbol genes from mutated genos, apply to instance instead.
-
         // TODO: Pull chromosome mutations from genomes (aside from time-res and symbols).
+
         const result: MutationResult = {
             original,
             mutations: allMutations,
@@ -200,7 +286,7 @@ export class GenotypeService {
         return result;
     }
 
-    async mutateTimeResolutions(parser: GenomeParser, original: BotInstance, args: GenotypeForkArgs, pool: Genome[]) {
+    async mutateTimeResolutions(parser: GenomeParser, original: BotInstance, args: GenotypeForkArgs, pool: Genome[]): Promise<MutationResult> {
         const { resId: originalResId } = original;
 
         const mutations: Partial<Mutation>[] = [];
@@ -210,7 +296,7 @@ export class GenotypeService {
         //  This is because when the system derives backtested genotypes into mutations to backtest,
         //  it will alter the "from" and "to" to examine recent performance, and therefore should consider
         //  the original time res.
-        const supportedResolutions: TimeResolution[] = Object.keys(TimeResolution).map(k => TimeResolution[k]);
+        const supportedResolutions = SUPPORTED_TIME_RESOLUTIONS;
         const chromo = names.GENETICS_C_TIME;
         const gene = names.GENETICS_C_TIME_G_RES;
 
@@ -220,7 +306,7 @@ export class GenotypeService {
             supportedResolutions.forEach(value => {
                 const genotype = g.copyWithMutation(chromo, gene, value);
                 const mutation: Partial<Mutation> = {
-                    parentId1: original.id,
+                    pid1: original.id,
                     raw: genotype.overlaid.toString(),
                     chromo,
                     gene,
@@ -257,6 +343,21 @@ export class GenotypeService {
                 ;
             return MutationSetEntity.fromRow(row);
         }, trx);
+    }
+
+    isElevating(type: MutationSetType) {
+        switch (type) {
+            case MutationSetType.MANUAL_ELEVATE_TO_FWD:
+            case MutationSetType.MANUAL_ELEVATE_TO_LIVE_TEST:
+            case MutationSetType.MANUAL_ELEVATE_TO_LIVE:
+            case MutationSetType.SYSTEM_ELEVATE_TO_FWD:
+            case MutationSetType.SYSTEM_ELEVATE_TO_LIVE_TEST:
+            case MutationSetType.SYSTEM_ELEVATE_TO_LIVE:
+                return true;
+
+            default:
+                return false;
+        }
     }
 }
 

@@ -1,22 +1,25 @@
-import { buildBacktestingContext } from "../../common-backend/bots/BotContext";
-import { BotRunner } from "../../common-backend/bots/BotRunner";
-import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
-import { DEFAULT_ALLOCATION_MAX_WAGER } from "../../common-backend/constants";
-import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
-import { capital, genos, strats } from "../../common-backend/includes";
-import { BacktestRequest } from "../../common-backend/messages/testing";
-import { GenotypeForkArgs } from "../../common-backend/services/GenotypeService";
-import { randomName } from "../../common-backend/utils/names";
 import { ApiForkGenotypeRequest } from "../../common/messages";
+import { BacktestRequest } from "../../common-backend/messages/testing";
 import { BotInstance } from "../../common/models/bots/BotInstance";
+import { BotMode } from "../../common/models/system/Strategy";
+import { BotRunner } from "../../common-backend/bots/BotRunner";
 import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotType } from "../../common/models/bots/BotType";
 import { Genome } from "../../common/models/genetics/Genome";
-import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { BotMode } from "../../common/models/system/Strategy";
+import { GenomeParser } from "../../common-backend/genetics/GenomeParser";
+import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
+import { GenotypeForkArgs } from "../../common-backend/services/GenotypeService";
 import { MarketDataSpecimen } from "./data-specimens";
+import { Mutation } from "../../common/models/genetics/Mutation";
+import { MutationSet } from "../../common/models/genetics/MutationSet";
+import { MutationSetType } from "../../common/models/genetics/MutationSetType";
+import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { buildBacktestingContext } from "../../common-backend/bots/BotContext";
+import { capital, genos, strats } from "../../common-backend/includes";
+import { randomName } from "../../common-backend/utils/names";
+import { DEFAULT_ALLOCATION_MAX_WAGER } from "../../common-backend/constants";
 import { TEST_DEFAULT_PAIR, getTestData, TEST_DEFAULT_BUDGET } from "./test-data";
-
+import * as specimens from "./data-specimens";
 
 export interface TestingRunArgs {
     genotype: string,
@@ -53,6 +56,11 @@ export async function backtest(specimen: MarketDataSpecimen, args: TestingRunArg
     return results;
 }
 
+
+export interface TestBacktestForkArgs extends Partial<TestForkArgs> {
+    genotype?: string;
+}
+
 export interface TestForkArgs extends Partial<GenotypeForkArgs> {
     parentId: string;
     requestingUserId?: string;
@@ -63,7 +71,9 @@ export interface TestForkResult {
     original: BotInstance;
     forks: BotInstance[];
     genotypes: Genome[];
-    genotypesRaw: string[]
+    genotypesRaw: string[];
+    mutations: Mutation[];
+    mutationSet: MutationSet;
 }
 
 
@@ -71,7 +81,6 @@ export const TEST_DEFAULT_FORK_ARGS: Partial<GenotypeForkArgs> = {
     modeId: BotMode.BACK_TEST,
     typeId: BotType.DESCENDANT,
     mutations: [],
-    overlayMutations: false,
     symbolPairs: [TEST_DEFAULT_PAIR],
     res: TimeResolution.ONE_HOUR,
 }
@@ -85,7 +94,7 @@ export async function testFork(args: TestForkArgs): Promise<TestForkResult> {
     strategyId = strategyId || testDataCtx.strategy.id;
     workspaceId = workspaceId || testDataCtx.workspace.id;
 
-    const { maxWagerPct, modeId, mutations, overlayMutations, parentId, specimen, typeId } = appliedArgs;
+    const { maxWagerPct, modeId, mutations: suppliedMutations, overlayMutations, parentId, specimen, typeId } = appliedArgs;
     const parent = await strats.getBotInstanceById(parentId);
     const def = await strats.getBotDefinitionById(testDataCtx.workspace.id, parent.definitionId);
 
@@ -93,7 +102,7 @@ export async function testFork(args: TestForkArgs): Promise<TestForkResult> {
         parentId,
         allocationId: parent.allocationId,
         res: specimen.res,
-        mutations,
+        mutations: suppliedMutations,
         strategyId,
         symbolPairs: [parent.symbols],
         overlayMutations,
@@ -101,12 +110,14 @@ export async function testFork(args: TestForkArgs): Promise<TestForkResult> {
         modeId,
         typeId,
         maxWagerPct,
+        system: false,
     };
 
-    const fork = await genos.fork(forkArgs);
-    const { ids } = fork;
+    const fork = await genos.fork(requestingUserId, forkArgs);
+    const { ids, mutations, mutationSet } = fork;
 
     const forks = await strats.getBotInstancesByIds(requestingUserId, workspaceId, strategyId, ids);
+
 
     const parser = new GenomeParser();
     const genotypes = forks
@@ -121,9 +132,36 @@ export async function testFork(args: TestForkArgs): Promise<TestForkResult> {
     const result: TestForkResult = {
         original: parent,
         forks,
+        mutations,
+        mutationSet,
         genotypes,
         genotypesRaw,
     };
 
     return result;
+}
+
+
+
+const TEST_DEFAULT_BACK_TEST_SPECIMEN = specimens.random.btcUsdt1HourOctober2021;
+const TEST_DEFAULT_BACK_TEST_GENOTYPE = "HA";
+const TEST_DEFAULT_BACK_TEST_ARGS: Partial<TestBacktestForkArgs> = {
+    specimen: TEST_DEFAULT_BACK_TEST_SPECIMEN,
+    modeId: BotMode.BACK_TEST,
+    typeId: BotType.DESCENDANT,
+    genotype: TEST_DEFAULT_BACK_TEST_GENOTYPE,
+    mutations: [],
+    system: false,
+};
+
+export async function testBacktestFork(args: Partial<TestBacktestForkArgs>): Promise<TestForkResult> {
+    const appliedArgs = Object.assign({}, TEST_DEFAULT_BACK_TEST_ARGS, args);
+    const { genotype, specimen } = appliedArgs;
+
+    // Only backtest if no parent assigned
+    if (!appliedArgs.parentId) {
+        const { instanceId: parentId } = await backtest(specimen, { genotype });
+        appliedArgs.parentId = parentId;
+    }
+    return await testFork(appliedArgs as TestForkArgs);
 }

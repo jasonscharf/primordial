@@ -13,9 +13,18 @@ describe(StrategyService.name, () => {
     const exchange = env.PRIMO_DEFAULT_EXCHANGE;
     const symbolPair = "BTC/USD";
     let ctx: TestDataCtx = null;
+    let ruid: string = null;
+    let workspaceId: string = null;
+    let strategyId: string = null;
     let strats: StrategyService = new StrategyService();
 
-    before(async () => ctx = await getTestData());
+    before(async () => {
+        ctx = await getTestData();
+        ruid = ctx.user.id;
+        workspaceId = ctx.workspace.id;
+        strategyId = ctx.strategy.id;
+    });
+
     beforeEach(async () => strats = new StrategyService());
 
     describe(strats.getTopPerformingBacktests.name, () => {
@@ -174,7 +183,16 @@ describe(StrategyService.name, () => {
 
     describe(strats.getBotInstancesByIds.name, () => {
         it("returns bot instances matching the given ids", async () => {
-            // TEST
+            const { instance: bot1 } = await addNewBotDefAndInstance();
+            const { instance: bot2 } = await addNewBotDefAndInstance();
+            const { instance: bot3 } = await addNewBotDefAndInstance();
+
+            const bots = [bot1, bot2, bot3];
+            const ids = bots.map(b => b.id);
+
+            const returned = await strats.getBotInstancesByIds(ruid, workspaceId, strategyId, ids);
+            assert.lengthOf(returned, bots.length);
+            assert.deepEqual(returned.map(r => r.id), ids);
         });
 
         it("only returns instances in the specified workspace", async () => {

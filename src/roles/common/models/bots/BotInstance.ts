@@ -13,6 +13,7 @@ export interface BotInstanceStateInternal {
 export interface BotInstance<T = GeneticBotState> extends MutableModel {
     allocationId: string;
     definitionId: string;
+    msid?: string;
     exchangeId: string;
     modeId: BotMode;
     resId: TimeResolution;
@@ -23,7 +24,6 @@ export interface BotInstance<T = GeneticBotState> extends MutableModel {
     prevTick: Date;
     symbols: string;
 
-    // Populated when an instance has a mutation from its base (definition)
     currentGenome?: string;
     normalizedGenome?: string;
 

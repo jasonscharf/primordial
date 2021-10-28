@@ -127,11 +127,18 @@ export async function addNewBotDefAndInstance(budget = TEST_DEFAULT_BUDGET, star
 }
 
 export async function clearTestData() {
+    if (!env.isTest()) {
+        throw new Error(`Test method to clear test data run in non-test environment`);
+    }
+
     await query("testing.delete-test-data", async db => {
+        await db(tables.Mutations).delete();
+        await db(tables.Results).delete();
         await db(tables.AllocationTransactions).delete();
         await db(tables.Orders).delete();
         await db(tables.BotRuns).delete();
         await db(tables.BotInstances).delete();
+        await db(tables.MutationSets).delete();
         await db(tables.BotDefinitions).delete();
         await db(tables.AllocationItems).delete();
         await db(tables.Allocations).delete();

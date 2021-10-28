@@ -24,6 +24,8 @@ RUN yarn install --frozen-lockfile
 FROM node-base as worker-base
 COPY ./dist/common /app/common
 COPY ./dist/common-backend /app/common-backend
+RUN ln -s /app/common-backend/knexfile.js /app/knexfile.js
+RUN ln -s /app/common-backend/env.js /app/env.js
 
 
 #
