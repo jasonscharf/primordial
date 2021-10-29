@@ -22,7 +22,7 @@ export const Spinner = (props: SpinnerProps) => {
     return (
         <Grid item container className="primo-spinner" alignItems="center" alignContent="stretch" style={{ height: "100vh", textAlign: "center" }}>
             <Grid item style={{ flex: 1 }}>
-                <CircularProgress style={{ width: "100px", height: "100px" }} />
+                <CircularProgress color="secondary" style={{ width: "100px", height: "100px" }} />
                 {maybeCaption}
                 {maybeSubCaption}
             </Grid>

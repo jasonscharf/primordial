@@ -1,5 +1,6 @@
 import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { Price } from "../../common/models/markets/Price";
+import { BotInstance } from "./client";
 
 
 export interface DataPoint {
@@ -13,7 +14,9 @@ export interface DataPoint {
     indicators: { [key: string]: number };
 }
 
-export interface BotResultsApiResponse {
+// TODO: Move
+export interface ApiBotResultsApiResponse {
+    instance: BotInstance;
     report: BotRunReport;
     prices: Price[];
     signals: number[];

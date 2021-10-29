@@ -1,13 +1,18 @@
-import { Components, createTheme } from "@mui/material"
+import { Components, createTheme } from "@mui/material";
+import { SxProps } from "@mui/system";
 
-const foo = "#59A5D8";
+
 export const defaultTheme = createTheme({
     palette: {
+
+        // Bluey
         primary: {
             main: "#59A5D8",
         },
+
+        // Greyish
         secondary: {
-            main: "#FFFFFF",
+            main: "#333",
         },
 
         error: {
@@ -18,6 +23,11 @@ export const defaultTheme = createTheme({
         },
     },
     components: <Components>{
+        MuiCircularProgress: {
+            root: {
+                color: "#333",
+            },
+        },
         MuiButton: {
             root: {
                 color: "#FFFFFF"
@@ -38,6 +48,23 @@ export const defaultTheme = createTheme({
             },
         },
     },
+    utils: {
+        borderBottomLite: { 
+            borderBottom: "1px solid #ddd",
+        },
+        raisedHeader: {
+            boxShadow: "0px 2px 4px #ddd",
+        },
+        subtle: {
+            opacity: 0.8,
+        },
+        subtler: {
+            opacity: 0.6,
+        },
+        smaller: {
+            fontSize: "0.8rem",
+        },
+    },
 });
 
 /*
@@ -48,3 +75,13 @@ declare module "@mui/material" {
     interface Theme extends CustomTheme { }
     interface ThemeOptions extends CustomTheme { }
 }*/
+
+declare module "@mui/material/styles" {
+    interface Theme {
+        utils: { [key: string]: object }
+    }
+    // allow configuration using `createTheme`
+    interface ThemeOptions {
+        utils: SxProps;
+    }
+}

@@ -20,6 +20,7 @@ import "./genetics/GenotypeService.test";
 
 //*/
 
+intern.config.defaultTimeout = 1000 * 60 * 10;
 
 intern.on("beforeRun", async () => {
     console.log(`Rolling back test database...`);

@@ -5,7 +5,7 @@ import { SnackbarProvider } from "notistack";
 import { LocalizationProvider } from "@mui/lab";
 import useDimensions from "react-cool-dimensions";
 import { AppRoutes } from "./AppRoutes";
-import { InfoContext, PresentationContext, ResponsiveBreakpoint, breakpoints } from "./contexts";
+import { InfoContext, InfoContextState, PresentationContext, ResponsiveBreakpoint, breakpoints, DEFAULT_INFO_CONTEXT } from "./contexts";
 import { InfoResponse } from "./client";
 import { ThemeProvider } from "@mui/material";
 import { client } from "./includes";
@@ -16,8 +16,10 @@ const Loading = () => (
     <div>Loading...</div>
 );
 
+
+
 const App = () => {
-    const [info, setInfo] = useState<InfoResponse>(null);
+    const [info, setInfo] = useState<InfoContextState>(DEFAULT_INFO_CONTEXT as InfoContextState);
     const [breakpoint, setBreakpoint] = useState<ResponsiveBreakpoint>("xs");
 
     const { observe, unobserve, width, height, entry } = useDimensions({

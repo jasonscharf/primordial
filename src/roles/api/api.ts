@@ -7,7 +7,7 @@ import * as http from "http2";
 import * as ws from "ws";
 import { isNullOrUndefined } from "util";
 import env from "../common-backend/env";
-import { ErrorType, PrimoSerializableError } from "../common/errors/errors";
+import { ErrorType, PrimoDatabaseError, PrimoSerializableError } from "../common/errors/errors";
 import { instrumentWebAppRequest } from "../common-backend/analytics";
 import * as routes from "./routes";
 import { db, dbm, log } from "../common-backend/includes";
@@ -105,6 +105,23 @@ async function createServerApp() {
                     primoErrorType: err.primoErrorType,
                     code: err.code,
                     message: err.message,
+                };
+            }
+
+            // Wrap tsoa's validation errors
+            if (err.name === "BadRequestError") {
+                let tsoaErrorJson: { [key: string]: string } = {};
+                try {
+                    tsoaErrorJson = JSON.parse(err.message);
+                }
+                catch (err) {
+                }
+                const fields = tsoaErrorJson.fields || {};
+                const fieldNames = Object.keys(fields);
+                errorJson = {
+                    primoErrorType: ErrorType.VALIDATION,
+                    code: 400,
+                    message: `Invalid or missing values: ${fieldNames.join(", ")}`,
                 };
             }
             else {

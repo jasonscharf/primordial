@@ -329,6 +329,6 @@ class StockChart extends React.Component<BotChartProps> {
     };
 }
 
-export default (withSize({ style: { minHeight: 600 } })(withDeviceRatio()(StockChart)));
+export const BotRunChart = StockChart;
 
 const parseDate = timeParse("%Y-%m-%d");

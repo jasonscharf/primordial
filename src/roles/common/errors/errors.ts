@@ -66,43 +66,43 @@ export class PrimoDatabaseError extends PrimoSerializableError {
 }
 
 
-export function createError(props: Error | PrimoSerializableError) {
-    if ((props as PrimoSerializableError).primoErrorType) {
-        let newError: Error | PrimoSerializableError;
+export function createError(props: unknown): PrimoSerializableError {
+    if (props instanceof PrimoSerializableError) {
+        return props;
+    }
+    else if ((props as PrimoSerializableError).primoErrorType) {
+        let newError: PrimoSerializableError;
         let asPrimoError = props as PrimoSerializableError;
         switch (asPrimoError.primoErrorType) {
             case ErrorType.GENERIC:
-                newError = new PrimoSerializableError(props.message, asPrimoError.code);
+                newError = new PrimoSerializableError(asPrimoError.message, asPrimoError.code);
                 break;
             case ErrorType.MISSING_ARG:
-                newError = new PrimoMissingArgumentError(props.message, asPrimoError.code);
+                newError = new PrimoMissingArgumentError(asPrimoError.message, asPrimoError.code);
                 break;
             case ErrorType.ALREADY_EXISTS:
-                newError = new PrimoAlreadyExistsError(props.message, asPrimoError.code);
+                newError = new PrimoAlreadyExistsError(asPrimoError.message, asPrimoError.code);
                 break;
             case ErrorType.UNKNOWN_NAME:
-                newError = new PrimoUnknownName(props.message, asPrimoError.code);
+                newError = new PrimoUnknownName(asPrimoError.message, asPrimoError.code);
                 break;
             case ErrorType.MALFORMED:
-                newError = new PrimoMalformedGenomeError(props.message, asPrimoError.code);
+                newError = new PrimoMalformedGenomeError(asPrimoError.message, asPrimoError.code);
                 break;
             case ErrorType.DATABASE:
-                newError = new PrimoDatabaseError(props.message);
+                newError = new PrimoDatabaseError(asPrimoError.message);
                 break;
             case ErrorType.VALIDATION:
-                newError = new PrimoValidationError(props.message, (props as PrimoValidationError).fieldName, (props as PrimoValidationError).fieldNameHuman);
+                newError = new PrimoValidationError(asPrimoError.message, (props as PrimoValidationError).fieldName, (props as PrimoValidationError).fieldNameHuman);
                 break;
             default:
-                newError = new Error(props.message);
+                newError = new PrimoSerializableError(asPrimoError.message);
                 break;
         }
 
         return newError;
     }
-    else if (props instanceof Error) {
-        return props;
-    }
     else {
-        return new Error((props as any).message);
+        return new PrimoSerializableError((props as any).message);
     }
 }

@@ -1,3 +1,5 @@
+import { SxProps } from "@mui/system";
+
 export const smallControl = {
     fontSize: "0.8rem",
 };

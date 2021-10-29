@@ -70,7 +70,7 @@ export function isUuid(thinger: unknown, fieldName = "id") {
         throw new PrimoValidationError(`Missing argument`, fieldName);
     }
 
-    if ((thinger as Array<any>).length !== 32 || typeof thinger !== "string") {
+    if ((thinger as Array<any>).length !== 36 || typeof thinger !== "string") {
         throw new PrimoValidationError(`Invalid value '${thinger}'`, fieldName);
     }
 

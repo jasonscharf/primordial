@@ -15,9 +15,21 @@ import * as validate from "../../common-backend/validation";
 @Route("genotypes")
 export class GenotypeController extends ControllerBase {
 
-    @Post("/fork")
-    async forkGenotype(@Body() req: ApiForkGenotypeRequest): Promise<ApiForkGenotypeResponse> {
-        const { allocationId, displayName, maxWagerPct, modeId, mutations, parentId, res, strategyId, symbolPairs: symbols, typeId: typeId, workspaceId } = req;
+
+    // Return type is ApiForkGenotypeResponse
+    @Post("/fork/back-to-fwd")
+    async forkBacktestToForwardTest(@Body() req: ApiForkGenotypeRequest): Promise<unknown> {
+        const { allocationId,
+            displayName,
+            maxWagerPct,
+            modeId,
+            mutations,
+            parentId,
+            res,
+            strategyId,
+            symbolPairs: symbols,
+            typeId: typeId, workspaceId
+        } = req as ApiForkGenotypeRequest;
 
         // SECURITY: TODO: Enforce secret cookie here for alpha
 

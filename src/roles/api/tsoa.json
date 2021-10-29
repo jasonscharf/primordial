@@ -13,5 +13,9 @@
         "basePath": "/api",
         "middleware": "koa",
         "routesDir": "./src/roles/api"
-    }
+    },
+    "ignore": [
+        "**/node_modules/**",
+        "./src/roles/web/**"
+    ]
 }

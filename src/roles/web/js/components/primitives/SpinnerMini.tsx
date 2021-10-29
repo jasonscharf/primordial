@@ -1,5 +1,6 @@
 import * as React from "react";
 import { CircularProgress, Grid } from "@mui/material"
+import { useTheme } from "@emotion/react";
 
 
 export interface MiniSpinnerProps {
@@ -9,6 +10,7 @@ export interface MiniSpinnerProps {
 
 export const SpinnerMini = (props: MiniSpinnerProps) => {
     const { caption1, caption2 } = props;
+    const theme = useTheme();
     const maybeCaption = !caption1
         ? null
         : (
@@ -22,7 +24,7 @@ export const SpinnerMini = (props: MiniSpinnerProps) => {
     return (
         <Grid item container className="primo-spinner-mini" alignItems="center" alignContent="stretch" style={{ textAlign: "center" }}>
             <Grid item style={{ flex: 1 }}>
-                <CircularProgress  color="inherit" style={{ width: "64px", height: "64px" }} />
+                <CircularProgress color="inherit" sx={{ width: "64px", height: "64px" }} />
                 {maybeCaption}
                 {maybeSubCaption}
             </Grid>

@@ -12,6 +12,7 @@ import { clone } from "../../common-backend/genetics/utils";
 import { DEFAULT_GENETICS, names } from "../../common-backend/genetics/base-genetics";
 import { defaultBaseGenetics, Genome } from "../../common/models/genetics/Genome";
 import { assertRejects } from "../utils/async";
+import { assertThrows } from "../utils/misc";
 
 
 describe("genetics", () => {
@@ -199,13 +200,13 @@ describe("genetics", () => {
     describe(Genome.parseParts.name, () => {
         it("handles valid parts", async () => {
             wellformedParts.forEach(part => {
-                assert.doesNotThrow(() => parser.parse(part), null, part);
+                assert.doesNotThrow(() => parser.parse(part), null, null);
             });
         });
 
         it("throws on invalid parts", async () => {
             malformedParts.forEach(part => {
-                assert.throws(() => parser.parse(part), null, part);
+                assertThrows(() => parser.parse(part), part);
             });
         });
 

@@ -1,35 +1,37 @@
 
 import React, { useCallback, useContext } from "react";
+import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar, Dialog, DialogContentText, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { DateTime } from "luxon";
 import { useSnackbar } from "notistack";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
+import { useTheme } from "@mui/material";
 import { Hashicon } from "@emeraldpay/hashicon-react";
-
-import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar, Dialog, DialogContentText, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { useParams } from "react-router";
+
+import { ApiForkGenotypeRequest, BotMode, BotType, RunState } from "../../client";
 import { Amount } from "../../components/primitives/Amount";
-import BotRunChart from "../../charts/BotRunChart";
+import { BotRunChart } from "../../charts/BotRunChart";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
-import { BotResultsApiResponse as BotResults, BotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
+import { ApiBotResultsApiResponse as BotResults, ApiBotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
+import { Genome } from "../../../../common/models/genetics/Genome";
+import { InfoContext } from "../../contexts";
 import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
 import { PriceEntity } from "../../../../common/entities/PriceEntity";
 import { OrderEntity } from "../../../../common/entities/OrderEntity";
 import { SimpleOrderTable } from "../../components/SimpleOrderTable";
 import { Percent } from "../../components/primitives/Percent";
-import { ApiForkGenotypeRequest, BotMode, BotType, RunState } from "../../client";
 import { ScreenBase } from "../Screenbase";
+import { Spinner } from "../../components/primitives/Spinner";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
 import { client } from "../../includes";
 import { isNullOrUndefined, sleep } from "../../../../common/utils";
-import { Spinner } from "../../components/primitives/Spinner";
 import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
 import { actionButton } from "../../styles/util-styles";
 import { useApiRequest, useApiRequestEffect } from "../../hooks/useApiRequestEffect";
-import { Genome } from "../../../../common/models/genetics/Genome";
-import { InfoContext } from "../../contexts";
-
+import { withDeviceRatio, withSize } from "@react-financial-charts/utils";
+import { parseServerErrors } from "../../utils";
 
 
 type BotEvent = any;
@@ -40,8 +42,10 @@ const DEFAULT_BOT_RESULTS_POLL_MS = 500;
  * Shows results for a bot run, including OLHCV data, indicators, and events.
  */
 const BotResults = () => {
-    const { defaultStrategy: strategyId, defaultWorkspace: workspaceId } = useContext(InfoContext);
-    const [results, setResults] = useState<BotResultsApiResponse>(null);
+    const info = useContext(InfoContext);
+    const theme = useTheme();
+
+    const [results, setResults] = useState<ApiBotResultsApiResponse>(null);
     const [isCreatingForwardTest, setIsCreatingForwardTest] = useState(false);
     const [forkDialogOpen, setForkDialogOpen] = React.useState(false);
     const args = useParams<{ instanceName: string }>();
@@ -81,11 +85,12 @@ const BotResults = () => {
                             .then(response => response.data)
                             .then(results => {
                                 const {
-                                    report,
-                                    prices,
-                                    signals,
                                     indicators,
-                                } = results as BotResultsApiResponse;
+                                    instance,
+                                    prices,
+                                    report,
+                                    signals,
+                                } = results as ApiBotResultsApiResponse;
 
 
                                 const rawOrders = ((report && report.orders) ? report.orders : []);
@@ -129,7 +134,6 @@ const BotResults = () => {
                                 const data: DataPoint[] = [];
                                 for (let i = 0; i < prices.length; ++i) {
                                     const price = PriceEntity.fromRow(prices[i]);
-                                    price.ts = DateTime.fromISO(price.ts as any as string).toJSDate();
 
                                     const indicatorsForTick = new Map<string, number>();
                                     Object.keys(indicators).forEach(k => {
@@ -183,29 +187,39 @@ const BotResults = () => {
         setForkDialogOpen(false);
     }, []);
 
+    const { defaultStrategy: strategyId, defaultWorkspace: workspaceId } = info;
     const handleConfirmRunAsForwardTest = useCallback(() => {
-        setIsCreatingForwardTest(true);
-        const [data, isLoading] = useApiRequest(async client => {
-            const mutations: string[] = [
-            ];
-            const args: ApiForkGenotypeRequest = {
-                allocationId: null,
-                parentId: instanceId,
-                symbolPairs: [results.report.symbols],
-                res: results.report.timeRes,
-                modeId: BotMode.TestForward,
-                typeId: BotType.Desc,
-                strategyId,
-                workspaceId,
-                mutations,
-                overlayMutations: true,
-            };
+        async function runAsForwardTest() {
+            try {
+                setIsCreatingForwardTest(true);
+                const mutations: string[] = [
+                ];
+                const args: ApiForkGenotypeRequest = {
+                    allocationId: results.instance.allocationId,
+                    parentId: instanceId,
+                    symbolPairs: [results.report.symbols],
+                    res: results.report.timeRes,
+                    modeId: BotMode.TestForward,
+                    typeId: BotType.Desc,
+                    strategyId,
+                    workspaceId,
+                    mutations,
+                    overlayMutations: true,
+                };
 
-            const result = await client.genotypes.forkGenotype(args);
-            debugger;
-            enqueueSnackbar("Success! Forward test created", { variant: "success" });
-        }, []);
-    }, [results]);
+                const result = await client.genotypes.forkBacktestToForwardTest(args);
+                enqueueSnackbar("Success! Forward test created", { variant: "success" });
+            }
+            catch (err) {
+                const errors = parseServerErrors(err);
+                errors.forEach(error => {
+                    enqueueSnackbar(error.message, { variant: "error" });
+                });
+            }
+        }
+
+        runAsForwardTest();
+    }, [info, results, strategyId, workspaceId]);
 
 
     if (!results) {
@@ -221,7 +235,7 @@ const BotResults = () => {
         indicators,
         data,
         eventMap,
-    } = results as BotResultsApiResponse;
+    } = results as ApiBotResultsApiResponse;
     const { exchange, instanceId, name, orders, symbols } = report;
 
 
@@ -232,9 +246,12 @@ const BotResults = () => {
     const tradingViewSymbol = `${exchange}:${base}${quote}`;
     const avgTickDuration = (report.durationMs / report.numCandles).toFixed(2);
     const runType = "backtest";
+
+    // import AutoSizer, { AutoSizerProps } from "react-virtualized-auto-sizer";
+    const SizedBotChart = (withSize({ style: { minHeight: 500 } })((withDeviceRatio()(BotRunChart))));
     return (
         <ScreenBase>
-            <Grid item container style={{ borderBottom: "2px solid #ddd", padding: "12px" }}>
+            <Grid item container sx={{ ...theme.utils.raisedHeader, padding: "12px" }}>
                 <Grid item className="primo-flex-valign" style={{ marginRight: "8px" }}>
                     <Hashicon value={instanceId} size={32} />
                 </Grid>
@@ -266,8 +283,8 @@ const BotResults = () => {
                 </Grid>
             </Grid>
 
-            <Grid container item spacing={3} style={{ borderBottom: "2px solid #ddd", margin: 0 }}>
-                <BotRunChart
+            <Grid container item style={{ ...theme.utils.borderBottomLite, margin: 0 }}>
+                <SizedBotChart
                     data={data}
                     displayHeikinAshi={displayHeikinAshi}
                     eventMap={eventMap}
@@ -277,7 +294,7 @@ const BotResults = () => {
                 />
             </Grid>
 
-            <Grid container sx={{ borderBottom: "1px solid #ddd" }}>
+            <Grid container sx={theme.utils.borderBottomLite}>
                 <Grid item sx={{ marginLeft: "auto" }}></Grid>
                 <Grid item>
                     <Button sx={actionButton} variant="contained" onClick={handleToggleHeikinAshi}>Heikin Ashi {displayHeikinAshi ? "off" : "on"}</Button>
@@ -288,7 +305,6 @@ const BotResults = () => {
             </Grid>
 
             <Grid container item spacing={2}>
-
                 <Grid item style={{ flex: 1 }}>
                     <Card>
                         <CardContent>

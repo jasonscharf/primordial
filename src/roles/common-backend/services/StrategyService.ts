@@ -456,7 +456,8 @@ export class StrategyService {
             };
 
             // TODO: TEST
-            const rows = <BotInstance[]>await db(tables.BotInstances)
+            const query = db(tables.BotInstances)
+                .andWhere(ref(tables.BotInstances, "deleted"), false)
                 .where(function () {
                     return this
                         .where(<Partial<BotInstance>>{
@@ -479,7 +480,7 @@ export class StrategyService {
                     })
                 });
 
-
+            const rows = <BotInstance[]>await query;
             return rows.map(row => BotInstanceEntity.fromRow(row));
         }, trx);
 

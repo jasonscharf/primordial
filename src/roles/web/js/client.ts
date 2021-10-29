@@ -9,10 +9,6 @@
  * ---------------------------------------------------------------
  */
 
-export interface ApiForkGenotypeResponse {
-  ids: string[];
-}
-
 /**
  * Describes the nature of the type of a bot instance.
  */
@@ -632,27 +628,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @name ForkGenotype
-     * @request POST:/genotypes/fork
-     */
-    forkGenotype: (data: ApiForkGenotypeRequest, params: RequestParams = {}) =>
-      this.request<ApiForkGenotypeResponse, any>({
-        path: `/genotypes/fork`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
      * @name ForkBacktestToForwardTest
      * @request POST:/genotypes/fork/back-to-fwd
      */
     forkBacktestToForwardTest: (data: ApiForkGenotypeRequest, params: RequestParams = {}) =>
-      this.request<ApiForkGenotypeResponse, any>({
+      this.request<any, any>({
         path: `/genotypes/fork/back-to-fwd`,
         method: "POST",
         body: data,

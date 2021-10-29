@@ -17,6 +17,17 @@ export function assertEqualTimes(d1: Date | number, d2: Date | number) {
     assert.equal(d1Val, d2Val, `Expected ${d1d} to equal ${d2d} at the ms level`);
 }
 
+// Chai's assertThrows is horrid
+export function assertThrows(fn: Function, message: string) {
+    try {
+        fn();
+        throw new Error(`Expection function to throw: ${message}`);
+    }
+    catch (err) {
+        return true;
+    }
+}
+
 // Note: Slow. Only use if necessary.
 export async function resetDb() {
     await dbm.rollback();

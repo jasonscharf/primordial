@@ -70,7 +70,7 @@ export const AppRoutes = () => {
                     <TestsScreen />
                 </Route>
                 <Route exact path="/">
-                    <Splash />
+                    <DashScreen />
                 </Route>
             </Switch>
         </Router>

@@ -2,7 +2,7 @@ import Koa from "koa";
 import { DateTime } from "luxon";
 import { Body, Get, Post, Query, Request, Route } from "tsoa";
 import env from "../../../common-backend/env";
-import { ApiBacktestRequest } from "../../../common/messages";
+import { ApiBacktestRequest, ApiBotOrderDescriptor } from "../../../common/messages";
 import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
 import { BotMode } from "../../../common/models/system/Strategy";
@@ -116,6 +116,7 @@ export class SandboxController extends ControllerBase {
             instanceIdOrName = instance.id;
         }
 
+        const allocationId = instance.allocationId;
         const run = await strats.getLatestRunForInstance(instanceIdOrName);
         if (!run) {
             throw new Error(`Bot hasn't run yet`);
@@ -144,6 +145,7 @@ export class SandboxController extends ControllerBase {
         const { missingRanges, prices, warnings } = srs;
         const { signals, indicators } = await runner.calculateIndicatorsAndSignals(args);
         return {
+            instance,
             report,
             prices,
             signals,

@@ -1,7 +1,24 @@
 import React from "react";
 import { InfoResponse } from "./client";
 
-export const InfoContext = React.createContext<InfoResponse>(null);
+export interface InfoContextState extends InfoResponse {
+
+}
+
+export const DEFAULT_INFO_CONTEXT: Partial<InfoContextState> = {
+    defaultWorkspace: null,
+    defaultStrategy: null,
+    buildInfo: {
+        version: "",
+        hash: "",
+    },
+    environment: {
+        mode: "production",
+    },
+    user: null,
+};
+
+export const InfoContext = React.createContext<InfoContextState>(DEFAULT_INFO_CONTEXT as InfoContextState);
 InfoContext.displayName = "ctx.info";
 
 

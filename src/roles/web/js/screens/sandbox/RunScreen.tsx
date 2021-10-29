@@ -14,7 +14,7 @@ const DEFAULT_SYMBOLS = "BTC/USDT";
 const DEFAULT_GENOME = "RSI-L=33|RSI-H=66";
 
 const RunScreen = () => {
-    const { defaultWorkspace: workspaceId, defaultStrategy: strategyId } = useContext(InfoContext);
+    const info = useContext(InfoContext);
 
     const prevFrom = window.localStorage["runner-prev-from"];
     const prevTo = window.localStorage["runner-prev-to"];
@@ -48,7 +48,7 @@ const RunScreen = () => {
         catch (err) {
 
         }
-    }, []);
+    }, [info]);
 
     const handleChangeFrom = useCallback(val => {
         setFrom(val)
@@ -80,6 +80,7 @@ const RunScreen = () => {
 
     const handleClickRun = useCallback(async () => {
         try {
+            const { defaultWorkspace: workspaceId, defaultStrategy: strategyId } = info;
             const args: ApiBacktestRequest = {
                 workspaceId,
                 strategyId,
@@ -144,7 +145,7 @@ const RunScreen = () => {
             setIsRunning(false);
             setErrors([...errors, ...errorTexts]);
         }
-    }, [from, genome, openInNewWindow, res, symbolPairs, to]);
+    }, [from, genome, info, openInNewWindow, res, symbolPairs, to]);
 
 
     return (
@@ -182,6 +183,9 @@ const RunScreen = () => {
                                                             <MenuItem value={ApiTimeResolution.Type5M}>5 min</MenuItem>
                                                             <MenuItem value={ApiTimeResolution.Type15M}>15 min</MenuItem>
                                                             <MenuItem value={ApiTimeResolution.Type1H}>1 hour</MenuItem>
+                                                            <MenuItem value={ApiTimeResolution.Type4H}>4 hours</MenuItem>
+                                                            <MenuItem value={ApiTimeResolution.Type6H}>6 hours</MenuItem>
+                                                            <MenuItem value={ApiTimeResolution.Type12H}>12 hours</MenuItem>
                                                         </Select>
                                                     </Grid>
                                                     <Grid item xs={3} sx={{ ...smallControl, marginLeft: "auto" }}>
