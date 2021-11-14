@@ -61,9 +61,8 @@ export class BotTest<TResultType> implements CommandHandler<BotTestArgs> {
             name = randomName();
         }
 
-        let displayName = appliedArgs.displayName || name;
+        const displayName = appliedArgs.displayName || name;
 
-        
         if (!genome) {
             throw new Error(`Missing argument 'genome'`);
         }

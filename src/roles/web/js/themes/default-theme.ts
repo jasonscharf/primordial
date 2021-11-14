@@ -64,6 +64,10 @@ export const defaultTheme = createTheme({
         smaller: {
             fontSize: "0.8rem",
         },
+        flexAlignCenter: {
+            display: "flex",
+            alignItems: "center",
+        },
     },
 });
 

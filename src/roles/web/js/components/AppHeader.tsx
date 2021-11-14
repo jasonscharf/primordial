@@ -1,9 +1,12 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useContext, useEffect } from "react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { Avatar, Grid, Typography } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useTheme } from "@mui/material";
 import { If } from "./primitives/If";
+import { InfoContext } from "../contexts";
+import { useHistory } from "react-router";
+import { routes } from "../../../common/app-routing";
 
 
 export interface HeaderProps {
@@ -11,8 +14,16 @@ export interface HeaderProps {
 }
 
 export const AppHeader = (props: HeaderProps) => {
-    const theme = useTheme();
     const { onTapMenu } = props;
+    const theme = useTheme();
+    const info = useContext(InfoContext);
+    const hist = useHistory();
+
+    const handleClickWorkspaceName = useCallback(() => {
+        const { defaultStrategy: strategy, defaultWorkspace: workspace } = info;
+        hist.push(routes.WORKSPACE_LIST);
+    }, [info]);
+
     return (
         <Grid container direction="row" className="primo-app-header" sx={theme.utils.raisedHeader}>
             <Grid item>
@@ -26,11 +37,14 @@ export const AppHeader = (props: HeaderProps) => {
                 </Grid>
             </Grid>
             <If>
-                <Grid item sx={{ ...theme.utils.smaller, marginLeft: "1em", opacity: 0.6 }}>
+                <Grid item sx={{ ...theme.utils.smaller, ...theme.utils.flexAlignCenter, marginLeft: "1em", opacity: 0.6 }}>
                     <Grid item>
                         <AccountTreeIcon fontSize="small" />
-                        &nbsp;
-                        <span>Default</span>
+                    </Grid>
+                    <Grid item>
+                        <button onClick={handleClickWorkspaceName}>
+                            <span>&nbsp;Default</span>
+                        </button>
                     </Grid>
                 </Grid>
             </If >

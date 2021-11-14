@@ -108,9 +108,9 @@ export const caching = {
  * Query names for logging and performance tracking purposes.
  */
 export const queries = {
+    ALLOCS_CREATE_TEST_ALLOC: "allocations.create-testing-alloc",
     ALLOCS_GET_BY_ID: "allocations.get-by-id",
     ALLOCS_GET_LEDGER: "allocations.get-ledger",
-    ALLOCS_CREATE_TEST_ALLOC: "allocations.create-testing-alloc",
     ALLOCS_GET_ITEM_FOR_BOT: "allocations.get-item-for-bot",
     BOTS_BACK_TESTS_TOP: "bots.back-tests.top",
     BOTS_DEFS_CREATE: "bots.defs.create",
@@ -142,6 +142,7 @@ export const queries = {
     ORDERS_SAVE_FILLS: "orders.fills.create.bulk",
     RESULTS_ADD: "results.add",
     RESULTS_GET_FOR_BOT_INSTANCE: "results.get-for-bot-instance",
+    RESULTS_GET_FOR_BOT_INSTANCE_RUNNING: "results.get-for-bot-instance.running",
     STRATEGIES_CREATE: "strategies.create",
     STRATEGIES_GET_OR_CREATE_DEFAULT: "stategies.get-or-create-default",
     STRATEGIES_PAUSE: "strategies.pause",
