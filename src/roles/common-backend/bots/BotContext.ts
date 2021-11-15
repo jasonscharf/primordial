@@ -4,6 +4,7 @@ import { AllocationItem } from "../../common/models/capital/AllocationItem";
 import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
 import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
 import { BacktestRequest } from "../messages/testing";
+import { BigNum, randomString } from "../utils";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotImplementation } from "./BotImplementation";
 import { BotInstance, BotInstanceStateInternal } from "../../common/models/bots/BotInstance";
@@ -22,7 +23,6 @@ import { OrderDelegateArgs } from "./BotOrderDelegate";
 import { Price } from "../../common/models/markets/Price";
 import { capital, constants, log, mq, orders, strats } from "../includes";
 import { moneytize } from "../database/utils";
-import { randomString } from "../utils";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../commands/bots/test";
 import { events, queue } from "../constants";
 
@@ -164,6 +164,10 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
         liveInstance.changeFsmState(ctx, state, newFsmState);
 
         if (buy) {
+
+            // Specify capital in quote currency for buys
+            order.capital = amount.abs();
+
             state.prevQuantity = quantity;
             state.prevPrice = purchasePrice;
             state.prevOrderId = order.id;
@@ -174,6 +178,9 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
 
             // Link the sell back to the previous buy
             order.relatedOrderId = state.prevOrderId;
+
+            // TODO: Should really look up prev order (in-mem) and use that capital.
+            order.capital = BigNum("0");
 
             state.prevQuantity = null;
             state.prevPrice = null;
@@ -257,8 +264,13 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item, buy);
 
             order.opened = new Date();
-            if (!buy) {
+
+            if (buy) {
+                order.capital = amount;
+            }
+            else {
                 // Link the sell back to previous buy
+                order.capital = BigNum("0");
                 order.relatedOrderId = state.prevOrderId;
             }
 

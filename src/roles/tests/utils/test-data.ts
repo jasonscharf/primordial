@@ -59,6 +59,7 @@ export function makeTestOrder(props?: Partial<Order>) {
         baseSymbolId: TEST_DEFAULT_BASE,
         quoteSymbolId: TEST_DEFAULT_QUOTE,
         fees: Money(constants.DEFAULT_EXCHANGE_FEE + ""),
+        capital: Money("1000"),
         limit: Money("50000"),
         strike: Money("50000"),
         quantity: Money("1"),

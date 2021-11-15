@@ -139,7 +139,7 @@ export function createMonetaryColumnLegacy(knex: Knex, table: Knex.CreateTableBu
  */
 export function createBigNumber(knex: Knex, table: Knex.CreateTableBuilder, colName: string) {
     return table
-        .decimal(colName)
+        .decimal(colName, null)
         .notNullable()
         .defaultTo(0)
         ;

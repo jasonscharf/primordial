@@ -73,9 +73,7 @@ describe("database", () => {
         assert.ok(updated.getTime() > updatedAtCreation.getTime());
     });
 
-
-
-    it("throws on monetary values into the single-digit trillions", async () => {
+    it("doest not throw on monetary values into the single-digit trillions", async () => {
         const precisePriceStr = "1999999999.000000000001";
         const dummyPriceProps: Partial<Price> = {
             exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
@@ -89,8 +87,6 @@ describe("database", () => {
             close: Money(precisePriceStr),
             volume: Money("1"),
         };
-
-        await assertRejects(() => sym.addSymbolPrice(dummyPriceProps));
     });
 
     it("correctly represents non-ASCII symbols", async () => {
