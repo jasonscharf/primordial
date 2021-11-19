@@ -1,6 +1,7 @@
 import knex, { Knex } from "knex";
 import env from "../env";
 import { BacktestRequest } from "../messages/testing";
+import { BigNum } from "../utils";
 import { BotDefinition } from "../../common/models/bots/BotDefinition";
 import { BotDefinitionEntity } from "../../common/entities/BotDefinitionEntity";
 import { BotInstance } from "../../common/models/bots/BotInstance";
@@ -9,6 +10,7 @@ import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
 import { BotMode, Strategy } from "../../common/models/system/Strategy";
 import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunEntity } from "../../common/entities/BotRunEntity";
+import { GeneticBotFsmState } from "../../common/models/bots/BotState";
 import { GeneticBotState } from "../bots/GeneticBot";
 import { GenotypeInstanceDescriptor } from "../../common/models/bots/GenotypeInstanceDescriptor";
 import { GenotypeInstanceDescriptorEntity } from "../../common/entities/GenotypeInstanceDescriptorEntity";
@@ -143,6 +145,8 @@ export class StrategyService {
                     bi."stateJson"->>'fsmState' AS "fsmState",
                     UPPER(bi."stateInternal"->>'baseSymbolId') AS "baseSymbolId",
                     UPPER(bi."stateInternal"->>'quoteSymbolId') AS "quoteSymbolId",
+                    bi."stateJson"->>'prevPrice' AS "prevPrice",
+                    bi."stateJson"->>'latestPrice' AS "latestPrice",
 
                     (results.results->>'from')::timestamp with time zone AS "from",
                     (results.results->>'to')::timestamp with time zone AS "to",
@@ -259,7 +263,7 @@ export class StrategyService {
     }
 
     /**
-     * Returns bot status descriptors for any active forward tests
+     * Returns bot status descriptors for any active forward tests or live bots.
      * @param workspaceId 
      * @param strategyId 
      * @param status 
@@ -281,14 +285,18 @@ export class StrategyService {
                     bot_instances.symbols,
                     bot_instances."modeId",
                     bot_instances."resId",
+                    bot_instances."stateJson" as "state",
                     bot_instances."stateJson"->>'fsmState' AS "fsmState",
                     bot_instances."stateInternal"->>'baseSymbolId' AS "baseSymbolId",
                     bot_instances."stateInternal"->>'quoteSymbolId' AS "quoteSymbolId",
+                    bot_instances."stateJson"->>'prevPrice' AS "prevPrice",
+                    bot_instances."stateJson"->>'latestPrice' AS "latestPrice",
                     bot_instances."currentGenome" as genome,
                     bot_instances.created AS created,
                     bot_instances.updated AS updated,
                     (NOW() - bot_runs.from) AS duration,
                     bot_instances."stateJson",
+                    bot_runs.id AS "runId",
 
                     COUNT(orders.id)::int AS "numOrders",
 
@@ -304,7 +312,20 @@ export class StrategyService {
                         , 4)
                     , 0) AS "totalProfit",
 
-                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600))::int AS "durationHours"
+                    COALESCE(
+                        ABS(
+                            SUM(
+                                (o2.gross - ABS(orders.gross)) - ((ABS(orders.gross) * orders.fees) + (ABS(o2.gross) * o2.fees))
+                            )  / orders.capital
+                        ), 0) 
+                     AS "totalProfitPct",
+
+                    COALESCE(
+                        LAST(orders.capital, orders.opened), 0
+                    ) AS "currentCapital",
+
+                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600))::int AS "durationHours",
+                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 86400))::int AS "durationDays"
                 
                 FROM bot_instances
                     JOIN bot_runs ON bot_runs."instanceId" = bot_instances.id
@@ -330,17 +351,54 @@ export class StrategyService {
                     bot_instances.created,
                     bot_instances.updated,
                     duration,
-                    bot_instances."stateJson"
+                    bot_instances."stateJson",
+                    bot_runs."id",
+                    orders.capital -- BUG: Need to rethink capital.
 
                 ORDER BY
-                    "totalProfit" DESC,
+                    "totalProfitPct" DESC,
                     "runState" DESC,
                     updated DESC
                     
                 `, bindings
             );
-            return rows as GenotypeInstanceDescriptor[];
+            const descriptors = rows.map(r => GenotypeInstanceDescriptorEntity.fromRow(r as GenotypeInstanceDescriptor));
+            return descriptors;
         }, trx);
+
+        // Compute drawdown
+        descriptors.forEach(desc => {
+            const { fsmState, state } = desc;
+            const isSelling = (
+                fsmState === GeneticBotFsmState.SURF_SELL ||
+                fsmState === GeneticBotFsmState.WAITING_FOR_SELL_OPP ||
+                fsmState === GeneticBotFsmState.WAITING_FOR_SELL_ORDER_CONF
+            );
+
+            const { latestPrice: latestPriceRaw, prevPrice: prevPriceRaw } = state || {};
+
+            const latestPrice = BigNum(latestPriceRaw ?? "0");
+            const prevPrice = BigNum(prevPriceRaw ?? "0");
+
+            // Using the loose definition of drawdown here (dd from last buy, not last peak)
+            const drawdown = !isSelling
+                ? 0
+                : latestPrice.minus(prevPrice).round(2) // TEMP USDT
+                ;
+
+            const drawdownPct = (!isSelling || latestPrice.eq("0"))
+                ? 0
+                : BigNum("1").minus(prevPrice.div(latestPrice)).round(2).toNumber()
+                ;
+
+
+            desc.drawdown = desc.currentCapital.mul(drawdownPct);
+            desc.drawdownPct = drawdownPct;
+            desc.totalProfit = desc.totalProfit.add(desc.currentCapital.mul(drawdownPct));
+
+            // TODO: FIX. There's a bug in ADO for this. We are assuming uniform capital here.
+            desc.totalProfitPct = desc.totalProfitPct + drawdownPct;
+        });
 
         return descriptors;
     }
@@ -736,7 +794,7 @@ export class StrategyService {
      * @param trx 
      * @returns 
      */
-    async getBotInstanceByName<TState = unknown>(workspaceId: string, name: string, trx: Knex.Transaction = null): Promise<BotInstance<TState>> {
+    async getBotInstanceByName<TState = GeneticBotState>(workspaceId: string, name: string, trx: Knex.Transaction = null): Promise<BotInstance<TState>> {
         const bot = await query(queries.BOTS_INSTANCES_GET, async db => {
             const [row] = <BotInstance<TState>[]>await db(tables.BotInstances)
                 .innerJoin(tables.BotDefinitions, ref(tables.BotInstances, "definitionId"), "=", ref(tables.BotDefinitions, "id"))

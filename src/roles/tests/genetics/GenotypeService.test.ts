@@ -191,7 +191,7 @@ describe(GenotypeService.name, () => {
             // TEST
         });
 
-        it("throws when attempting to elevate a back", async () => {
+        it("throws when attempting to elevate a backtest straight to live", async () => {
             // TEST
         });
 

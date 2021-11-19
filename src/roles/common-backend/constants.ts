@@ -143,6 +143,7 @@ export const queries = {
     RESULTS_ADD: "results.add",
     RESULTS_GET_FOR_BOT_INSTANCE: "results.get-for-bot-instance",
     RESULTS_GET_FOR_BOT_INSTANCE_RUNNING: "results.get-for-bot-instance.running",
+    RESULTS_GET_TRADE_PAIRS_FOR_INSTANCE: "results.trades.instance",
     STRATEGIES_CREATE: "strategies.create",
     STRATEGIES_GET_OR_CREATE_DEFAULT: "stategies.get-or-create-default",
     STRATEGIES_PAUSE: "strategies.pause",

@@ -1,5 +1,7 @@
 import "react-dom";
 import React from "react";
+import { Grid, useTheme } from "@mui/material";
+import { BigNum } from "../../../../common/numbers";
 import classes from "classnames";
 
 
@@ -10,15 +12,19 @@ export enum PercentStyle {
 };
 
 export interface PercentProps {
-    amount?: number;
+    amount?: number | BigNum;
+    big?: boolean;
 }
 
 export const Percent = (props: PercentProps) => {
-    const { amount } = props;
+    const theme = useTheme();
+    let { amount, big } = props;
+
+    if (amount instanceof BigNum) {
+        amount = amount.round(11).toNumber();
+    }
 
     let className: string = "";
-
-
     if (amount < 0) {
         className = "primo-negative";
     }
@@ -29,11 +35,14 @@ export const Percent = (props: PercentProps) => {
         className = "primo-neutral";
     }
 
-
-    const normalizedAmount = (amount * 100).toPrecision(2);
+    let normalizedAmount = (amount * 100).toPrecision(2);
+    if (amount > 0) {
+        normalizedAmount = "+" + normalizedAmount;
+    }
+    const emphasis = big ? theme.utils.emphasis : {};
     return (
-        <div className={classes("primo-percent", className)}>
-            <span>{normalizedAmount}</span>&nbsp;&#37;
-        </div>
+        <Grid item className={classes("primo-percent", className)} sx={emphasis}>
+            <span>{normalizedAmount}</span>&#37;
+        </Grid>
     )
 };

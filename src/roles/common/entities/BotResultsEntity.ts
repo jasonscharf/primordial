@@ -1,6 +1,8 @@
 import { BotResults } from "../models/bots/BotResults";
 import { BotRunReport } from "../models/bots/BotSummaryResults";
+import { BotRunReportEntity } from "./BotRunReportEntity";
 import { MutableEntity } from "../models/MutableEntity";
+import { OrderEntity } from "./OrderEntity";
 
 
 export class BotResultsEntity extends MutableEntity implements BotResults {
@@ -23,7 +25,7 @@ export class BotResultsEntity extends MutableEntity implements BotResults {
             this.quoteSymbolId = row[prefix + "quoteSymbolId"];
             this.from = row[prefix + "from"];
             this.to = row[prefix + "to"];
-            this.results = row[prefix + "results"];
+            this.results = BotRunReportEntity.fromRow(row[prefix + "results"]);
         }
     }
 

@@ -19,7 +19,7 @@ const Loading = () => (
 
 
 const App = () => {
-    const [info, setInfo] = useState<InfoContextState>(DEFAULT_INFO_CONTEXT as InfoContextState);
+    const [info, setInfo] = useState<InfoContextState>(null);
     const [breakpoint, setBreakpoint] = useState<ResponsiveBreakpoint>("xs");
 
     const { observe, unobserve, width, height, entry } = useDimensions({

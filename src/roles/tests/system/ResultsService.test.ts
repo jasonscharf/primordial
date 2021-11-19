@@ -1,4 +1,4 @@
-import { TestDataCtx, getTestData } from "../utils/test-data";
+import { TestDataCtx, getTestData, generateTestPrices } from "../utils/test-data";
 import { ResultsService } from "../../common-backend/services/ResultsService";
 import { assert, describe, before, env, it } from "../includes";
 import { beforeEach } from "intern/lib/interfaces/tdd";
@@ -27,7 +27,49 @@ describe(ResultsService.name, () => {
         });
     });
 
-    describe(results.getLatestResultsForBot.name, () => {
+    describe(results.getLatestResultsForRunningBot.name, () => {
+        it("returns a well-formed report", async () => {
+            // TEST
+        });
+
+        it("correctly summates gross, profit, and fees", async () => {
+            // TEST
+        });
+
+        it("returns the correct trades from the latest runs", async () => {
+            // TEST
+        });
+
+        it("correctly handles multiple runs", async () => {
+            // TEST
+        });
+    });
+
+    describe(results.getTradesForBot.name, () => {
+        it("accounts for trailing orders", async () => {
+            // TEST
+        });
+        
+        it("correctly handles multiple runs", async () => {
+            // TEST
+        });
+    });
+
+    describe(results.computeTradingResults.name, () => {
+        it("correctly summates results", async () => {
+            // TEST
+        });
+
+        it("correctly handles trailing order", async () => {
+            // TEST: Uses drawdown of the last open order
+        });
+
+        it("correctly handles trailing order across multiple runs", async () => {
+            // TEST: Yikes... may need to record in the DB whether or not the assets were returned to pool
+        });
+    });
+
+    describe(results.getLatestBacktestResultsForInstance.name, () => {
         it("throws if the instance ID is missing", async () => {
             // TEST
         });

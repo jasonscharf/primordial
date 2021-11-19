@@ -20,6 +20,7 @@ import { randomName } from "../utils/names";
 import * as validate from "../validation";
 import { isNullOrUndefined } from "../utils";
 import { defaultBaseGenetics, Genome } from "../../common/models/genetics/Genome";
+import { sym } from "../services";
 
 
 export interface GenotypeForkArgs extends ApiForkGenotypeRequest {
@@ -153,6 +154,8 @@ export class GenotypeService {
                 //const possiblyMutatedSymbols = mutatedGenotype.getGene<string>(names.GENETICS_C_SYM, names.GENETICS_C_SYM).value;
                 const possiblyMutatedSymbols = original.symbols.toUpperCase();
 
+                const [baseSymbolId, quoteSymbolId] = sym.parseSymbolPair(possiblyMutatedSymbols);
+
                 const instanceProps: Partial<BotInstance> = {
                     //exchangeId: parentInstance.exchangeId,
                     definitionId: parentDef.id,
@@ -167,7 +170,10 @@ export class GenotypeService {
                     currentGenome: parsedGenotype.toString(),
                     symbols: possiblyMutatedSymbols,
                     stateJson: {} as any,
-                    stateInternal: {} as any,
+                    stateInternal: {
+                        baseSymbolId,
+                        quoteSymbolId,
+                    } as any,
                     // TODO: Add parsed genotype to DB
                 };
 

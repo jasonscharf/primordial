@@ -44,7 +44,12 @@ async function configureCsrf(app: Koa) {
 
 async function configureLogging(app: Koa) {
     if (env.isDev()) {
-        //app.use(morgan("dev"));
+        app.use(async (ctx, next) => {
+            const start = Date.now();
+            await next();
+            const ms = Date.now() - start;
+            console.log(`${ctx.method} ${ctx.url} - ${ms}ms`);
+        });
     }
 }
 

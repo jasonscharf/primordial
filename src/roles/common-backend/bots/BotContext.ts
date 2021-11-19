@@ -266,7 +266,7 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             order.opened = new Date();
 
             if (buy) {
-                order.capital = amount;
+                order.capital = amount.abs();
             }
             else {
                 // Link the sell back to previous buy

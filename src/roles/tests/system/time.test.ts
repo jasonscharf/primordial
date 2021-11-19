@@ -8,6 +8,7 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
 import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, shortDateAndTime, splitRanges } from "../../common/utils/time";
 import { assertEqualTimes } from "../utils/misc";
+import { presentDuration } from "../../common/utils/time";
 
 
 describe("time handling", () => {
@@ -20,6 +21,33 @@ describe("time handling", () => {
 
     beforeEach(async () => {
         sym = new SymbolService();
+    });
+
+    describe(presentDuration.name, () => {
+        it("presents a duration object correctly", () => {
+
+            // 1 day, 6 hours, 30 mins, 30 secs, 500 ms
+            const str = presentDuration({
+                days: 1,
+                hours: 6,
+                minutes: 30,
+                seconds: 30,
+                milliseconds: 500,
+            });
+
+            assert.equal(str, "1 days, 6 hours, 30 mins");
+        });
+
+        it("presents a duration in milliseconds correctly", () => {
+            const duration =
+                (1 * millisecondsPerResInterval(TimeResolution.ONE_DAY)) +
+                (6 * millisecondsPerResInterval(TimeResolution.ONE_HOUR)) +
+                (30 * millisecondsPerResInterval(TimeResolution.ONE_MINUTE)) +
+                500;
+
+            const str = presentDuration(duration);
+            assert.equal(str, "1 days, 6 hours, 30 mins");
+        });
     });
 
     describe(shortDateAndTime.name, () => {
@@ -97,13 +125,13 @@ describe("time handling", () => {
         test(TimeResolution.ONE_HOUR, "02:45:55:555", "02:00:00:000");
 
         test(TimeResolution.TWO_HOURS, "00:00:00:000", "00:00:00:000");
-        test(TimeResolution.TWO_HOURS, "01:59:59:000", "00:00:00:000"); 
+        test(TimeResolution.TWO_HOURS, "01:59:59:000", "00:00:00:000");
         test(TimeResolution.TWO_HOURS, "02:00:00:000", "02:00:00:000");
         test(TimeResolution.TWO_HOURS, "03:45:55:555", "02:00:00:000");
         test(TimeResolution.TWO_HOURS, "04:00:00:000", "04:00:00:000");
 
         test(TimeResolution.FOUR_HOURS, "00:00:00:000", "00:00:00:000");
-        test(TimeResolution.FOUR_HOURS, "03:59:59:000", "00:00:00:000"); 
+        test(TimeResolution.FOUR_HOURS, "03:59:59:000", "00:00:00:000");
         test(TimeResolution.FOUR_HOURS, "04:00:00:000", "04:00:00:000");
         test(TimeResolution.FOUR_HOURS, "05:45:55:555", "04:00:00:000");
         test(TimeResolution.FOUR_HOURS, "08:00:00:000", "08:00:00:000");

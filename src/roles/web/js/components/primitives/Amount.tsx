@@ -1,6 +1,7 @@
 import "react-dom";
 import React from "react";
 import classes from "classnames";
+import { Grid, useTheme } from "@mui/material";
 import { BigNum } from "../../../../common/numbers";
 import { isNullOrUndefined } from "../../../../common/utils";
 
@@ -16,10 +17,14 @@ export interface AmountProps {
     symbol?: string;
     style?: string;
     neutral?: boolean;
+    big?: boolean;
+    showPlus?: boolean;
 }
 
 export const Amount = (props: AmountProps) => {
-    let { amount, neutral, style, symbol } = props;
+    const theme = useTheme();
+
+    let { amount, big, neutral, showPlus, style, symbol } = props;
     let className: string = "";
 
     if (isNullOrUndefined(amount)) {
@@ -62,16 +67,21 @@ export const Amount = (props: AmountProps) => {
                 amountStr = (amount as number).toFixed(2).toString();
             }
             else {
-                amountStr = (amount as number).toFixed(8).toString();
+                amountStr = (amount as number).toString();
             }
         }
     }
 
+    if (showPlus && amount > 0) {
+        amountStr = "+" + amountStr;
+    }
+
     const maybeSymbol = symbol ? `${symbol}` : null;
+    const emphasis = big ? theme.utils.emphasis : {};
     return (
-        <div className={classes("primo-amount", className)}>
+        <Grid item className={classes("primo-amount", className)} sx={emphasis}>
             <span>{amountStr}</span>
             &nbsp;{maybeSymbol}
-        </div>
+        </Grid>
     )
 };

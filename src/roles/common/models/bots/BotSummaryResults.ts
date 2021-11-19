@@ -1,8 +1,9 @@
-import { Money } from "../../numbers";
+import { BigNum } from "../../numbers";
 import { Order } from "../markets/Order";
 import { PriceDataRange } from "../../../common-backend/services/SymbolService";
 import { PrimoSerializableError } from "../../errors/errors";
 import { TimeResolution } from "../markets/TimeResolution";
+
 
 
 /**
@@ -13,16 +14,17 @@ export interface BotRunReport {
     instanceId: string;
     runId: string;
     name: string;
-    capital: number;
-    balance: number;
-    totalGross: number;
+    capital: BigNum;
+    balance: BigNum;
+    totalGross: BigNum;
     totalGrossPct: number;
+    drawdownPct: number;
     buyAndHoldGrossPct: number;
-    estProfitPerYearCompounded: number;
-    avgProfitPerDay: number;
+    estProfitPerYearCompounded: BigNum;
+    avgProfitPerDay: BigNum;
     avgProfitPctPerDay: number;
-    totalFees: number;
-    totalProfit: number;
+    totalFees: BigNum;
+    totalProfit: BigNum;
     totalProfitPct: number;
     exchange: string;
     symbols: string;
@@ -35,8 +37,9 @@ export interface BotRunReport {
     totalWins: number;
     totalLosses: number;
     avgWinRate: number;
-    firstClose: number;
-    lastClose: number;
+    firstOpen: BigNum;
+    firstClose: BigNum;
+    lastClose: BigNum;
     sharpe: number;
     sortino: number;
     from: Date;

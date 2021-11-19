@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import { TimeResolution } from "../models/markets/TimeResolution";
 import { isNullOrUndefined } from "../utils";
+import { DEFAULT_PRESENT_DURATION_ARGS } from "./presentation";
 
 
 
@@ -91,7 +92,7 @@ export function floorToMinutes(ts: Date, mins = 1) {
  *  12:07:03 -> 12:05:00
  * @param ts 
  */
- export function floorToHours(ts: Date, hours = 1) {
+export function floorToHours(ts: Date, hours = 1) {
     const ret = new Date(ts);
     ret.setMilliseconds(0);
     ret.setSeconds(0);
@@ -131,6 +132,9 @@ export function shortTime(dt: Date) {
  * @returns 
  */
 export function shortDateAndTime(dt: Date) {
+    if (!dt) {
+        return "-";
+    }
     return `${dt.getFullYear()}-${(("0" + (dt.getMonth() + 1)).slice(-2))}-${("0" + dt.getDate()).slice(-2)}` +
         ` ${("0" + dt.getHours()).slice(-2)}:${("0" + dt.getMinutes()).slice(-2)}:${("0" + dt.getSeconds()).slice(-2)}`;
 }
@@ -327,4 +331,67 @@ export function human(ms: number) {
     else if (minutes < 60) return minutes.toFixed(1) + " minutes";
     else if (hours < 24) return hours.toFixed(1) + " hours";
     else return Math.ceil(days) + " days";
+}
+
+
+export interface Duration {
+    milliseconds: number;
+    seconds: number;
+    minutes: number;
+    hours: number;
+    days: number;
+}
+
+export function presentDuration(duration: Duration | number, args = {}) {
+    if (isNullOrUndefined(duration)) {
+        return "(unknown)";
+    }
+
+    if (typeof duration === "number") {
+        const ms = duration as number;
+
+        let milliseconds = Math.floor((ms % 1000) / 100);
+        let seconds = Math.floor((ms / 1000) % 60);
+        let minutes = Math.floor((ms / (1000 * 60)) % 60);
+        let hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+        let days = Math.floor((ms / (1000 * 60 * 60 * 24)));
+
+        duration = {
+            milliseconds,
+            seconds,
+            minutes,
+            hours,
+            days,
+        };
+    }
+
+    const appliedArgs = Object.assign({}, DEFAULT_PRESENT_DURATION_ARGS, args);
+    const { abs, short, noMs, noSeconds } = appliedArgs;
+
+    const { days, hours, milliseconds, minutes, seconds } = duration;
+
+    const numMilliseconds = abs ? Math.abs(milliseconds) : milliseconds;
+    const numSeconds = abs ? Math.abs(seconds) : seconds;
+    const numMinutes = abs ? Math.abs(minutes) : minutes;
+    const numHours = abs ? Math.abs(hours) : hours;
+    const numDays = abs ? Math.abs(days) : days;
+
+    let pieces: string[] = [];
+    if (Math.abs(numDays) > 0) {
+        pieces.push(numDays + (short ? "d" : " days"));
+    }
+    if (Math.abs(numHours) > 0) {
+        pieces.push(numHours + (short ? "h" : " hours"));
+    }
+    if (Math.abs(numMinutes) > 0) {
+        pieces.push(numMinutes + (short ? "m" : " mins"));
+    }
+    if (!noSeconds && Math.abs(numSeconds) > 0) {
+        pieces.push(numSeconds + (short ? "s" : " secs"));
+    }
+    if (!noMs && Math.abs(numMilliseconds) > 0) {
+        pieces.push(numMilliseconds + (short ? "ms" : " ms"));
+    }
+
+    return pieces.join(", ");
 }

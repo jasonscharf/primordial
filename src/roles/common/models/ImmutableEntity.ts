@@ -19,9 +19,15 @@ export class ImmutableEntity implements ImmutableModel {
     id: string;
 
 
-    constructor(row?: Partial<ImmutableModel>) {
+    constructor(row?: Partial<ImmutableModel>, prefix = "") {
         if (row) {
-            this.id = row.id;
+            this.id = row[prefix + "id"];
         }
+    }
+
+    static get cols() {
+        return [
+            "id",
+        ];
     }
 }

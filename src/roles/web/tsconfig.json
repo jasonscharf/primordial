@@ -11,8 +11,11 @@
     ]
   },
   "exclude": [
-    "../dist/",
-    "../node_modules/",
-    "../src/roles/spooler"
+    "../../dist/",
+    "../../node_modules/",
+    "../../src/roles/spooler",
+    "../../src/roles/api",
+    "../../src/roles/worker",
+    "../../src/roles/common-backend",
   ]
 }

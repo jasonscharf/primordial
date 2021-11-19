@@ -130,6 +130,8 @@ const models: TsoaRoute.Models = {
             "prevFsmState": {"ref":"GeneticBotFsmState","required":true},
             "prevFsmStateChangeTs": {"dataType":"datetime","required":true},
             "signals": {"dataType":"array","array":{"dataType":"double"},"required":true},
+            "firstPrice": {"ref":"BigNum","required":true},
+            "latestPrice": {"ref":"BigNum","required":true},
             "prevQuantity": {"ref":"BigNum","required":true},
             "prevPrice": {"ref":"BigNum","required":true},
             "prevOrderId": {"dataType":"string","required":true},
@@ -227,6 +229,18 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Duration": {
+        "dataType": "refObject",
+        "properties": {
+            "milliseconds": {"dataType":"double","required":true},
+            "seconds": {"dataType":"double","required":true},
+            "minutes": {"dataType":"double","required":true},
+            "hours": {"dataType":"double","required":true},
+            "days": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GenotypeInstanceDescriptor": {
         "dataType": "refObject",
         "properties": {
@@ -240,16 +254,23 @@ const models: TsoaRoute.Models = {
             "baseSymbolId": {"dataType":"string","required":true},
             "quoteSymbolId": {"dataType":"string","required":true},
             "modeId": {"ref":"BotMode","required":true},
+            "state": {"ref":"GeneticBotState","required":true},
             "genome": {"dataType":"string","required":true},
             "fsmState": {"ref":"GeneticBotFsmState","required":true},
             "from": {"dataType":"datetime"},
             "to": {"dataType":"datetime"},
-            "duration": {"dataType":"object","required":true},
+            "duration": {"ref":"Duration","required":true},
             "numOrders": {"dataType":"double","required":true},
+            "currentCapital": {"ref":"BigNum","required":true},
             "totalProfit": {"ref":"BigNum","required":true},
+            "totalProfitPct": {"dataType":"double","required":true},
             "totalFees": {"ref":"BigNum","required":true},
+            "drawdown": {"ref":"BigNum","required":true},
+            "drawdownPct": {"ref":"BigNum","required":true},
             "avgProfitPerDay": {"ref":"BigNum","required":true},
             "avgProfitPctPerDay": {"dataType":"double","required":true},
+            "prevPrice": {"ref":"BigNum","required":true},
+            "latestPrice": {"ref":"BigNum","required":true},
         },
         "additionalProperties": false,
     },
@@ -354,10 +375,10 @@ export function RegisterRoutes(router: KoaRouter) {
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        router.get('/api/sandbox/results/status/:instanceIdOrName',
+        router.get('/api/sandbox/results/status/:instanceName',
             async function SandboxController_getBotResultsStatus(context: any, next: any) {
             const args = {
-                    instanceIdOrName: {"in":"path","name":"instanceIdOrName","required":true,"dataType":"string"},
+                    instanceName: {"in":"path","name":"instanceName","required":true,"dataType":"string"},
             };
 
             let validatedArgs: any[] = [];
@@ -375,10 +396,10 @@ export function RegisterRoutes(router: KoaRouter) {
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        router.get('/api/sandbox/results/:instanceIdOrName',
+        router.get('/api/sandbox/results/:instanceName',
             async function SandboxController_getBotResults(context: any, next: any) {
             const args = {
-                    instanceIdOrName: {"in":"path","name":"instanceIdOrName","required":true,"dataType":"string"},
+                    instanceName: {"in":"path","name":"instanceName","required":true,"dataType":"string"},
             };
 
             let validatedArgs: any[] = [];

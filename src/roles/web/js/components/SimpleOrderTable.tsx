@@ -24,7 +24,6 @@ export function SimpleOrderTable(props?: OrderTableProps) {
             <Table size="small" aria-label="Recent orders">
                 <TableHead>
                     <TableRow>
-                        <TableCell align="left">Order</TableCell>
                         <TableCell align="right">Type</TableCell>
                         <TableCell align="right">Opened</TableCell>
                         <TableCell align="right">Quantity</TableCell>
@@ -36,10 +35,7 @@ export function SimpleOrderTable(props?: OrderTableProps) {
                     {orders.map((row) => (
                         <TableRow
                             key={row.id}>
-                            <TableCell>
-                                {row.displayName}
-                            </TableCell>
-                            <TableCell align="right">{row.typeId}</TableCell>
+                            <TableCell align="left">{row.typeId}</TableCell>
                             <TableCell align="right">{shortDateAndTime(row.opened)}</TableCell>
                             <TableCell align="right">{row.quantity.round(11).toString()}</TableCell>
                             <TableCell align="right">{row.price.round(11).toString()}</TableCell>

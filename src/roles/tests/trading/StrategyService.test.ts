@@ -1,8 +1,8 @@
 import "intern";
+import { before, beforeEach } from "intern/lib/interfaces/tdd";
 import { it } from "intern/lib/interfaces/bdd";
 import env from "../../common-backend/env";
 import { StrategyService } from "../../common-backend/services/StrategyService";
-import { before, beforeEach } from "intern/lib/interfaces/tdd";
 import { addNewBotDefAndInstance, clearTestData, getTestData, TestDataCtx } from "../utils/test-data";
 import { assert, describe } from "../includes";
 

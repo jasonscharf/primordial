@@ -1,20 +1,23 @@
-
 import React, { useCallback, useContext } from "react";
 import { Box, Card, CardActions, CardContent, Button, CircularProgress, Grid, TextField, Chip, Avatar, Dialog, DialogContentText, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { DateTime } from "luxon";
+import { Hashicon } from "@emeraldpay/hashicon-react";
 import { useSnackbar } from "notistack";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
 import { useTheme } from "@mui/material";
-import { Hashicon } from "@emeraldpay/hashicon-react";
 import { useParams } from "react-router";
-
-import { ApiForkGenotypeRequest, BotMode, BotType, RunState } from "../../client";
+import { withDeviceRatio, withSize } from "@react-financial-charts/utils";
+import SettingsIcon from "@mui/icons-material/Settings";
+import { ApiForkGenotypeRequest, BotMode, BotType, HttpResponse, RunState } from "../../client";
+import { ApiForkGenotypeResponse } from "../../../../common/messages/genetic";
 import { Amount } from "../../components/primitives/Amount";
+import { BotRunReportEntity } from "../../../../common/entities/BotRunReportEntity";
 import { BotRunChart } from "../../charts/BotRunChart";
 import { BotRunReport } from "../../../../common/models/bots/BotSummaryResults";
 import { ApiBotResultsApiResponse as BotResults, ApiBotResultsApiResponse, DataPoint, IndicatorMap } from "../../models";
 import { Genome } from "../../../../common/models/genetics/Genome";
+import { If } from "../../components/primitives/If";
 import { InfoContext } from "../../contexts";
 import { Price } from "../../../../common/models/markets/Price";
 import { PriceDataParameters } from "../../../../common/models/system/PriceDataParameters";
@@ -25,13 +28,13 @@ import { Percent } from "../../components/primitives/Percent";
 import { ScreenBase } from "../Screenbase";
 import { Spinner } from "../../components/primitives/Spinner";
 import { TimeResolution } from "../../../../common/models/markets/TimeResolution";
-import { client } from "../../includes";
-import { isNullOrUndefined, sleep } from "../../../../common/utils";
-import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
 import { actionButton } from "../../styles/util-styles";
-import { useApiRequest, useApiRequestEffect } from "../../hooks/useApiRequestEffect";
-import { withDeviceRatio, withSize } from "@react-financial-charts/utils";
+import { client } from "../../includes";
+import { from, normalizePriceTime, shortDateAndTime } from "../../../../common/utils/time";
+import { isNullOrUndefined, sleep } from "../../../../common/utils";
 import { parseServerErrors } from "../../utils";
+import { presentDuration } from "../../../../common/utils/time";
+import { useApiRequest, useApiRequestEffect } from "../../hooks/useApiRequestEffect";
 
 
 type BotEvent = any;
@@ -92,23 +95,12 @@ const BotResults = () => {
                                     signals,
                                 } = results as ApiBotResultsApiResponse;
 
-
                                 const rawOrders = ((report && report.orders) ? report.orders : []);
-
-                                // Include the trailing order on the chart
-                                if (report.trailingOrder) {
-                                    rawOrders.push(report.trailingOrder);
-                                }
-
                                 const orderEntities = rawOrders.map(o => OrderEntity.fromRow(o));
 
                                 const orders: OrderEntity[] = [];
                                 const eventMap = new Map<string, BotEvent[]>();
                                 for (const order of orderEntities) {
-                                    order.opened = from(order.opened);
-                                    order.created = from(order.created);
-                                    order.updated = from(order.updated);
-
                                     const key = normalizePriceTime(report.timeRes, order.opened).toISOString();
                                     const arr = eventMap.has(key) ? eventMap.get(key) : [];
                                     eventMap.set(key, arr);
@@ -187,8 +179,8 @@ const BotResults = () => {
         setForkDialogOpen(false);
     }, []);
 
-    const { defaultStrategy: strategyId, defaultWorkspace: workspaceId } = info;
     const handleConfirmRunAsForwardTest = useCallback(() => {
+        const { defaultStrategy: strategyId, defaultWorkspace: workspaceId } = info;
         async function runAsForwardTest() {
             try {
                 setIsCreatingForwardTest(true);
@@ -207,7 +199,10 @@ const BotResults = () => {
                     overlayMutations: true,
                 };
 
-                const result = await client.genotypes.forkBacktestToForwardTest(args);
+                const response = await client.genotypes.forkBacktestToForwardTest(args) as HttpResponse<ApiForkGenotypeResponse>;
+                const { data } = await response;
+                const { ids } = data;
+
                 enqueueSnackbar("Success! Forward test created", { variant: "success" });
             }
             catch (err) {
@@ -219,7 +214,7 @@ const BotResults = () => {
         }
 
         runAsForwardTest();
-    }, [info, results, strategyId, workspaceId]);
+    }, [info, results]);
 
 
     if (!results) {
@@ -229,57 +224,94 @@ const BotResults = () => {
     }
 
     const {
-        report,
-        prices,
-        signals,
-        indicators,
         data,
         eventMap,
+        instance,
+        indicators,
+        prices,
+        report: reportRaw,
+        signals,
     } = results as ApiBotResultsApiResponse;
+
+    const report = BotRunReportEntity.fromRow(reportRaw);
     const { exchange, instanceId, name, orders, symbols } = report;
 
-
-    report.from = from(report.from);
-    report.to = from(report.to);
+    orders.sort((a, b) => a.opened < b.opened ? 1 : -1);
 
     const [base, quote] = symbols.split(/\//);
     const tradingViewSymbol = `${exchange}:${base}${quote}`;
     const avgTickDuration = (report.durationMs / report.numCandles).toFixed(2);
-    const runType = "backtest";
+    let runType: string = "";
+
+    let isBacktest = false;
+    switch (instance.modeId) {
+        case BotMode.Live:
+            runType = "LIVE";
+            break;
+        case BotMode.TestForward:
+            runType = "forward test";
+            break;
+        case BotMode.TestLive:
+            runType = "live test";
+            break;
+        default:
+            runType = "backtest";
+            isBacktest = true;
+            break;
+    }
 
     // import AutoSizer, { AutoSizerProps } from "react-virtualized-auto-sizer";
     const SizedBotChart = (withSize({ style: { minHeight: 500 } })((withDeviceRatio()(BotRunChart))));
     return (
         <ScreenBase>
             <Grid item container sx={{ ...theme.utils.raisedHeader, padding: "12px" }}>
-                <Grid item className="primo-flex-valign" style={{ marginRight: "8px" }}>
-                    <Hashicon value={instanceId} size={32} />
+                <Grid item xs={12} md={6} sx={{ justifyContent: "flex-start" }} className="primo-flex-valign">
+                    <Grid item style={{ marginRight: "8px" }}>
+                        <Hashicon value={instanceId} size={32} />
+                    </Grid>
+                    <Grid item>
+                        <Grid item sx={{ textTransform: "uppercase" }}>
+                            <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#124;&nbsp;
+                            <b>{runType}</b>&nbsp;&#124;&nbsp;
+                            <b>{report.timeRes}</b>
+                        </Grid>
+                        <Grid item>
+                            <span>&#129516;&nbsp;<b>{report.genome}</b></span>
+                        </Grid>
+                        <Grid item>
+                            <span>&#129302;&nbsp;{report.instanceId}</span>
+                        </Grid>
+                        <Grid item>
+                            <span>&#128588;&nbsp;{report.name}</span>
+                        </Grid>
+                    </Grid>
                 </Grid>
-                <Grid item>
-                    <Grid item>
-                        <b>&#127845;&nbsp;{report.symbols}</b>&nbsp;&#40;{runType}&#41;
-                        &nbsp;<span>@</span>&nbsp;<b>{report.timeRes}</b>
+                <Grid item xs={12} md={6} sx={{ marginLeft: { sm: "auto" }, textAlign: { sm: "right" } }}>
+                    <Grid item container direction="row" sx={{ justifyContent: { sm: "flex-end" } }}>
+                        <Grid item>
+                            <Grid item>
+                                <Percent big amount={report.totalProfitPct} /><br />
+                                <Amount amount={report.totalProfit} symbol={quote} />
+                            </Grid>
+                            <Grid item style={{ textAlign: "right" }}>
+                                <b>{report.length}</b>
+                            </Grid>
+                            <Grid item>
+                                <b>{shortDateAndTime(report.from)}</b>&nbsp;-&nbsp;<b>{shortDateAndTime(report.to)}</b>
+                                <br />
+                                <b>{presentDuration(report.durationMs, { short: true })}</b>
+                            </Grid>
+                        </Grid>
+                        <Grid item sx={{ marginLeft: { xs: "auto", md: "0" }, width: "48px", marginTop: "auto", marginBottom: "auto" }}>
+                            <SettingsIcon
+                                sx={{
+                                    color: theme.palette.secondary.main,
+                                    opacity: theme.utils.subtle,
+                                    fontSize: "2rem"
+                                }} />
+                        </Grid>
                     </Grid>
-                    <Grid item>
-                        <span>&#129516;&nbsp;<b>{report.genome}</b></span>
-                    </Grid>
-                    <Grid item>
-                        <span>&#129302;&nbsp;{report.instanceId}</span>
-                    </Grid>
-                    <Grid item>
-                        <span>&#128588;&nbsp;{report.name}</span>
-                    </Grid>
-                </Grid>
-                <Grid item style={{ marginLeft: "auto", textAlign: "right" }}>
-                    <Grid item>
-                        <b>{shortDateAndTime(report.from)}</b>&nbsp;-&nbsp;<b>{shortDateAndTime(report.to)}</b>
-                    </Grid>
-                    <Grid item>
-                        <span>profit</span>&nbsp;<b><Amount amount={report.totalProfit} symbol={quote} /></b>
-                    </Grid>
-                    <Grid item style={{ textAlign: "right" }}>
-                        <b>{report.length}</b>
-                    </Grid>
+
                 </Grid>
             </Grid>
 
@@ -304,7 +336,7 @@ const BotResults = () => {
                 </Grid>
             </Grid>
 
-            <Grid container item spacing={2}>
+            <Grid container item>
                 <Grid item style={{ flex: 1 }}>
                     <Card>
                         <CardContent>
@@ -328,11 +360,12 @@ const BotResults = () => {
                                 <Grid item container className="primo-info-table-item">
                                     <Grid item>Buy &amp; Hold</Grid>
                                     <Grid item style={{ textAlign: "right" }}>
-                                        <Amount amount={report.capital * report.buyAndHoldGrossPct} symbol={report.quote} />
+                                        <Amount amount={report.capital.mul(report.buyAndHoldGrossPct)} symbol={report.quote} />
                                         &nbsp;&#47;&nbsp;
                                         <Percent amount={report.buyAndHoldGrossPct} />
                                     </Grid>
                                 </Grid>
+                                {/*
                                 <Grid item container className="primo-info-table-item">
                                     <Grid item>Est. Per year (weekly comp.)</Grid>
                                     <Grid item style={{ textAlign: "right" }}><Amount amount={report.estProfitPerYearCompounded} /></Grid>
@@ -340,10 +373,14 @@ const BotResults = () => {
                                 <Grid item container className="primo-info-table-item">
                                     <Grid item>Sharpe</Grid>
                                     <Grid item style={{ textAlign: "right" }}><Amount amount={report.sharpe.toPrecision(2)} /></Grid>
-                                </Grid>
+                                </Grid>*/}
                                 <Grid item container className="primo-info-table-item">
                                     <Grid item>Trailing Order</Grid>
                                     <Grid item style={{ textAlign: "right" }}><b>{report.trailingOrder ? "yes" : "no"}</b></Grid>
+                                </Grid>
+                                <Grid item container className="primo-info-table-item">
+                                    <Grid item>Drawdown</Grid>
+                                    <Grid item style={{ textAlign: "right" }}><Percent amount={report.drawdownPct} /></Grid>
                                 </Grid>
                                 <Grid item container className="primo-info-table-item">
                                     <Grid item>Num. Orders</Grid>
@@ -354,14 +391,20 @@ const BotResults = () => {
                                     <Grid item style={{ textAlign: "right" }}><b>{report.numCandles}</b></Grid>
                                 </Grid>
                                 <Grid item container className="primo-info-table-item">
-                                    <Grid item>Duration (ms)</Grid>
-                                    <Grid item style={{ textAlign: "right" }}><b>{report.durationMs}ms ({avgTickDuration} ms/candle)</b></Grid>
+                                    <If exp={isBacktest}>
+                                        <Grid item>Duration (ms)</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><b>{report.durationMs}ms ({avgTickDuration} ms/candle)</b></Grid>
+                                    </If>
+                                    <If exp={!isBacktest}>
+                                        <Grid item>Duration</Grid>
+                                        <Grid item style={{ textAlign: "right" }}><b>{presentDuration(report.durationMs)}</b></Grid>
+                                    </If>
                                 </Grid>
                             </Grid>
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item style={{ overflow: "auto", margin: 0 }}>
+                <Grid item style={{ overflow: "auto", margin: 8 }}>
                     <SimpleOrderTable orders={orders} />
                 </Grid>
             </Grid>

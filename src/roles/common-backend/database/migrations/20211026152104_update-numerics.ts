@@ -49,11 +49,6 @@ export async function up(knex: Knex): Promise<void> {
         .update({ capital: testCapitalValue })
         ;
 
-    /*
-await knex.schema.alterTable(tables.Orders, table => {
-    table.decimal("capital").notNullable().alter();
-});*/
-
     // Drop unused raw values from prices
     await knex.schema.alterTable(tables.Prices, table => {
         table.dropColumn("openRaw");

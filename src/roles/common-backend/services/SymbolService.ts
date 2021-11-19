@@ -79,6 +79,7 @@ export class SymbolService {
             "NANO/USDT",
             "DOT/USDT",
             "XMR/USDT",
+            "SHIB/USDT",
         ];
     }
 
@@ -348,8 +349,6 @@ export class SymbolService {
             // Add to staging table 
             await trx(tempTableName).insert(prices);
 
-            const numType = `numeric(${env.PRIMO_CURRENCY_PRECISION}, ${env.PRIMO_CURRENCY_SCALE})`;
-
             const start = prices[0].ts;
             const end = prices[prices.length - 1].ts;
 
@@ -391,24 +390,24 @@ export class SymbolService {
                             :res AS "resId",
 
                             COALESCE(
-                                LAST(volume::${numType}, ts),
-                                    LAG(LAST(volume::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as volume,
+                                LAST(volume::decimal, ts),
+                                    LAG(LAST(volume::decimal, ts)) OVER (ORDER BY time_series.tf ASC), 0)::decimal as volume,
 
                             COALESCE(
-                                LAST(open::${numType}, ts),
-                                    LAG(LAST(open::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as open,
+                                LAST(open::decimal, ts),
+                                    LAG(LAST(open::decimal, ts)) OVER (ORDER BY time_series.tf ASC), 0)::decimal as open,
 
                             COALESCE(
-                                LAST(close::${numType}, ts),
-                                    LAG(LAST(close::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as close,
+                                LAST(close::decimal, ts),
+                                    LAG(LAST(close::decimal, ts)) OVER (ORDER BY time_series.tf ASC), 0)::decimal as close,
 
                             COALESCE(
-                                LAST(low::${numType}, ts),
-                                    LAG(LAST(low::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as low,
+                                LAST(low::decimal, ts),
+                                    LAG(LAST(low::decimal, ts)) OVER (ORDER BY time_series.tf ASC), 0)::decimal as low,
 
                             COALESCE(
-                                LAST(high::${numType}, ts),
-                                    LAG(LAST(high::${numType}, ts)) OVER (ORDER BY time_series.tf ASC), 0)::${numType} as high
+                                LAST(high::decimal, ts),
+                                    LAG(LAST(high::decimal, ts)) OVER (ORDER BY time_series.tf ASC), 0)::decimal as high
 
                         FROM time_series
                         LEFT JOIN "${tempTableName}" on date_trunc('${pgDatePart}', "${tempTableName}".ts) = time_series.tf

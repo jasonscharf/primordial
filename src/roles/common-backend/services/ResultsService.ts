@@ -1,9 +1,20 @@
 import env from "../env";
+import { Knex } from "knex";
+import { BigNum } from "../utils";
+import { BotInstance } from "../../common/models/bots/BotInstance";
+import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
 import { BotResults } from "../../common/models/bots/BotResults";
 import { BotResultsEntity } from "../../common/entities/BotResultsEntity";
 import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
+import { GeneticBotState } from "../bots/GeneticBot";
+import { Order } from "../../common/models/markets/Order";
+import { OrderEntity } from "../../common/entities/OrderEntity";
+import { Price } from "../../common/models/markets/Price";
+import { TimeResolution } from "../../common/models/markets/TimeResolution";
+import { capital, strats } from "../includes";
+import { human, millisecondsPerResInterval } from "../../common/utils/time";
 import { queries, tables } from "../constants";
-import { query, ref } from "../database/utils";
+import { query, ref, refq } from "../database/utils";
 import { sym } from "../services";
 
 
@@ -13,10 +24,333 @@ import { sym } from "../services";
 export class ResultsService {
 
     /**
-     * Returns the latest result set for a particular instance
+     * Supplements a partially completed run report.
+     * Expects open and closing prices in the input report.
+     * Returns a new partial report that can be mixed into the original by the caller.
+     * @param instance 
+     * @param pairs 
+     * @param report 
+     */
+    async computeTradingResults(instance: BotInstance<GeneticBotState>, pairs: Map<Order, Order>, report: Partial<BotRunReport>): Promise<Partial<BotRunReport>> {
+
+        // These must be pre-populated!
+        const { capital: capitalInvested, firstClose, firstOpen, from, lastClose, quote, to } = report;
+
+        const pairsList = Array.from(pairs.entries());
+        const flattened: Order[] = [];
+        let tradesWon = 0;
+        let tradesLost = 0;
+        let totalGross = BigNum("0");
+        let totalProfit = BigNum("0");
+        let totalProfitPct = 0;
+        let totalFees = BigNum("0");
+
+        // NOTE: Until stopping a bot returns capital to the pool (with a sell), there may be an edge case
+        // where multiple runs have trailing orders.
+        let trailingOrder: Order = null;
+
+        pairsList.forEach(([buy, sell]) => {
+            flattened.push(buy, sell);
+
+            if (!sell) {
+                trailingOrder = buy;
+                return;
+            }
+
+            const tradeGross = sell.gross.plus(buy.gross);
+            const tradeFees = buy.gross.abs().mul(buy.fees)
+                .add(sell.gross.abs().mul(sell.fees))
+                ;
+
+            const tradeProfit = tradeGross.minus(tradeFees);
+            totalFees = totalFees.add(tradeFees);
+            totalProfit = totalProfit.add(tradeProfit);
+            totalProfitPct = totalProfitPct + (tradeProfit.div(buy.capital ?? "1000").round(11).toNumber()); // TEMP - remove 1000
+            totalGross = totalGross.add(tradeGross);
+
+            if (tradeProfit.gte("0")) {
+                ++tradesWon;
+            }
+            else {
+                ++tradesLost;
+            }
+        });
+
+        // Handle drawdown on trailing order
+        let drawdown = BigNum("0");
+        let drawdownPct = 0;
+        const { latestPrice: latestPriceRaw, prevPrice: prevPriceRaw } = instance.stateJson || {}
+
+        if (trailingOrder) {
+            const prevPrice = BigNum(prevPriceRaw ?? "0");
+            const latestPrice = BigNum(latestPriceRaw ?? "0");
+
+            drawdownPct = latestPrice.eq("0")
+                ? 0
+                : BigNum("1").minus(prevPrice.div(latestPrice)).round(2).toNumber()
+                ;
+
+            // TODO: Review/fix. Fees. See bug around "capital" in ADO
+            drawdown = (trailingOrder.capital ?? capitalInvested).mul(drawdownPct + "");
+            totalGross = totalGross.add(drawdown);
+            totalProfit = totalProfit.add(drawdown);
+            totalProfitPct = totalProfitPct + drawdownPct;
+        }
+
+        // TODO: Review
+        const totalGrossPct = (totalGross.div(capitalInvested).round(4).toNumber());
+
+        // TODO: Fix
+        const buyAndHoldGrossPct = BigNum("1").minus(firstClose.div(lastClose)).round(3).toNumber();
+
+        // TODO: Factor in drawdown of trailing
+        const balance = capitalInvested.plus(totalProfit);
+
+        const numOrders = flattened.length;
+        const numTrades = pairs.size;
+        const testLenMs = to.getTime() - from.getTime();
+        const days = Math.max(1, Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY)));
+        const avgProfitPerDay = totalProfit.div(days + "");
+        const avgProfitPctPerDay = parseFloat((totalProfitPct / days).toPrecision(3));
+        const length = human(testLenMs);
+
+        // Compounded is calculated per week here.
+        const rate = avgProfitPctPerDay * 365;
+        const periods = 52;
+        const roundTo = /USD/.test(quote) ? 2 : 4;
+        const estProfitPerYearCompounded = numOrders < 2
+            ? 0
+            : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).sub(capitalInvested).round(roundTo).toNumber()
+            ;
+
+        const result: Partial<BotRunReport> = {
+            balance,
+            avgProfitPerDay,
+            avgProfitPctPerDay,
+            avgWinRate: tradesWon / tradesLost,
+            drawdownPct,
+            firstClose: firstClose,
+            lastClose: lastClose,
+            length,
+            numOrders,
+            totalFees,
+            totalGross,
+            totalProfit,
+            totalProfitPct,
+            trailingOrder,
+        };
+
+        return result;
+    }
+
+    /**
+     * Returns trade pairs for a bot.
+     * @param requestingUserId 
+     * @param instanceId 
+     * @param runId 
+     * @param trx 
+     * @returns 
+     */
+    async getTradesForBot(requestingUserId: string, instanceId: string, runId?: string, trx: Knex.Transaction = null):
+        Promise<{ trades: Map<Order, Order>, orders: Order[] }> {
+
+        const orders: Order[] = [];
+        const trades = await query(queries.RESULTS_GET_TRADE_PAIRS_FOR_INSTANCE, async db => {
+            const bindings = {
+                requestingUserId,
+                instanceId,
+            };
+
+            const tradesQuery = db.raw(
+                `
+                WITH summaries AS (
+                    SELECT
+                        o1."id" AS "o1_id",
+                        o1."displayName" AS "o1_displayName",
+                        o1."botRunId" AS "o1_botRunId",
+                        o1."stateId" AS "o1_stateId",
+                        o1."baseSymbolId" AS "o1_baseSymbolId",
+                        o1."quoteSymbolId" AS "o1_quoteSymbolId",
+                        o1."extOrderId" AS "o1_extOrderId",
+                        o1."relatedOrderId" AS "o1_relatedOrderId",
+                        o1."typeId" AS "o1_typeId",
+                        o1."opened" AS "o1_opened",
+                        o1."closed" AS "o1_closed",
+                        o1."capital" AS "o1_capital",
+                        o1."quantity" AS "o1_quantity",
+                        o1."price" AS "o1_price",
+                        o1."gross" AS "o1_gross",
+                        o1."fees" AS "o1_fees",
+
+                        o2."id" AS "o2_id",
+                        o2."displayName" AS "o2_displayName",
+                        o2."botRunId" AS "o2_botRunId",
+                        o2."stateId" AS "o2_stateId",
+                        o2."baseSymbolId" AS "o2_baseSymbolId",
+                        o2."quoteSymbolId" AS "o2_quoteSymbolId",
+                        o2."extOrderId" AS "o2_extOrderId",
+                        o2."relatedOrderId" AS "o2_relatedOrderId",
+                        o2."typeId" AS "o2_typeId",
+                        o2."opened" AS "o2_opened",
+                        o2."closed" AS "o2_closed",
+                        o2."capital" AS "o2_capital",
+                        o2."quantity" AS "o2_quantity",
+                        o2."price" AS "o2_price",
+                        o2."gross" AS "o2_gross",
+                        o2."fees" AS "o2_fees"
+
+                    FROM "orders" o1
+                        INNER JOIN "bot_runs" br ON br.id = o1."botRunId"
+                        INNER JOIN "bot_instances" bi ON br."instanceId" = bi.id
+                        INNER JOIN "bot_definitions" bd ON bi."definitionId" = bd.id
+                        INNER JOIN "workspaces" ws ON ws."ownerId" = :requestingUserId
+                        LEFT JOIN "orders" o2 ON o2."relatedOrderId" = o1.id
+
+                    WHERE br."instanceId" = :instanceId AND o1."typeId" = 'buy.limit'
+                    ORDER BY o1.opened DESC
+                )
+
+                SELECT * FROM summaries
+                `, bindings);
+
+            const { rows } = await tradesQuery;
+
+            const pairs = new Map<Order, Order>();
+            for (const rowPair of rows) {
+                const buy = OrderEntity.fromRow(rowPair, "o1_");
+                const sell = !rowPair["o2_id"] ? null : OrderEntity.fromRow(rowPair, "o2_");
+
+                pairs.set(buy, sell);
+                orders.push(buy);
+                if (sell) {
+                    orders.push(sell);
+                }
+            }
+
+            return pairs;
+        }, trx);
+
+        return {
+            trades,
+            orders,
+        };
+    }
+
+    /** Computes results for a forward-test, live-test, or running bot. */
+    async getLatestResultsForRunningBot(requestingUserId: string, instanceId: string, trx: Knex.Transaction = null): Promise<BotRunReport> {
+        // We'll do this in multiple queries for simplicity.
+
+        // Step 1 - Get the bot instance
+        const instance = await strats.getBotInstanceById(instanceId, trx);
+        if (!instance) {
+            throw new Error(`Could not find instance '${instanceId}' for user '${requestingUserId}'`);
+        }
+
+        const { stateJson } = instance;
+        const { firstPrice, latestPrice } = stateJson;
+
+        // TODO
+        const error = null;
+        const base = "";
+        const quote = "";
+
+        const signals = [];
+
+        // TODO: Rethink
+        const runId = null;
+
+        // Metrics
+        const sharpe = 0;
+        const sortino = 0;
+
+        // TODO: We're counting all the runs here, so just use bot creation for now
+        const from = instance.created;
+        const to = instance.updated;
+
+        // TODO: From genetics
+        const window = 0;
+
+        const durationMs = (to.getTime() - from.getTime());
+        const numCandles = Math.round(durationMs / millisecondsPerResInterval(instance.resId));
+        const numOrders = 0;
+        const numTrades = 0;
+        const trailingOrder = null;
+
+        // Pull from API
+        const firstClose = 0;
+        const lastClose = latestPrice;
+
+        // Step 2 - Get the trade pairs and ledger for the bot
+        const { trades, orders } = await this.getTradesForBot(requestingUserId, instanceId, null, trx);
+
+        // Step 3 - Compute capital used by the bot
+        const ledger = await capital.getAllocationLedger(instance.allocationId, trx);
+        const { items } = ledger;
+
+        // Note: Only 1 item per allocation currently supported.
+        // TODO: Review how "capital" is computed. What about 2 bots sharing the same allocation?
+        const capitalInvested = items[0].amount.mul(items[0].maxWagerPct.toString());
+
+        // Step 4 - Produce the preliminary report
+        const report: BotRunReport = {
+            avgProfitPerDay: BigNum("0"),
+            avgProfitPctPerDay: 0,
+            avgWinRate: 0,
+            balance: BigNum("0"),
+            base,
+            buyAndHoldGrossPct: 0,
+            capital: capitalInvested,
+            drawdownPct: 0,
+            durationMs,
+            estProfitPerYearCompounded: BigNum("0"),
+            exchange: instance.exchangeId,
+            finish: to,
+            firstClose: BigNum("0"),
+            firstOpen: firstPrice,
+            from,
+            genome: instance.currentGenome,
+            indicators: null,
+            instanceId: instance.id,
+            lastClose,
+            length: "",
+            missingRanges: [],
+            name: instance.name,
+            numCandles,
+            numOrders,
+            numTrades,
+            orders,
+            quote,
+            runId,
+            sharpe,
+            signals,
+            sortino,
+            start: from,
+            symbols: instance.symbols,
+            timeRes: instance.resId,
+            to,
+            totalFees: BigNum("0"),
+            totalGross: BigNum("0"),
+            totalGrossPct: 0,
+            totalLosses: 0,
+            totalProfit: BigNum("0"),
+            totalProfitPct: 0,
+            totalWins: 0,
+            window,
+            error,
+            trailingOrder,
+        };
+
+        // Step 5 - Mix the computed trading results in with the base report
+        const tradingResults = await this.computeTradingResults(instance, trades, report);
+        Object.assign(report, tradingResults);
+        return report;
+    }
+
+    /**
+     * Returns the latest result set for a particular instance.
      * @param instanceId 
      */
-    async getLatestResultsForBot(instanceId: string): Promise<BotRunReport> {
+    async getLatestBacktestResultsForInstance(instanceId: string, trx: Knex.Transaction = null): Promise<BotRunReport> {
         const res = await query(queries.RESULTS_GET_FOR_BOT_INSTANCE, async db => {
             const [row] = <BotRunReport[]>await db(tables.Results)
                 .innerJoin(tables.BotRuns, ref(tables.BotRuns), "=", ref(tables.Results, "botRunId"))
@@ -30,7 +364,7 @@ export class ResultsService {
             }
 
             return BotResultsEntity.fromRow(row);
-        });
+        }, trx);
 
         return res ? res.results : null;
     }

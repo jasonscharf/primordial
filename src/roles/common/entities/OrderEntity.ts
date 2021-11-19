@@ -41,13 +41,13 @@ export class OrderEntity extends MutableEntity implements Order {
             this.typeId = row[prefix + "typeId"];
             this.opened = from(row[prefix + "opened"]);
             this.closed = from(row[prefix + "closed"]);
-            this.quantity = BigNum(row[prefix + "quantity"]);
-            this.price = BigNum(row[prefix + "price"]);
-            this.gross = BigNum(row[prefix + "gross"]);
-            this.fees = BigNum(row[prefix + "fees"]);
-            this.strike = BigNum(row[prefix + "strike"]);
-            this.limit = BigNum(row[prefix + "limit"]);
-            this.stop = BigNum(row[prefix + "stop"]);
+            this.quantity = BigNum(row[prefix + "quantity"] ?? "0");
+            this.price = BigNum(row[prefix + "price"] ?? "0");
+            this.gross = BigNum(row[prefix + "gross"] ?? "0");
+            this.fees = BigNum(row[prefix + "fees"] ?? "0");
+            this.strike = BigNum(row[prefix + "strike"] ?? "0");
+            this.limit = BigNum(row[prefix + "limit"] ?? "0");
+            this.stop = BigNum(row[prefix + "stop"] ?? "0");
         }
     }
 

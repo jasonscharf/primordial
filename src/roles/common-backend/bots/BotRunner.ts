@@ -22,11 +22,11 @@ import { SymbolResultSet } from "../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { TimeSeriesCache, TimeSeriesCacheArgs } from "../system/TimeSeriesCache";
 import { botFactory } from "./RobotFactory";
-import { cache, capital, db, log, results, strats, users } from "../includes";
+import { cache, capital, db, log, results, strats, sym, users } from "../includes";
 import { human, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
 import { genes, names } from "../genetics/base-genetics";
-import { sym } from "../services";
 import { version } from "../../common/version";
+import { isNullOrUndefined } from "../utils";
 
 
 
@@ -352,19 +352,20 @@ export class BotRunner {
         tr.length = "";
         tr.timeRes = null;
         tr.numCandles = 0;
+        tr.firstOpen = null;
         tr.firstClose = null;
         tr.lastClose = null;
-        tr.capital = capitalInvested.round(11).toNumber();
+        tr.capital = capitalInvested;
         tr.balance = null;
         tr.totalGross = null;
         tr.totalGrossPct = 0;
-        tr.totalFees = 0;
-        tr.totalProfit = 0;
+        tr.totalFees = Money("0");
+        tr.totalProfit = Money("0");
         tr.totalProfitPct = 0;
         tr.buyAndHoldGrossPct = 0;
-        tr.avgProfitPerDay = 0;
+        tr.avgProfitPerDay = Money("0");
         tr.avgProfitPctPerDay = 0;
-        tr.estProfitPerYearCompounded = 0;
+        tr.estProfitPerYearCompounded = Money("0");
         tr.numOrders = 0;
         tr.numTrades = 0;
         tr.totalWins = 0;
@@ -424,12 +425,16 @@ export class BotRunner {
         const ledger = await capital.createAllocationForBot(strat.id, allocStr, {}, trx);
         const { alloc, items } = ledger;
 
+        // Note: Only 1 item per allocation currently supported.
         capitalInvested = items[0].amount.mul(items[0].maxWagerPct.toString());
 
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
         const instanceRecord = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
         const [, backtestRun] = await strats.startBotInstance({ id: instanceRecord.id }, trx);
         let allPrices: Price[] = [];
+
+        const maxIntervals = genome.getGene<number>(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_MAX_INTERVALS).value;
+        tr.window = maxIntervals;
 
         const runPromise: Promise<BotRunReport> = new Promise(async (res, rej) => {
             try {
@@ -467,9 +472,6 @@ export class BotRunner {
 
                 // Grab the prices + a run-in window of N prices before trading begins.
                 // This is to support indicators with moving windows
-                const maxIntervals = genome.getGene<number>(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_MAX_INTERVALS).value;
-                tr.window = maxIntervals;
-
                 const actualFrom = new Date(from.getTime() - (intervalMs * maxIntervals));
 
                 const params: PriceDataParameters = {
@@ -521,7 +523,7 @@ export class BotRunner {
                 const loadPricesDuration = endLoadPrices - beginLoadPrices;
 
                 // TODO: PERF
-                tr.numCandles = allPrices.length;
+                tr.numCandles = allPrices.length - maxIntervals;
                 tr.missingRanges = missingRanges;
 
                 // TODO: update prices earlier; perf metrics
@@ -548,15 +550,10 @@ export class BotRunner {
                     localInstance.changeFsmState(ctx, ctx.state, newState.fsmState);
 
                     instanceRecord.prevTick = new Date();
-
-                    // Store the indicators and current signal
-                    //tr.signals.push(signal);
-
-                    //log.info(`Backtest in state ${newState.fsmState}`);
-
-                    // SAVE (maybe?)
-                    //await strats.updateBotInstance(instanceRecord);
                 }
+
+                // Save the final bot state for inspection
+                await strats.updateBotInstance(instanceRecord);
 
                 if (instanceId) {
                     await strats.stopBotInstance(instanceId, null, trx);
@@ -584,55 +581,43 @@ export class BotRunner {
                     orders = ctx.backtestingOrders as Order[];
                 }
 
-                // Disregard the last buy
-                if (orders.length > 0 && orders[orders.length - 1].typeId === OrderType.LIMIT_BUY) {
+                // Extract trade pairs
+                const pairs = new Map<Order, Order>();
+                const ordersById = new Map<string, Order>();
+                const buys = orders.filter(o => o.typeId === (OrderType.LIMIT_BUY || o.typeId === OrderType.MARKET_BUY) && !o.relatedOrderId)
+                buys.forEach(buy => {
+                    pairs.set(buy, null);
+                    ordersById.set(buy.id, buy);
+                });
+
+                // Note: Not using typeId here due to a temporary bug where all orders are marked as buys
+                const sells = orders.filter(o => !isNullOrUndefined(o.relatedOrderId));
+                sells.forEach(sell => {
+                    const buyForSell = ordersById.get(sell.relatedOrderId);
+                    pairs.set(buyForSell, sell);
+                });
+
+                // TODO: Review... this should go away and the ending drawdown should be used.
+                // Disregard the last order if it's an open buy
+                if (orders.length > 0 && orders[orders.length - 1].typeId === OrderType.LIMIT_BUY && !orders[orders.length - 1].relatedOrderId) {
                     const [trailingOrder] = orders.splice(orders.length - 1);
                     tr.trailingOrder = trailingOrder;
                 }
-                const firstClose = allPrices.length > 0 ? allPrices[0].close : Money("0");
+
+
+                const firstOpen = allPrices.length > 0 ? allPrices[maxIntervals].open : Money("0");
+                const firstClose = allPrices.length > 0 ? allPrices[maxIntervals].close : Money("0");
                 const lastClose = allPrices.length > 0 ? allPrices[allPrices.length - 1].close : Money("0");
 
-                let totalGrossProfit = Money("0");
-                let totalProfit = Money("0");
-                let totalFees = Money("0");
+                tr.firstOpen = firstOpen;
+                tr.firstClose = firstClose
+                tr.lastClose = lastClose
 
-                orders.forEach(o => {
-                    totalGrossProfit = totalGrossProfit.add(o.gross);
-                    totalFees = totalFees.add(o.gross.abs().mul(o.fees));
-                });
+                // Compute the trading results based on the orders and our report so far
+                const tradingResults = await results.computeTradingResults(instanceRecord, pairs, tr);
 
-                totalProfit = totalGrossProfit.minus(totalFees);
-                let totalProfitPct = (totalProfit.div(capitalInvested).round(4).toNumber());
-
-                tr.totalProfit = totalProfit.round(11).toNumber();
-                tr.totalProfitPct = totalProfitPct;
-                tr.totalFees = totalFees.round(11).toNumber();
-                tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
-
-                tr.totalGross = totalGrossProfit.round(11).toNumber();
-                tr.capital = capitalInvested.round(11).toNumber();
-                tr.firstClose = firstClose.round(11).toNumber();
-                tr.lastClose = lastClose.round(11).toNumber();
-                tr.totalGrossPct = (totalGrossProfit.div(capitalInvested).round(4).toNumber());
-                tr.buyAndHoldGrossPct = Money("1").minus(firstClose.div(lastClose)).round(3).toNumber();
-                tr.balance = capitalInvested.plus(totalGrossProfit).round(11).toNumber();
-                tr.orders = orders;
-                tr.numOrders = orders.length;
-                tr.numTrades = tr.numOrders / 2;
-                const testLenMs = tr.to.getTime() - tr.from.getTime();
-                const days = Math.max(1, Math.ceil(testLenMs / millisecondsPerResInterval(TimeResolution.ONE_DAY)));
-                tr.avgProfitPerDay = totalProfit.div(days + "").round(2).toNumber();
-                tr.avgProfitPctPerDay = parseFloat((tr.totalProfitPct / days).toPrecision(3));
-                tr.length = human(testLenMs);
-
-                // Compounded is calculated per week here.
-                const rate = tr.avgProfitPctPerDay * 365;
-                const periods = 52;
-                const roundTo = /USD/.test(quote) ? 2 : 4;
-                tr.estProfitPerYearCompounded = orders.length < 2
-                    ? 0
-                    : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).sub(capitalInvested).round(roundTo).toNumber()
-                    ;
+                // Mixin computed results
+                Object.assign(tr, tradingResults);
 
                 const finish = Date.now();
                 const duration = finish - start;

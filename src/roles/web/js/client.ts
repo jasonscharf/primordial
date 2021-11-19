@@ -157,6 +157,8 @@ export interface GeneticBotState {
   /** @format date-time */
   prevFsmStateChangeTs: string;
   signals: number[];
+  firstPrice: BigNum;
+  latestPrice: BigNum;
   prevQuantity: BigNum;
   prevPrice: BigNum;
   prevOrderId: string;
@@ -361,6 +363,23 @@ export interface ApiBacktestRequest {
   returnEarly?: boolean;
 }
 
+export interface Duration {
+  /** @format double */
+  milliseconds: number;
+
+  /** @format double */
+  seconds: number;
+
+  /** @format double */
+  minutes: number;
+
+  /** @format double */
+  hours: number;
+
+  /** @format double */
+  days: number;
+}
+
 export interface GenotypeInstanceDescriptor {
   id: string;
 
@@ -381,6 +400,7 @@ export interface GenotypeInstanceDescriptor {
    * DO NOT remove of change values here. Add and deprecate.
    */
   modeId: BotMode;
+  state: GeneticBotState;
   genome: string;
   fsmState: GeneticBotFsmState;
 
@@ -389,16 +409,24 @@ export interface GenotypeInstanceDescriptor {
 
   /** @format date-time */
   to?: string;
-  duration: object;
+  duration: Duration;
 
   /** @format double */
   numOrders: number;
+  currentCapital: BigNum;
   totalProfit: BigNum;
+
+  /** @format double */
+  totalProfitPct: number;
   totalFees: BigNum;
+  drawdown: BigNum;
+  drawdownPct: BigNum;
   avgProfitPerDay: BigNum;
 
   /** @format double */
   avgProfitPctPerDay: number;
+  prevPrice: BigNum;
+  latestPrice: BigNum;
 }
 
 export enum QueryOrderDirection {
@@ -692,11 +720,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @name GetBotResultsStatus
-     * @request GET:/sandbox/results/status/{instanceIdOrName}
+     * @request GET:/sandbox/results/status/{instanceName}
      */
-    getBotResultsStatus: (instanceIdOrName: string, params: RequestParams = {}) =>
+    getBotResultsStatus: (instanceName: string, params: RequestParams = {}) =>
       this.request<{ runState: RunState }, any>({
-        path: `/sandbox/results/status/${instanceIdOrName}`,
+        path: `/sandbox/results/status/${instanceName}`,
         method: "GET",
         format: "json",
         ...params,
@@ -706,11 +734,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @name GetBotResults
-     * @request GET:/sandbox/results/{instanceIdOrName}
+     * @request GET:/sandbox/results/{instanceName}
      */
-    getBotResults: (instanceIdOrName: string, params: RequestParams = {}) =>
+    getBotResults: (instanceName: string, params: RequestParams = {}) =>
       this.request<any, any>({
-        path: `/sandbox/results/${instanceIdOrName}`,
+        path: `/sandbox/results/${instanceName}`,
         method: "GET",
         format: "json",
         ...params,

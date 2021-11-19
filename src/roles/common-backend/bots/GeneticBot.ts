@@ -12,8 +12,9 @@ import { OrderStatusUpdateMessage, PriceUpdateMessage } from "../messages/tradin
 import { Price } from "../../common/models/markets/Price";
 import { capital, orders } from "../includes";
 import { isNullOrUndefined, Money } from "../../common/utils";
-import { shortDateAndTime } from "../../common/utils/time";
 import { names } from "../genetics/base-genetics";
+import { shortDateAndTime } from "../../common/utils/time";
+import { sym } from "../services";
 
 
 
@@ -23,6 +24,8 @@ export interface GeneticBotState {
     prevFsmState: GeneticBotFsmState;
     prevFsmStateChangeTs: Date;
     signals: number[];
+    firstPrice: BigNum;
+    latestPrice: BigNum;
     prevQuantity: BigNum;
     prevPrice: BigNum;
     prevOrderId: string;
@@ -139,11 +142,24 @@ export class GeneticBot extends BotImplementationBase<GeneticBotState> {
     async tick(ctx: BotContext<GeneticBotState>, tick: PriceUpdateMessage, signal: number, indicators: Map<string, unknown>) {
         const { genome, instance, log, prices, state } = ctx;
         const { close } = tick;
-        const { currentGenome } = instance;
-
+        const { currentGenome, stateInternal } = instance;
 
         let fsmState = state.fsmState;
         let newState = state;
+
+        const { firstPrice } = state;
+        if (isNullOrUndefined(firstPrice)) {
+            newState.firstPrice = tick.close;
+        }
+
+        newState.latestPrice = tick.close;
+
+        // TEMP - Make sure "stateInternal" is correctly set
+        if (!stateInternal.baseSymbolId || !stateInternal.quoteSymbolId) {
+            const [baseSymbolId, quoteSymbolId] = sym.parseSymbolPair(instance.symbols);
+            stateInternal.baseSymbolId = baseSymbolId;
+            stateInternal.quoteSymbolId = quoteSymbolId;
+        }
 
         if (fsmState === GeneticBotFsmState.WAITING_FOR_BUY_OPP ||
             fsmState === GeneticBotFsmState.WAITING_FOR_SELL_OPP) {

@@ -79,6 +79,8 @@ export class OrderService {
 
                 ${refq(tables.BotInstances, "id")} AS "bot_id",
                 ${refq(tables.BotInstances, "name")} AS "bot_name",
+                ${refq(tables.BotInstances, "created")} AS "bot_created",
+                ${refq(tables.BotInstances, "updated")} AS "bot_updated",
                 ${refq(tables.BotInstances, "symbols")} AS "bot_symbols",
                 ${refq(tables.BotInstances, "modeId")} AS "bot_modeId",
                 ${refq(tables.BotInstances, "resId")} AS "bot_resId",

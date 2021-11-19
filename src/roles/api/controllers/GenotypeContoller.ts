@@ -63,8 +63,13 @@ export class GenotypeController extends ControllerBase {
 
         // SECURITY
         const user = await users.getSystemUser();
-
         const result = await genos.fork(user.id, args);
+
+        const { ids } = result;
+        const [id] = ids;
+
+        const [instance, run] = await strats.startBotInstance({ id });
+
         return result;
     }
 }

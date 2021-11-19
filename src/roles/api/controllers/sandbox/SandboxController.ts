@@ -3,22 +3,26 @@ import { DateTime } from "luxon";
 import { Body, Get, Post, Query, Request, Route } from "tsoa";
 import env from "../../../common-backend/env";
 import { ApiBacktestRequest, ApiBotOrderDescriptor } from "../../../common/messages";
-import { BotInstance } from "../../../common/models/bots/BotInstance";
 import { BacktestRequest } from "../../../common-backend/messages/testing";
+import { BotInstance } from "../../../common/models/bots/BotInstance";
+import { BotRunReport } from "../../../common/models/bots/BotSummaryResults";
 import { BotMode } from "../../../common/models/system/Strategy";
 import { BotRunner } from "../../../common-backend/bots/BotRunner";
 import { ControllerBase } from "../ControllerBase";
+import { Order, OrderType } from "../../../common/models/markets/Order";
 import { PriceDataParameters } from "../../../common/models/system/PriceDataParameters";
 import { PrimoSerializableError } from "../../../common/errors/errors";
 import { RunState } from "../../../common/models/system/RunState";
 import { SymbolResultSet } from "../../../common/models/system/SymbolResultSet";
 import { TimeResolution } from "../../../common/models/markets/TimeResolution";
-import { capital, orders, results, strats, sym } from "../../../common-backend/includes";
+import { capital, db, orders, results, strats, sym } from "../../../common-backend/includes";
 import { isNullOrUndefined } from "../../../common/utils";
 import { millisecondsPerResInterval } from "../../../common/utils/time";
 import { randomName } from "../../../common-backend/utils/names";
 import { us } from "../../../common-backend/includes";
 import { DEFAULT_BACKTEST_BUDGET_AMOUNT } from "../../../common-backend/commands/bots/test";
+import { query } from "../../../common-backend/database/utils";
+import { tables } from "../../../common-backend/constants";
 
 
 @Route("sandbox")
@@ -59,27 +63,15 @@ export class SandboxController extends ControllerBase {
         return results;
     }
 
-    @Get("/results/status/{instanceIdOrName}")
-    async getBotResultsStatus(instanceIdOrName: string): Promise<{ runState: RunState }> {
+    @Get("/results/status/{instanceName}")
+    async getBotResultsStatus(instanceName: string): Promise<{ runState: RunState }> {
         // ... const user = this.currentSession?.user || null;
-        let instance: BotInstance = null;
 
-        try {
-            instance = await strats.getBotInstanceById(instanceIdOrName);
-        }
-        catch (err) {
-            // The suppression of error here is because we accept we are searching
-            // IDs or names, and the "get by ID" operation fails (by design)
-            // TODO: Improve the catch here.
-        }
+        const { id: ruid } = await us.getSystemUser();
+        const workspace = await strats.getDefaultWorkspaceForUser(ruid, ruid);
+        const instance = await strats.getBotInstanceByName(workspace.id, instanceName);
 
-        if (!instance) {
-            const { id } = await us.getSystemUser();
-            const workspace = await strats.getDefaultWorkspaceForUser(id, id);
-            instance = await strats.getBotInstanceByName(workspace.id, instanceIdOrName);
-            instanceIdOrName = instance.id;
-        }
-
+        // Note: Overloading RunState here. Active == not ready. Stopped == ready
         if (instance.modeId === BotMode.BACK_TEST && instance.runState === RunState.ACTIVE) {
             return {
                 runState: RunState.ACTIVE,
@@ -87,44 +79,71 @@ export class SandboxController extends ControllerBase {
         }
         else {
             return {
-                runState: instance.runState,
+                runState: RunState.STOPPED,
             }
         }
     }
 
-    @Get("/results/{instanceIdOrName}")
-    async getBotResults(instanceIdOrName: string): Promise<any> {
+    @Get("/results/{instanceName}")
+    async getBotResults(instanceName: string): Promise<any> {
 
         // NOTE: Actually returns a BotSummaryResults, but the type doesn't play nice with TSOA/Swagger
 
         const user = this.currentSession?.user || null;
-        let instance: BotInstance = null;
+        const { id: ruid } = await us.getSystemUser();
+        const workspace = await strats.getDefaultWorkspaceForUser(ruid, ruid);
 
-        try {
-            instance = await strats.getBotInstanceById(instanceIdOrName);
-        }
-        catch (err) {
-            // The suppression of error here is because we accept we are searching
-            // IDs or names, and the "get by ID" operation fails (by design)
-            // TODO: Improve the catch here.
-        }
-
-        if (!instance) {
-            const { id } = await us.getSystemUser();
-            const workspace = await strats.getDefaultWorkspaceForUser(id, id);
-            instance = await strats.getBotInstanceByName(workspace.id, instanceIdOrName);
-            instanceIdOrName = instance.id;
-        }
-
+        // SECURITY: Need RUID here
+        const instance = await strats.getBotInstanceByName(workspace.id, instanceName);
+        const instanceId = instance.id;
         const allocationId = instance.allocationId;
-        const run = await strats.getLatestRunForInstance(instanceIdOrName);
+
+        const run = await strats.getLatestRunForInstance(instanceId);
         if (!run) {
             throw new Error(`Bot hasn't run yet`);
         }
 
-        const report = await results.getLatestResultsForBot(instanceIdOrName);
+        let report: BotRunReport;
+
+        // Fetch results for a running bot, or get saved results for a backtest
+        if (instance.modeId !== BotMode.BACK_TEST) {
+            report = await results.getLatestResultsForRunningBot(ruid, instanceId);
+        }
+        else {
+            report = await results.getLatestBacktestResultsForInstance(instanceId);
+
+            // HACK: Re-compute trading results using the current build.
+            // This keeps results records up-to-date with the latest fixes and logic.
+            const backtestOrders = report.orders;
+            const pairs = new Map<Order, Order>();
+            const ordersById = new Map<string, Order>();
+            const buys = backtestOrders.filter(o => o.typeId === (OrderType.LIMIT_BUY || o.typeId === OrderType.MARKET_BUY) && !o.relatedOrderId)
+            buys.forEach(buy => {
+                pairs.set(buy, null);
+                ordersById.set(buy.id, buy);
+            });
+
+            // NOTE: Not using typeId here due to a temporary bug where all orders are marked as buys
+            const sells = backtestOrders.filter(o => !isNullOrUndefined(o.relatedOrderId));
+            sells.forEach(sell => {
+                const buyForSell = ordersById.get(sell.relatedOrderId);
+                pairs.set(buyForSell, sell);
+            });
+
+            const supplementals = await results.computeTradingResults(instance, pairs, report);
+            Object.assign(report, supplementals);
+
+            const run = await strats.getLatestRunForInstance(instance.id);
+            await query("fixup.results", async db => {
+                return db(tables.Results)
+                    .where({ botRunId: run.id })
+                    .update({ results: report })
+                    ;
+            });
+        }
+
         if (!report) {
-            throw new PrimoSerializableError(`Could not find bot results for '${instanceIdOrName}'`, 404);
+            throw new PrimoSerializableError(`Could not find bot results for '${instanceName}'`, 404);
         }
 
         // Compute indicators and signals for the run

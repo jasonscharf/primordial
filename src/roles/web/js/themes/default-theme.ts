@@ -49,7 +49,7 @@ export const defaultTheme = createTheme({
         },
     },
     utils: {
-        borderBottomLite: { 
+        borderBottomLite: {
             borderBottom: "1px solid #ddd",
         },
         raisedHeader: {
@@ -61,8 +61,17 @@ export const defaultTheme = createTheme({
         subtler: {
             opacity: 0.6,
         },
+        emphasis: {
+            fontSize: "1.2rem",
+        },
+        bigger: {
+            fontSize: "1.2rem",
+        },
         smaller: {
             fontSize: "0.8rem",
+        },
+        smallest: {
+            fontSize: "0.6rem",
         },
         flexAlignCenter: {
             display: "flex",
