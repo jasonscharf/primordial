@@ -90,10 +90,13 @@ describe(GenotypeService.name, () => {
             assert.lengthOf(genotypes, expectedLen);
             assert.lengthOf(genotypesRaw, expectedLen);
 
+            const sorter = (a, b) => a < b ? 1 : -1;
+            const supported = SUPPORTED_TIME_RESOLUTIONS.slice().sort(sorter);
+
             assert.ok(forks.every(f => f.modeId === BotMode.BACK_TEST), "fork mode is backtest");
             assert.ok(forks.every(f => f.typeId === BotType.DESCENDANT), "fork type is descendant");
             assert.ok(forks.every(f => f.runState === RunState.PAUSED), "fork is paused");
-            assert.ok(forks.every((f, i) => f.resId === SUPPORTED_TIME_RESOLUTIONS[i]), "forked time res is correct");
+            assert.ok(forks.slice().map(f => f.resId).sort(sorter).every((resId, i) => resId === supported[i]), "forked time res is correct");
 
             const [mutation] = mutations;
             assert.isNotNull(set.id);

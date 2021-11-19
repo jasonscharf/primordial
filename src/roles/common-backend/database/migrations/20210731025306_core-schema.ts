@@ -296,11 +296,23 @@ export async function createHypertable(knex: Knex, tableName: string) {
 export async function createInitialData(knex: Knex) {
 
     // TimeResolution
-    for (const key of Object.keys(TimeResolution)) {
-        const res = TimeResolution[key];
+    const timeResolutions = [
+        { id: "1s", displayName: "1s" },
+        { id: "2s", displayName: "2s" },
+        { id: "1m", displayName: "1m" },
+        { id: "5m", displayName: "5m" },
+        { id: "15m", displayName: "15m" },
+        { id: "1h", displayName: "1h" },
+        { id: "1d", displayName: "1d" },
+        { id: "1w", displayName: "1w" },
+        { id: "1M", displayName: "1M" },
+    ];
+
+    for (const res of timeResolutions) {
+        const { id, displayName } = res;
         await knex(tables.TimeResolutions).insert({
-            id: res,
-            displayName: res,
+            id,
+            displayName,
         });
     }
 
