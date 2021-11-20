@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { InfoResponse } from "../client";
 import { client } from "../includes";
 import { Button, Grid } from "@mui/material";
-import { RouterProps, useHistory } from "react-router";
+import { useHistory } from "react-router";
 import { InfoContext } from "../contexts";
 import { routes } from "../../../common/app-routing";
 

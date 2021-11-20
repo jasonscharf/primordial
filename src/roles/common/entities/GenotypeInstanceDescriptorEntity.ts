@@ -6,6 +6,7 @@ import { GeneticBotFsmState } from "../models/bots/BotState";
 import { GenotypeInstanceDescriptor } from "../models/bots/GenotypeInstanceDescriptor";
 import { MutableEntity, MutableModel } from "../models/MutableEntity";
 import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
+import { RunState } from "../models/system/RunState";
 
 
 // NOTE: Non-DB entity
@@ -13,6 +14,7 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
     name: string;
     symbols: string;
     modeId: BotMode;
+    runState: RunState;
     resId: ApiTimeResolution;
     baseSymbolId: string;
     quoteSymbolId: string;
@@ -42,6 +44,7 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
             this.name = row[prefix + "name"];
             this.symbols = row[prefix + "symbols"];
             this.modeId = row[prefix + "modeId"];
+            this.runState = row[prefix + "runState"];
             this.resId = row[prefix + "resId"];
             this.baseSymbolId = row[prefix + "baseSymbolId"];
             this.quoteSymbolId = row[prefix + "quoteSymbolId"];
@@ -71,6 +74,7 @@ export class GenotypeInstanceDescriptorEntity extends MutableEntity implements G
             "name",
             "symbols",
             "modeId",
+            "runState",
             "resId",
             "baseSymbolId",
             "quoteSymbolId",

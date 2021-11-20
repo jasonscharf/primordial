@@ -6,7 +6,7 @@ import { useSnackbar } from "notistack";
 import classNames from "classnames";
 import { useEffect, useState } from "react";
 import { useTheme } from "@mui/material";
-import { useParams } from "react-router";
+import { generatePath, useHistory, useParams } from "react-router";
 import { withDeviceRatio, withSize } from "@react-financial-charts/utils";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -38,6 +38,7 @@ import { presentDuration } from "../../../../common/utils/time";
 import { useApiRequest, useApiRequestEffect } from "../../hooks/useApiRequestEffect";
 import { ModalError } from "../../components/ModalError";
 import { PrimoSerializableError } from "../../../../common/errors/errors";
+import { routes } from "../../../../common/app-routing";
 
 
 type BotEvent = any;
@@ -49,6 +50,7 @@ const DEFAULT_BOT_RESULTS_POLL_MS = 500;
  */
 const BotResults = () => {
     const info = useContext(InfoContext);
+    const hist = useHistory();
     const theme = useTheme();
 
     const [errorState, setErrorState] = useState<Error[]>(null);
@@ -206,12 +208,15 @@ const BotResults = () => {
                     overlayMutations: true,
                 };
 
-                const response = await client.genotypes.forkBacktestToForwardTest(args) as HttpResponse<ApiForkGenotypeResponse>;
+                const response = await client.genotypes.forkBacktestToForwardTest(args);
                 const { data } = await response;
-                const { ids } = data;
+                const { ids, name: forkName } = data;
+
+                hist.push(generatePath(routes.BACK_TESTS_RESULTS_FOR_BOT, { instanceName: forkName }));
 
                 enqueueSnackbar("Success! Forward test created", { variant: "success" });
                 setIsCreatingForwardTest(false);
+                setForkDialogOpen(false);
             }
             catch (err) {
                 const errors = parseServerErrors(err);

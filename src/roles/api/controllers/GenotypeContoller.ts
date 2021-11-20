@@ -12,13 +12,17 @@ import { genos, strats, sym, users } from "../../common-backend/includes";
 import * as validate from "../../common-backend/validation";
 
 
+export interface ForkBacktestToForwardResponse extends ApiForkGenotypeResponse {
+    name: string;
+}
+
 @Route("genotypes")
 export class GenotypeController extends ControllerBase {
 
 
     // Return type is ApiForkGenotypeResponse
     @Post("/fork/back-to-fwd")
-    async forkBacktestToForwardTest(@Body() req: ApiForkGenotypeRequest): Promise<unknown> {
+    async forkBacktestToForwardTest(@Body() req: ApiForkGenotypeRequest): Promise<ForkBacktestToForwardResponse> {
         const { allocationId,
             displayName,
             maxWagerPct,
@@ -70,6 +74,9 @@ export class GenotypeController extends ControllerBase {
 
         const [instance, run] = await strats.startBotInstance({ id });
 
-        return result;
+        const supplement = {
+            name: instance.name,
+        };
+        return { ...result, ...supplement }
     }
 }

@@ -36,6 +36,11 @@ export interface ApiBacktestRequest {
   returnEarly?: boolean;
 }
 
+export interface ForkBacktestToForwardResponse {
+  ids: string[];
+  name: string;
+}
+
 /**
  * Describes the nature of the type of a bot instance.
  */
@@ -390,6 +395,9 @@ export interface GenotypeInstanceDescriptor {
   updated: string;
   displayName?: string;
   name: string;
+
+  /** Describes the run state of a strategy or bot. */
+  runState: RunState;
   symbols: string;
   resId: ApiTimeResolution;
   baseSymbolId: string;
@@ -677,7 +685,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @request POST:/genotypes/fork/back-to-fwd
      */
     forkBacktestToForwardTest: (data: ApiForkGenotypeRequest, params: RequestParams = {}) =>
-      this.request<any, any>({
+      this.request<ForkBacktestToForwardResponse, any>({
         path: `/genotypes/fork/back-to-fwd`,
         method: "POST",
         body: data,

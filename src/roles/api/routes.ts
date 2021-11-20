@@ -44,6 +44,15 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ForkBacktestToForwardResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "ids": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "name": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "BotType": {
         "dataType": "refEnum",
         "enums": ["root","clone-paper","desc"],
@@ -253,6 +262,7 @@ const models: TsoaRoute.Models = {
             "updated": {"dataType":"datetime","required":true},
             "displayName": {"dataType":"string"},
             "name": {"dataType":"string","required":true},
+            "runState": {"ref":"RunState","required":true},
             "symbols": {"dataType":"string","required":true},
             "resId": {"ref":"ApiTimeResolution","required":true},
             "baseSymbolId": {"dataType":"string","required":true},

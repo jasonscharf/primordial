@@ -5,12 +5,14 @@ import { Duration } from "../../utils/time";
 import { GeneticBotState } from "../../../common-backend/bots/GeneticBot";
 import { GeneticBotFsmState } from "./BotState";
 import { MutableModel } from "../MutableEntity";
+import { RunState } from "../system/RunState";
 
 
 // Not a DB entity
 export interface GenotypeInstanceDescriptor extends MutableModel {
     id: string;
     name: string;
+    runState: RunState;
     symbols: string;
     resId: ApiTimeResolution;
     baseSymbolId: string;

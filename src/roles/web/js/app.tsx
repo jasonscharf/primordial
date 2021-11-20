@@ -38,9 +38,7 @@ const App = () => {
             .then(response => response.data)
             .then(setInfo)
             .catch(err => {
-                const errors = parseServerErrors(err);
-                errors.unshift(new PrimoSerializableError(`There was an error contacting the server.`));
-                setErrors(errors);
+                setErrors([new PrimoSerializableError(`There was an error contacting the server.`)]);
             })
             ;
     }, []);

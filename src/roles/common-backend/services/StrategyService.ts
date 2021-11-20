@@ -141,6 +141,7 @@ export class StrategyService {
                     bi."modeId" AS "modeId",
                     bi."resId" AS "resId",
                     bi."currentGenome" AS "genome",
+                    bi."runState" AS "runState",
                     
                     bi."stateJson"->>'fsmState' AS "fsmState",
                     UPPER(bi."stateInternal"->>'baseSymbolId') AS "baseSymbolId",
@@ -284,6 +285,7 @@ export class StrategyService {
                     bot_instances.name,
                     bot_instances.symbols,
                     bot_instances."modeId",
+                    bot_instances."runState",
                     bot_instances."resId",
                     bot_instances."stateJson" as "state",
                     bot_instances."stateJson"->>'fsmState' AS "fsmState",
@@ -929,6 +931,8 @@ export class StrategyService {
                 displayName: `Start '${instanceId}' @ ${shortDateAndTime(now)}`,
                 instanceId: instance.id,
                 active: true,
+                from: new Date(),
+                to: new Date(),
             };
 
             // New/initializing? Create a new bot run

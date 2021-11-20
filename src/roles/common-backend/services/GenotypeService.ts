@@ -156,9 +156,9 @@ export class GenotypeService {
 
                 const [baseSymbolId, quoteSymbolId] = sym.parseSymbolPair(possiblyMutatedSymbols);
 
-                const displayName = `Descendant of ${parentInstance.name}`;
+                const appliedDisplayName = displayName ?? `Descendant of ${parentInstance.name}`;
                 const instanceProps: Partial<BotInstance> = {
-                    exchangeId: parentInstance.exchangeId,
+                    //exchangeId: parentInstance.exchangeId,
                     definitionId: parentDef.id,
                     msid: savedMutationSet.id,
                     allocationId,
@@ -166,6 +166,7 @@ export class GenotypeService {
                     typeId,
                     modeId,
                     name: randomName(),
+                    displayName: appliedDisplayName,
                     runState: modeId === BotMode.BACK_TEST ? RunState.PAUSED : RunState.NEW,
                     build: version.full,
                     currentGenome: parsedGenotype.toString(),

@@ -73,9 +73,10 @@ export const InstanceOverviewItem: React.FC<InstanceOverviewItemProps> = props =
                         </Grid>*/}
                             <Grid item>
                                 <b>{instance.symbols}</b>
-                                &nbsp;&#124;&nbsp;<b>{instance.resId}</b>&nbsp;&#124;&nbsp;
+                                &nbsp;&#124;&nbsp;<b>{instance.resId}</b>
                                 <If exp={instance.modeId !== "test-back"}>
-                                    <b>{presentBotState(instance.fsmState as any as GeneticBotFsmState)}</b>
+                                    &nbsp;&#124;&nbsp;
+                                    <b>{presentBotState(instance.fsmState, instance.runState)}</b>
                                 </If>
                             </Grid>
                             <If above sm>
