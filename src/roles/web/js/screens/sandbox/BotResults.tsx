@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useTheme } from "@mui/material";
 import { useParams } from "react-router";
 import { withDeviceRatio, withSize } from "@react-financial-charts/utils";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { ApiForkGenotypeRequest, BotMode, BotType, HttpResponse, RunState } from "../../client";
 import { ApiForkGenotypeResponse } from "../../../../common/messages/genetic";
@@ -35,6 +36,8 @@ import { isNullOrUndefined, sleep } from "../../../../common/utils";
 import { parseServerErrors } from "../../utils";
 import { presentDuration } from "../../../../common/utils/time";
 import { useApiRequest, useApiRequestEffect } from "../../hooks/useApiRequestEffect";
+import { ModalError } from "../../components/ModalError";
+import { PrimoSerializableError } from "../../../../common/errors/errors";
 
 
 type BotEvent = any;
@@ -48,6 +51,7 @@ const BotResults = () => {
     const info = useContext(InfoContext);
     const theme = useTheme();
 
+    const [errorState, setErrorState] = useState<Error[]>([]);
     const [results, setResults] = useState<ApiBotResultsApiResponse>(null);
     const [isCreatingForwardTest, setIsCreatingForwardTest] = useState(false);
     const [forkDialogOpen, setForkDialogOpen] = React.useState(false);
@@ -73,7 +77,7 @@ const BotResults = () => {
     }
 
     useEffect(() => {
-        try {
+        async function getResults() {
             const { instanceName } = args;
 
             console.log(`Fetching bot results for '${instanceName}'...`);
@@ -82,9 +86,9 @@ const BotResults = () => {
                 //throw new Error("Specify an instance ID");
             }
             else {
-                waitForCompletion(instanceName)
+                return waitForCompletion(instanceName)
                     .then(() => {
-                        client.sandbox.getBotResults(instanceName)
+                        return client.sandbox.getBotResults(instanceName)
                             .then(response => response.data)
                             .then(results => {
                                 const {
@@ -154,17 +158,20 @@ const BotResults = () => {
                                 results.indicators = imap;
                                 results.data = data;
                                 setResults(results);
+                                setErrorState(null);
                             })
-                            .catch(err => {
-                                alert("There was an error loading the results. The bot may have exploded during operation. Please go back and try again. Feel free to copy the URL and report this as a bug.");
-                            })
+
                             ;
                     });
             }
         }
-        catch (err) {
-            console.error(err);
-        }
+
+        getResults()
+            .catch(err => {
+                const errors = parseServerErrors(err);
+                setErrorState(errors);
+            })
+
     }, []);
 
     const handleToggleHeikinAshi = useCallback(() => {
@@ -207,9 +214,7 @@ const BotResults = () => {
             }
             catch (err) {
                 const errors = parseServerErrors(err);
-                errors.forEach(error => {
-                    enqueueSnackbar(error.message, { variant: "error" });
-                });
+                setErrorState(errors);
             }
         }
 
@@ -217,7 +222,12 @@ const BotResults = () => {
     }, [info, results]);
 
 
-    if (!results) {
+    if (errorState) {
+        return (
+            <ModalError error={errorState} />
+        );
+    }
+    else if (!results) {
         return (
             <Spinner caption1={"Loading bot results..."} caption2={"This may take a moment"} />
         );

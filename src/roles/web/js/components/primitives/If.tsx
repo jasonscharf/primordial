@@ -16,7 +16,15 @@ export interface IfProps {
 export const If: React.FC<IfProps> = props => {
     const { above, children, exp, xs, sm, md, lg, xl } = props;
     const [condition, setCondition] = useState(false);
-    const { breakpoint } = useContext(PresentationContext);
+    const pres = useContext(PresentationContext);
+
+    let breakpoint = null;
+    if (pres) {
+        breakpoint = pres.breakpoint;
+    }
+    else {
+        breakpoint = "xs";
+    }
 
     function rank(bp: ResponsiveBreakpoint) {
         switch (bp) {

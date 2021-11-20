@@ -10,6 +10,9 @@ import { InfoResponse } from "./client";
 import { ThemeProvider } from "@mui/material";
 import { client } from "./includes";
 import { defaultTheme } from "./themes/default-theme";
+import { ModalError } from "./components/ModalError";
+import { parseServerErrors } from "./utils";
+import { PrimoSerializableError } from "../../common/errors/errors";
 
 
 const Loading = () => (
@@ -17,14 +20,13 @@ const Loading = () => (
 );
 
 
-
 const App = () => {
+    const [errors, setErrors] = useState<PrimoSerializableError[]>(null);
     const [info, setInfo] = useState<InfoContextState>(null);
     const [breakpoint, setBreakpoint] = useState<ResponsiveBreakpoint>("xs");
 
     const { observe, unobserve, width, height, entry } = useDimensions({
         breakpoints,
-
         updateOnBreakpointChange: true,
         onResize: ({ currentBreakpoint }) => {
             setBreakpoint(currentBreakpoint as ResponsiveBreakpoint);
@@ -36,9 +38,18 @@ const App = () => {
             .then(response => response.data)
             .then(setInfo)
             .catch(err => {
-                alert(`There was an error contacting the server`);
+                const errors = parseServerErrors(err);
+                errors.unshift(new PrimoSerializableError(`There was an error contacting the server.`));
+                setErrors(errors);
             })
+            ;
     }, []);
+
+    if (errors) {
+        return (
+            <ModalError error={errors} />
+        );
+    }
 
     return (
         <div className="primo-app-container" ref={observe}>

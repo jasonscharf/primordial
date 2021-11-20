@@ -8,6 +8,9 @@ export function parseServerErrors(error: Error): PrimoSerializableError[] {
         if (typeof errJson === "object" && Array.isArray(errJson.errors)) {
             errors = errJson.errors.map(createError);
         }
+        else if (typeof errJson === "object") {
+            errors = [createError(errJson)];
+        }
         else {
             errors = errJson.errors.map(createError);
         }
