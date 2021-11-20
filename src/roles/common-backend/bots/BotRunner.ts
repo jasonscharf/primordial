@@ -43,7 +43,7 @@ export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
 
 export interface IndicatorsAndSignals {
     signals: number[];
-    indicators: Map<string, number[]>;
+    indicators: {};
     prices: Price[];
 }
 
@@ -203,7 +203,8 @@ export class BotRunner {
         let { budget, name, from, genome: genomeStr, to } = args;
 
         const signals = [];
-        const indicators = new Map<string, number[]>();
+        const indicators = {};
+        let prices = [];
         try {
             const { genome } = new GenomeParser().parse(args.genome);
 
@@ -225,7 +226,7 @@ export class BotRunner {
                 fetchDelay: 1000,
                 fillMissing: true,
                 from: actualFrom,
-                to: new Date(to.getTime() - 1),
+                to: new Date(to.getTime()),
             };
 
             const beginLoadPrices = Date.now();
@@ -234,9 +235,30 @@ export class BotRunner {
                 sus = await sym.getSymbolPriceData(params);
             });
 
-            const { missingRanges, prices, warnings } = sus;
+            const { missingRanges, prices: pricesWithLeadin, warnings } = sus;
 
-            ctx.prices = prices;
+
+            // DEBUG: Verifing from exchange
+            /*
+            const [rawData, rawPrices] = await sym.fetchPriceDataFromExchange(params);
+
+            const primoData = pricesWithLeadin.slice(maxIntervals);
+            const exData = rawPrices.slice(maxIntervals);
+
+            const primoTimestamps = primoData.map(p => p.ts);
+            const exTimestamp = exData.map(p => p.ts);
+            const primoCloses = primoData.map(p => p.close + "");
+            const exCloses = exData.map(p => p.close + "");
+
+            const primoLows = primoData.map(p => p.low + "");
+            const exLow = exData.map(p => p.low + "");
+            
+            debugger;
+            */
+            // DEBUG //
+
+            // We need to use the lead-in prices to calculate indicators with sliding windows, e.g. RSI
+            ctx.prices = pricesWithLeadin;
             const endLoadPrices = Date.now();
             const loadPricesDuration = endLoadPrices - beginLoadPrices;
 
@@ -256,8 +278,8 @@ export class BotRunner {
             ctx.instance.runState = RunState.ACTIVE;
             ctx.instance.modeId = BotMode.BACK_TEST;
 
-            for (let i = 1; i < prices.length - window; ++i) {
-                ctx.prices = prices.slice(i, i + window);
+            for (let i = 1; i < (pricesWithLeadin.length - window) + 1; ++i) {
+                ctx.prices = pricesWithLeadin.slice(i, i + window);
                 const tick = ctx.prices[ctx.prices.length - 1];
                 if (this.isGapTick(tick)) {
                     continue;
@@ -285,6 +307,9 @@ export class BotRunner {
                     }
                 }
             }
+
+            // Omit leadin prices from the returned prices
+            prices = pricesWithLeadin.slice(window);
 
             const result: IndicatorsAndSignals = {
                 signals,
@@ -483,7 +508,7 @@ export class BotRunner {
                     fetchDelay: 1000,
                     fillMissing: true,
                     from: actualFrom,
-                    to: new Date(to.getTime()), // TODO: DBL check... "to" should be non-inclusive in most services
+                    to: new Date(to.getTime()),
                 };
 
                 run.from = from;
@@ -531,10 +556,9 @@ export class BotRunner {
                 // TODO: update prices earlier; perf metrics
 
 
-                // IMPORTANT: We are ticking at the interval level here (e.g. 1min) and not necessarily at true tick-level (e.g. 1s)
+                // NOTE: We are ticking at the interval level here (e.g. 1min) and not necessarily at true tick-level (e.g. 1s)
 
-
-                for (let i = 1; i < prices.length - maxIntervals; ++i) {
+                for (let i = 1; i < (prices.length - maxIntervals) + 1; ++i) {
                     ctx.prices = prices.slice(i, i + maxIntervals);
                     const tick = ctx.prices[ctx.prices.length - 1];
                     if (this.isGapTick(tick)) {
@@ -550,7 +574,6 @@ export class BotRunner {
                     }
 
                     localInstance.changeFsmState(ctx, ctx.state, newState.fsmState);
-
                     instanceRecord.prevTick = new Date();
                 }
 
