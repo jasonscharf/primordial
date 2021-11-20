@@ -24,7 +24,7 @@ export function SimpleOrderTable(props?: OrderTableProps) {
             <Table size="small" aria-label="Recent orders">
                 <TableHead>
                     <TableRow>
-                        <TableCell align="right">Type</TableCell>
+                        <TableCell align="left">Type</TableCell>
                         <TableCell align="right">Opened</TableCell>
                         <TableCell align="right">Quantity</TableCell>
                         <TableCell align="right">Price</TableCell>

@@ -51,7 +51,7 @@ const BotResults = () => {
     const info = useContext(InfoContext);
     const theme = useTheme();
 
-    const [errorState, setErrorState] = useState<Error[]>([]);
+    const [errorState, setErrorState] = useState<Error[]>(null);
     const [results, setResults] = useState<ApiBotResultsApiResponse>(null);
     const [isCreatingForwardTest, setIsCreatingForwardTest] = useState(false);
     const [forkDialogOpen, setForkDialogOpen] = React.useState(false);
@@ -64,7 +64,7 @@ const BotResults = () => {
     async function waitForCompletion(id: string) {
         let hasCompletionOrError = false;
         while (!hasCompletionOrError) {
-            const status = await client.sandbox.getBotResultsStatus(id);
+            const status = await client.results.getBotResultsStatus(id);
             const data = await status.data;
             const { runState } = data;
             if (runState === RunState.Stopped || runState === RunState.Error) {
@@ -88,7 +88,7 @@ const BotResults = () => {
             else {
                 return waitForCompletion(instanceName)
                     .then(() => {
-                        return client.sandbox.getBotResults(instanceName)
+                        return client.results.getBotResults(instanceName)
                             .then(response => response.data)
                             .then(results => {
                                 const {
@@ -211,6 +211,7 @@ const BotResults = () => {
                 const { ids } = data;
 
                 enqueueSnackbar("Success! Forward test created", { variant: "success" });
+                setIsCreatingForwardTest(false);
             }
             catch (err) {
                 const errors = parseServerErrors(err);

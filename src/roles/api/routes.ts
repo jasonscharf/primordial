@@ -3,13 +3,17 @@
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
   import { Controller, ValidationService, FieldErrors, ValidateError, TsoaRoute, HttpStatusCodeLiteral, TsoaResponse } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { BacktestController } from './controllers/BacktestController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { GenotypeController } from './controllers/GenotypeContoller';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { InfoController } from './controllers/InfoController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { OrderController } from './controllers/OrderController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { SandboxController } from './controllers/sandbox/SandboxController';
+import { PriceController } from './controllers/PriceController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { ResultsController } from './controllers/ResultsController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { WorkspaceController } from './controllers/WorkspaceController';
 import * as KoaRouter from '@koa/router';
@@ -17,6 +21,29 @@ import * as KoaRouter from '@koa/router';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
 const models: TsoaRoute.Models = {
+    "ApiTimeResolution": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["5m"]},{"dataType":"enum","enums":["15m"]},{"dataType":"enum","enums":["1h"]},{"dataType":"enum","enums":["4h"]},{"dataType":"enum","enums":["6h"]},{"dataType":"enum","enums":["12h"]},{"dataType":"enum","enums":["1d"]},{"dataType":"enum","enums":["1w"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApiBacktestRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "workspaceId": {"dataType":"string","required":true},
+            "strategyId": {"dataType":"string","required":true},
+            "from": {"dataType":"string","required":true},
+            "to": {"dataType":"string","required":true},
+            "genome": {"dataType":"string","required":true},
+            "res": {"ref":"ApiTimeResolution","required":true},
+            "symbols": {"dataType":"string","required":true},
+            "maxWagerPct": {"dataType":"double"},
+            "remove": {"dataType":"boolean"},
+            "name": {"dataType":"string"},
+            "returnEarly": {"dataType":"boolean"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "BotType": {
         "dataType": "refEnum",
         "enums": ["root","clone-paper","desc"],
@@ -206,29 +233,6 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "ApiTimeResolution": {
-        "dataType": "refAlias",
-        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["5m"]},{"dataType":"enum","enums":["15m"]},{"dataType":"enum","enums":["1h"]},{"dataType":"enum","enums":["4h"]},{"dataType":"enum","enums":["6h"]},{"dataType":"enum","enums":["12h"]},{"dataType":"enum","enums":["1d"]},{"dataType":"enum","enums":["1w"]}],"validators":{}},
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "ApiBacktestRequest": {
-        "dataType": "refObject",
-        "properties": {
-            "workspaceId": {"dataType":"string","required":true},
-            "strategyId": {"dataType":"string","required":true},
-            "from": {"dataType":"string","required":true},
-            "to": {"dataType":"string","required":true},
-            "genome": {"dataType":"string","required":true},
-            "res": {"ref":"ApiTimeResolution","required":true},
-            "symbols": {"dataType":"string","required":true},
-            "maxWagerPct": {"dataType":"double"},
-            "remove": {"dataType":"boolean"},
-            "name": {"dataType":"string"},
-            "returnEarly": {"dataType":"boolean"},
-        },
-        "additionalProperties": false,
-    },
-    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "Duration": {
         "dataType": "refObject",
         "properties": {
@@ -290,6 +294,27 @@ export function RegisterRoutes(router: KoaRouter) {
     //  NOTE: If you do not see routes for all of your controllers in this file, then you might not have informed tsoa of where to look
     //      Please look into the "controllerPathGlobs" config option described in the readme: https://github.com/lukeautry/tsoa
     // ###########################################################################################################
+        router.post('/api/tests/run',
+            async function BacktestController_runBacktest(context: any, next: any) {
+            const args = {
+                    req: {"in":"body","name":"req","required":true,"ref":"ApiBacktestRequest"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (err) {
+              const error = err as any;
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new BacktestController();
+
+            const promise = controller.runBacktest.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         router.post('/api/genotypes/fork/back-to-fwd',
             async function GenotypeController_forkBacktestToForwardTest(context: any, next: any) {
             const args = {
@@ -354,71 +379,8 @@ export function RegisterRoutes(router: KoaRouter) {
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        router.post('/api/sandbox/run',
-            async function SandboxController_runBacktest(context: any, next: any) {
-            const args = {
-                    req: {"in":"body","name":"req","required":true,"ref":"ApiBacktestRequest"},
-            };
-
-            let validatedArgs: any[] = [];
-            try {
-              validatedArgs = getValidatedArgs(args, context, next);
-            } catch (err) {
-              const error = err as any;
-              context.status = error.status;
-              context.throw(error.status, JSON.stringify({ fields: error.fields }));
-            }
-
-            const controller = new SandboxController();
-
-            const promise = controller.runBacktest.apply(controller, validatedArgs as any);
-            return promiseHandler(controller, promise, context, undefined, next);
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        router.get('/api/sandbox/results/status/:instanceName',
-            async function SandboxController_getBotResultsStatus(context: any, next: any) {
-            const args = {
-                    instanceName: {"in":"path","name":"instanceName","required":true,"dataType":"string"},
-            };
-
-            let validatedArgs: any[] = [];
-            try {
-              validatedArgs = getValidatedArgs(args, context, next);
-            } catch (err) {
-              const error = err as any;
-              context.status = error.status;
-              context.throw(error.status, JSON.stringify({ fields: error.fields }));
-            }
-
-            const controller = new SandboxController();
-
-            const promise = controller.getBotResultsStatus.apply(controller, validatedArgs as any);
-            return promiseHandler(controller, promise, context, undefined, next);
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        router.get('/api/sandbox/results/:instanceName',
-            async function SandboxController_getBotResults(context: any, next: any) {
-            const args = {
-                    instanceName: {"in":"path","name":"instanceName","required":true,"dataType":"string"},
-            };
-
-            let validatedArgs: any[] = [];
-            try {
-              validatedArgs = getValidatedArgs(args, context, next);
-            } catch (err) {
-              const error = err as any;
-              context.status = error.status;
-              context.throw(error.status, JSON.stringify({ fields: error.fields }));
-            }
-
-            const controller = new SandboxController();
-
-            const promise = controller.getBotResults.apply(controller, validatedArgs as any);
-            return promiseHandler(controller, promise, context, undefined, next);
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        router.get('/api/sandbox/prices/:symbolPair',
-            async function SandboxController_getPrices(context: any, next: any) {
+        router.get('/api/prices/query/:symbolPair',
+            async function PriceController_getPrices(context: any, next: any) {
             const args = {
                     symbolPair: {"in":"path","name":"symbolPair","required":true,"dataType":"string"},
                     res: {"in":"query","name":"res","dataType":"string"},
@@ -435,9 +397,51 @@ export function RegisterRoutes(router: KoaRouter) {
               context.throw(error.status, JSON.stringify({ fields: error.fields }));
             }
 
-            const controller = new SandboxController();
+            const controller = new PriceController();
 
             const promise = controller.getPrices.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/results/status/:instanceName',
+            async function ResultsController_getBotResultsStatus(context: any, next: any) {
+            const args = {
+                    instanceName: {"in":"path","name":"instanceName","required":true,"dataType":"string"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (err) {
+              const error = err as any;
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new ResultsController();
+
+            const promise = controller.getBotResultsStatus.apply(controller, validatedArgs as any);
+            return promiseHandler(controller, promise, context, undefined, next);
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        router.get('/api/results/report/:instanceName',
+            async function ResultsController_getBotResults(context: any, next: any) {
+            const args = {
+                    instanceName: {"in":"path","name":"instanceName","required":true,"dataType":"string"},
+            };
+
+            let validatedArgs: any[] = [];
+            try {
+              validatedArgs = getValidatedArgs(args, context, next);
+            } catch (err) {
+              const error = err as any;
+              context.status = error.status;
+              context.throw(error.status, JSON.stringify({ fields: error.fields }));
+            }
+
+            const controller = new ResultsController();
+
+            const promise = controller.getBotResults.apply(controller, validatedArgs as any);
             return promiseHandler(controller, promise, context, undefined, next);
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

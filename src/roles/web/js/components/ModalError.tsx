@@ -32,7 +32,8 @@ export const ModalError = (props: ModalErrorProps) => {
             right: 0
         }}>
             <Grid item xs={12} sx={{ margin: "auto", textAlign: "center" }}>
-                <ErrorOutlineIcon sx={{ fontSize: "20rem" }} />
+                <ErrorOutlineIcon color="primary" sx={{ fontSize: "20rem" }} />
+                <h1>Something went wrong</h1>
             </Grid>
             <If exp={!!text}>
                 <Grid item xs={12} sx={{ margin: "auto" }}>

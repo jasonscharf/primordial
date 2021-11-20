@@ -152,12 +152,12 @@ export class StrategyService {
                     (results.results->>'to')::timestamp with time zone AS "to",
                     ((results.results->>'to')::timestamp with time zone) - ((results.results->>'from')::timestamp with time zone) AS "duration",
 
-                    COALESCE((results.results->'numOrders')::int, 0) AS "numOrders",
-                    COALESCE((results.results->'totalfees')::decimal, 0) AS "totalFees",
-                    COALESCE((results.results->'totalProfit')::decimal, 0) AS "totalProfit",
-                    COALESCE((results.results->'totalProfitPct')::decimal, 0) AS "totalProfitPct",
-                    COALESCE((results.results->'avgProfitPerDay')::decimal, 0) AS "avgProfitPerDay",
-                    COALESCE((results.results->'avgProfitPctPerDay')::decimal, 0) AS "avgProfitPctPerDay"
+                    COALESCE((results.results->>'numOrders')::int, 0) AS "numOrders",
+                    COALESCE((results.results->>'totalfees')::decimal, 0) AS "totalFees",
+                    COALESCE((results.results->>'totalProfit')::decimal, 0) AS "totalProfit",
+                    COALESCE((results.results->>'totalProfitPct')::decimal, 0) AS "totalProfitPct",
+                    COALESCE((results.results->>'avgProfitPerDay')::decimal, 0) AS "avgProfitPerDay",
+                    COALESCE((results.results->>'avgProfitPctPerDay')::decimal, 0) AS "avgProfitPctPerDay"
 
                 FROM bot_instances bi
                 INNER JOIN workspaces ws ON (ws.id = :workspaceId AND ws."ownerId" = :requestingUserId)
@@ -297,6 +297,8 @@ export class StrategyService {
                     (NOW() - bot_runs.from) AS duration,
                     bot_instances."stateJson",
                     bot_runs.id AS "runId",
+                    bot_runs.from AS "from",
+                    bot_runs.to AS "to",
 
                     COUNT(orders.id)::int AS "numOrders",
 

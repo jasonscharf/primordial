@@ -27,6 +27,7 @@ import { human, millisecondsPerResInterval, normalizePriceTime } from "../../com
 import { genes, names } from "../genetics/base-genetics";
 import { version } from "../../common/version";
 import { isNullOrUndefined } from "../utils";
+import { measure } from "../../common/utils/perf";
 
 
 
@@ -43,6 +44,7 @@ export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
 export interface IndicatorsAndSignals {
     signals: number[];
     indicators: Map<string, number[]>;
+    prices: Price[];
 }
 
 const DEFAULT_CACHE_ARGS: TimeSeriesCacheArgs = {
@@ -227,8 +229,11 @@ export class BotRunner {
             };
 
             const beginLoadPrices = Date.now();
+            let sus: SymbolResultSet = null;
+            await measure("calculateIndicatorsAndSignals::prices", async () => {
+                sus = await sym.getSymbolPriceData(params);
+            });
 
-            const sus = await sym.getSymbolPriceData(params);
             const { missingRanges, prices, warnings } = sus;
 
             ctx.prices = prices;
@@ -284,6 +289,7 @@ export class BotRunner {
             const result: IndicatorsAndSignals = {
                 signals,
                 indicators,
+                prices,
             }
 
             return result;
@@ -291,11 +297,6 @@ export class BotRunner {
         catch (err) {
             throw err;
         }
-
-        return {
-            signals,
-            indicators,
-        };
     }
 
     /**
@@ -427,6 +428,7 @@ export class BotRunner {
 
         // Note: Only 1 item per allocation currently supported.
         capitalInvested = items[0].amount.mul(items[0].maxWagerPct.toString());
+        tr.capital = capitalInvested;
 
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
         const instanceRecord = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
@@ -604,14 +606,15 @@ export class BotRunner {
                     tr.trailingOrder = trailingOrder;
                 }
 
+                tr.orders = orders;
 
                 const firstOpen = allPrices.length > 0 ? allPrices[maxIntervals].open : Money("0");
                 const firstClose = allPrices.length > 0 ? allPrices[maxIntervals].close : Money("0");
                 const lastClose = allPrices.length > 0 ? allPrices[allPrices.length - 1].close : Money("0");
 
                 tr.firstOpen = firstOpen;
-                tr.firstClose = firstClose
-                tr.lastClose = lastClose
+                tr.firstClose = firstClose;
+                tr.lastClose = lastClose;
 
                 // Compute the trading results based on the orders and our report so far
                 const tradingResults = await results.computeTradingResults(instanceRecord, pairs, tr);

@@ -104,7 +104,7 @@ const RunScreen = () => {
 
             setIsRunning(true);
             setErrors([]);
-            const response = await client.sandbox.runBacktest(args);
+            const response = await client.tests.runBacktest(args);
             const data = await response.data;
             const results = data;
             setIsRunning(false);

@@ -156,8 +156,9 @@ export class GenotypeService {
 
                 const [baseSymbolId, quoteSymbolId] = sym.parseSymbolPair(possiblyMutatedSymbols);
 
+                const displayName = `Descendant of ${parentInstance.name}`;
                 const instanceProps: Partial<BotInstance> = {
-                    //exchangeId: parentInstance.exchangeId,
+                    exchangeId: parentInstance.exchangeId,
                     definitionId: parentDef.id,
                     msid: savedMutationSet.id,
                     allocationId,

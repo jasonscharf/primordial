@@ -9,6 +9,33 @@
  * ---------------------------------------------------------------
  */
 
+export enum ApiTimeResolution {
+  Type5M = "5m",
+  Type15M = "15m",
+  Type1H = "1h",
+  Type4H = "4h",
+  Type6H = "6h",
+  Type12H = "12h",
+  Type1D = "1d",
+  Type1W = "1w",
+}
+
+export interface ApiBacktestRequest {
+  workspaceId: string;
+  strategyId: string;
+  from: string;
+  to: string;
+  genome: string;
+  res: ApiTimeResolution;
+  symbols: string;
+
+  /** @format double */
+  maxWagerPct?: number;
+  remove?: boolean;
+  name?: string;
+  returnEarly?: boolean;
+}
+
 /**
  * Describes the nature of the type of a bot instance.
  */
@@ -336,33 +363,6 @@ export interface ApiBotOrderDescriptor {
   order: PartialOrder;
 }
 
-export enum ApiTimeResolution {
-  Type5M = "5m",
-  Type15M = "15m",
-  Type1H = "1h",
-  Type4H = "4h",
-  Type6H = "6h",
-  Type12H = "12h",
-  Type1D = "1d",
-  Type1W = "1w",
-}
-
-export interface ApiBacktestRequest {
-  workspaceId: string;
-  strategyId: string;
-  from: string;
-  to: string;
-  genome: string;
-  res: ApiTimeResolution;
-  symbols: string;
-
-  /** @format double */
-  maxWagerPct?: number;
-  remove?: boolean;
-  name?: string;
-  returnEarly?: boolean;
-}
-
 export interface Duration {
   /** @format double */
   milliseconds: number;
@@ -652,6 +652,23 @@ export class HttpClient<SecurityDataType = unknown> {
  * Algorithmic trading platform
  */
 export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {
+  tests = {
+    /**
+     * No description
+     *
+     * @name RunBacktest
+     * @request POST:/tests/run
+     */
+    runBacktest: (data: ApiBacktestRequest, params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/tests/run`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+  };
   genotypes = {
     /**
      * No description
@@ -699,32 +716,32 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         ...params,
       }),
   };
-  sandbox = {
+  prices = {
     /**
      * No description
      *
-     * @name RunBacktest
-     * @request POST:/sandbox/run
+     * @name GetPrices
+     * @request GET:/prices/query/{symbolPair}
      */
-    runBacktest: (data: ApiBacktestRequest, params: RequestParams = {}) =>
+    getPrices: (symbolPair: string, query?: { res?: string; from?: string; to?: string }, params: RequestParams = {}) =>
       this.request<any, any>({
-        path: `/sandbox/run`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
+        path: `/prices/query/${symbolPair}`,
+        method: "GET",
+        query: query,
         format: "json",
         ...params,
       }),
-
+  };
+  results = {
     /**
      * No description
      *
      * @name GetBotResultsStatus
-     * @request GET:/sandbox/results/status/{instanceName}
+     * @request GET:/results/status/{instanceName}
      */
     getBotResultsStatus: (instanceName: string, params: RequestParams = {}) =>
       this.request<{ runState: RunState }, any>({
-        path: `/sandbox/results/status/${instanceName}`,
+        path: `/results/status/${instanceName}`,
         method: "GET",
         format: "json",
         ...params,
@@ -734,27 +751,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @name GetBotResults
-     * @request GET:/sandbox/results/{instanceName}
+     * @request GET:/results/report/{instanceName}
      */
     getBotResults: (instanceName: string, params: RequestParams = {}) =>
       this.request<any, any>({
-        path: `/sandbox/results/${instanceName}`,
+        path: `/results/report/${instanceName}`,
         method: "GET",
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name GetPrices
-     * @request GET:/sandbox/prices/{symbolPair}
-     */
-    getPrices: (symbolPair: string, query?: { res?: string; from?: string; to?: string }, params: RequestParams = {}) =>
-      this.request<any, any>({
-        path: `/sandbox/prices/${symbolPair}`,
-        method: "GET",
-        query: query,
         format: "json",
         ...params,
       }),
