@@ -50,7 +50,7 @@
     "tail": "yarn logs -f",
     "test": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up --remove-orphans --abort-on-container-exit --exit-code-from tests --build tests",
     "test:ci": "docker-compose -p primo -f docker-compose.yml -f docker-compose.tests.yml up --remove-orphans --abort-on-container-exit --exit-code-from tests --build tests",
-    "test:debug:start": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up -d --build && docker logs -f primo_tests_debug_1",
+    "test:debug:start": "DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml up -d --build && docker logs -f primo_tests_debug_1",
     "test:debug:stop": "docker-compose -p primo_tests -f docker-compose.yml -f docker-compose.tests.yml down",
     "test:debug:logs": "yarn -s dc:tests logs -f tests_debugging",
     "test:reboot": "yarn test:debug:stop && docker volume rm primo_tests_db_tests && yarn test:debug:start && docker restart primo_tests_debug_1",

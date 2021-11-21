@@ -140,6 +140,13 @@ export function shortDateAndTime(dt: Date) {
 }
 
 
+export function toUTC(date: Date): Date {
+    const utcNow =  Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(),
+    date.getUTCHours(), date.getUTCMinutes(), date.getUTCSeconds(), date.getUTCMilliseconds());
+   
+    return new Date(utcNow);
+}
+
 /**
  * Rounds a price down the nearest appropriate floor, according to the `TimeResolution` passed.
  * For example, normalizes pricing timestamps for minute-resolution prices to the nearest.

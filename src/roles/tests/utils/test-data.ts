@@ -295,7 +295,7 @@ export async function generateTestPrices(exchange: string, pair: string, res: Ti
         exchangeId: exchange,
         baseSymbolId: base,
         quoteSymbolId: quote,
-        resId: "1m",
+        resId: res,
         ts: normalizePriceTime(res, start),
         open: Money("0"),
         low: Money("0"),

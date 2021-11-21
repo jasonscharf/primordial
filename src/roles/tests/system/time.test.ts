@@ -6,7 +6,7 @@ import { SymbolService } from "../../common-backend/services/SymbolService";
 import { TestDataCtx, createTestPrice, getTestData } from "../utils/test-data";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
-import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, shortDateAndTime, splitRanges } from "../../common/utils/time";
+import { from, getTimeframeForResolution, millisecondsPerResInterval, normalizePriceTime, shortDateAndTime, splitRanges, toUTC } from "../../common/utils/time";
 import { assertEqualTimes } from "../utils/misc";
 import { presentDuration } from "../../common/utils/time";
 
@@ -136,7 +136,13 @@ describe("time handling", () => {
         test(TimeResolution.FOUR_HOURS, "05:45:55:555", "04:00:00:000");
         test(TimeResolution.FOUR_HOURS, "08:00:00:000", "08:00:00:000");
 
-        // TODO: Week and month
+        test(TimeResolution.SIX_HOURS, "00:00:00:000", "00:00:00:000");
+        test(TimeResolution.SIX_HOURS, "05:59:59:000", "00:00:00:000");
+        test(TimeResolution.SIX_HOURS, "06:00:00:000", "06:00:00:000");
+        test(TimeResolution.SIX_HOURS, "07:45:55:555", "06:00:00:000");
+        test(TimeResolution.SIX_HOURS, "12:00:00:000", "12:00:00:000");
+
+        // TODO: others
     });
 
     describe(millisecondsPerResInterval.name, () => {

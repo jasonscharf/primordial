@@ -309,13 +309,10 @@ const BotResults = () => {
                                 <Percent big amount={report.totalProfitPct} /><br />
                                 <Amount amount={report.totalProfit} symbol={quote} />
                             </Grid>
-                            <Grid item style={{ textAlign: "right" }}>
-                                <b>{report.length}</b>
-                            </Grid>
                             <Grid item>
                                 <b>{shortDateAndTime(report.from)}</b>&nbsp;-&nbsp;<b>{shortDateAndTime(report.to)}</b>
                                 <br />
-                                <b>{presentDuration(report.durationMs, { short: true })}</b>
+                                <b>{presentDuration((report.to.getTime() - report.from.getTime()), { short: true })}</b>
                             </Grid>
                         </Grid>
                         <Grid item sx={{ marginLeft: { xs: "auto", md: "0" }, width: "48px", marginTop: "auto", marginBottom: "auto" }}>

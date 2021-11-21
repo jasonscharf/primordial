@@ -1,4 +1,4 @@
-import ccxt, { Dictionary } from "ccxt";
+import ccxt, { Dictionary, OHLCV } from "ccxt";
 import { DateTime } from "luxon";
 import env from "../env";
 import { Money } from "../../common/numbers";
@@ -71,7 +71,6 @@ export class SymbolService {
             "ETH/USDT",
             "BCH/USDT",
             "XRP/USDT",
-            "BUSD/BUSD",
             "DOGE/USDT",
             "ADA/USDT",
             "C98/USDT",
@@ -174,8 +173,8 @@ export class SymbolService {
         const symbolPairsToUpdate = [params.symbolPair];
         const appliedParams = Object.assign({}, DEFAULT_PRICE_DATA_PARAMETERS, params);
 
-        const { exchange, fetchDelay, fillMissing, from, to, res, symbolPair } = appliedParams;
-
+        let { exchange, fetchDelay, fillMissing, from, to, res, symbolPair } = appliedParams;
+        from = normalizePriceTime(res, from);
 
         const syncRangesForSymbols = new Map<string, PriceDataRange[]>();
 
@@ -189,7 +188,7 @@ export class SymbolService {
             const splits: PriceDataRange[] = [];
 
             // Only pull up the current interval.
-            const end = normalizePriceTime(res, to || new Date());
+            const end = to;//normalizePriceTime(res, to || new Date());
 
             const missingRanges = await sym.getMissingRanges(exchange, pair, res, from, end);
             if (missingRanges.length === 0) {
@@ -232,7 +231,15 @@ export class SymbolService {
             const { end, exchange, start, symbolPair } = op;
 
             log.debug(`[SYNC] UPDATE '${symbolPair}' from ${start.toISOString()} to ${end.toISOString()}`);
-            const update = await sym.updateSymbolPrices(exchange, symbolPair, res, start, end);
+
+            const params: PriceDataParameters = {
+                exchange,
+                symbolPair,
+                res,
+                from: start,
+                to: end,
+            };
+            const update = await sym.updateSymbolPrices(params);
 
             //log.debug(`[SYNC] Fetched ${update.length} prices for [${symbolPair}] at resolution ${res}`);
 
@@ -485,11 +492,12 @@ export class SymbolService {
     async queryPricesForRange(params: Partial<PriceDataParameters>): Promise<Price[]> {
         const appliedParams = Object.assign({}, DEFAULT_PRICE_DATA_PARAMETERS, params);
         const { exchange, to: end, fillMissing, res, from: start, symbolPair } = appliedParams;
+        const normalizedStart = normalizePriceTime(res, start);
         const [base, quote] = this.parseSymbolPair(symbolPair);
         const tf = getTimeframeForResolution(res);
 
 
-        // Passing the time resolution as a bound variable breaks the query, so we have to
+        // Passing the time resolution and offsets as bound variables breaks the query, so we have to
         // sanitize and inject it verbatim, unfortunately :/
         let safeRes: TimeResolution = null;
         if (!Object.values(TimeResolution).includes(res)) {
@@ -499,23 +507,31 @@ export class SymbolService {
             safeRes = res;
         }
 
+        if (!(normalizedStart instanceof Date)) {
+            throw new Error(`Start timestamp must be a proper date`);
+        }
+
+        const safeStart = normalizedStart.toISOString();
+
         // Note the lack of gap filling here - this is done on data ingestion.
+        // The CTE for time_range_buckets is to ensure contiguous ranges, even when there are
+        // gaps in the data.
         return query(queries.SYMBOLS_PRICES_QUERY, async db => {
             const pgDatePart = getPostgresDatePartForTimeRes(res);
             const query = `
                 WITH time_range AS (
-                    SELECT date_trunc(:pgDatePart, dd)::timestamp AS "generated"
+                    SELECT date_trunc(:pgDatePart, dd) AS "generated"
                     FROM generate_series
-                            ( :start::timestamp
-                            , :end::timestamp
+                            ( :start::timestamptz
+                            , :end::timestamptz
                             , :tf::interval) dd
                 ),
                 time_range_buckets AS (
-                    SELECT time_bucket('${safeRes}', generated) as generated
+                    SELECT time_bucket('${safeRes}', generated::timestamp, '${safeStart}'::timestamptz) as generated
                     FROM time_range
                 ),
                 existing_prices AS (
-                    SELECT time_bucket('${safeRes}', ts) as ts,
+                    SELECT time_bucket('${safeRes}', ts::timestamp, '${safeStart}'::timestamptz) as ts,
                         FIRST(open, ts) as open,
                         MIN(low) as low,
                         MAX(high) as high,
@@ -523,12 +539,13 @@ export class SymbolService {
                         SUM(volume) as volume
                     FROM prices
                     WHERE "exchangeId" = :exchange
-                    AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
-                    AND ("ts" >= :start AND "ts" < :end)
-                    GROUP BY time_bucket('${res}', ts)
+                    AND ("resId" = :safeRes)
+                    AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote)
+                    AND ("ts" >= :start AND "ts" <= :end)
+                    GROUP BY time_bucket('${safeRes}', ts::timestamp, '${safeStart}'::timestamptz)
                     ORDER BY ts ASC
                 )
-                SELECT time_bucket('${safeRes}', ts) as ts,
+                SELECT time_bucket('${safeRes}', ts::timestamp, '${safeStart}'::timestamptz)::timestamptz as ts,
                         :base as "baseSymbolId",
                         :quote as "quoteSymbolId",
                         :exchange as "exchangeId",
@@ -540,7 +557,7 @@ export class SymbolService {
                         SUM(volume) as volume
                 FROM existing_prices
                 JOIN time_range_buckets ON "ts" = "generated"
-                GROUP BY ts
+                GROUP BY time_bucket('${safeRes}', ts::timestamp, '${safeStart}'::timestamptz)::timestamptz
                 ORDER BY ts ASC
             `;
 
@@ -551,7 +568,7 @@ export class SymbolService {
                 safeRes,
                 base,
                 quote,
-                start,
+                start: normalizedStart,
                 end,
             };
 
@@ -568,14 +585,16 @@ export class SymbolService {
      * @param start 
      * @param end 
      */
-    async fetchPriceDataFromExchange(args: PriceDataParameters) {
+    async fetchPriceDataFromExchange(args: PriceDataParameters): Promise<[OHLCV[], Partial<Price>[]]> {
         const { exchange, from, res, symbolPair, to } = args;
+        const normalizedFrom = normalizePriceTime(res, from);
+
         const [base, quote] = this.parseSymbolPair(symbolPair);
-        const intervals = (to.getTime() - from.getTime()) / millisecondsPerResInterval(res);
+        const intervals = (to.getTime() - normalizedFrom.getTime()) / millisecondsPerResInterval(res);
         const limit = Math.min(Math.ceil(intervals), limits.MAX_API_PRICE_FETCH_OLHC_ENTRIES);
 
         console.info(`API request for candles `, args);
-        const data = await this._exchange.fetchOHLCV(symbolPair, res, from.getTime(), limit);
+        const data = await this._exchange.fetchOHLCV(symbolPair, res, normalizedFrom.getTime(), limit);
         const prices = data.map(d => {
             const [ms, openFloat, highFloat, lowFloat, closeFloat, volumeFloat] = d;
             const price: Partial<Price> = {
@@ -604,10 +623,12 @@ export class SymbolService {
      * @param from 
      * @param to 
      */
-    async updateSymbolPrices(exchange: string, symbolPair: string, res: TimeResolution, from: Date, to: Date = new Date(), sync = true): Promise<Price[]> {
+    async updateSymbolPrices(params: PriceDataParameters): Promise<Price[]> {
+        const { exchange, from, res, symbolPair, to } = params;
+        const normalizedFrom = normalizePriceTime(res, from);
         const [base, quote] = this.parseSymbolPair(symbolPair);
         const nowMs = this._exchange.milliseconds();
-        const startMs = from.getTime();
+        const startMs = normalizedFrom.getTime();
 
 
         if (startMs > nowMs) {
@@ -617,9 +638,7 @@ export class SymbolService {
         const intervalMs = millisecondsPerResInterval(res);
 
         // Figure out what data needs to be pulled.
-        const missingRanges = await this.getMissingRanges(exchange, symbolPair, res, from, to);
-
-        const params: ccxt.Params = {};
+        const missingRanges = await this.getMissingRanges(exchange, symbolPair, res, normalizedFrom, to);
         const rp = [];
         for (const r of missingRanges) {
 
@@ -633,7 +652,7 @@ export class SymbolService {
                     exchange,
                     symbolPair,
                     res,
-                    from,
+                    from: normalizedFrom,
                     to,
                 };
                 const [rawData, prices] = await this.fetchPriceDataFromExchange(args);
@@ -644,7 +663,7 @@ export class SymbolService {
                     log.error(`[SYNC] Error: ${err.detail}`);
                 }
                 else {
-                    log.error(`Error updating '${symbolPair}' for ${from}-${to} from ${exchange}`, err);
+                    log.error(`Error updating '${symbolPair}' for ${normalizedFrom}-${to} from ${exchange}`, err);
                 }
             }
         }
@@ -694,30 +713,46 @@ export class SymbolService {
         else if (!quote) {
             throw new Error(`Unknown quote symbol '${quoteName}'`);
         }
+        let safeRes: TimeResolution = null;
+        if (!Object.values(TimeResolution).includes(res)) {
+            throw new Error(`Unknown time resolution '${res}'`);
+        }
+        else {
+            safeRes = res;
+        }
 
-        // Pull ranges, filling with null values where no data exists
+        const normalizedStart = normalizePriceTime(res, start);
+
+        if (!(normalizedStart instanceof Date)) {
+            throw new Error(`Start timestamp must be a proper date`);
+        }
+
+        const safeStart = normalizedStart.toISOString();
+
+        // Pull prices, joining to a contiguous, bucketed range in order to produce the correct
+        // number of records, even when gaps are present.
         const pgDatePart = getPostgresDatePartForTimeRes(res);
         const tf = res;
         return query(queries.SYMBOLS_PRICES_RANGES, async db => {
             const q = `
                 WITH time_range AS (
-                    SELECT date_trunc(:pgDatePart, dd)::timestamp AS "generated"
+                    SELECT date_trunc(:pgDatePart, dd) AS "generated"
                     FROM generate_series
                             ( :start::timestamp 
                             , :end::timestamp
                             , :tf::interval) dd
                 ),
                 time_range_buckets AS (
-                    SELECT time_bucket(:tf, generated) as generated
+                    SELECT time_bucket('${safeRes}', generated::timestamp, '${safeStart}'::timestamptz) as generated
                     FROM time_range
                 ),
                 existing_prices AS (
-                    SELECT time_bucket(:tf, ts) as ts
+                    SELECT time_bucket('${safeRes}', ts::timestamp, '${safeStart}'::timestamptz) as ts
                     FROM prices
                     WHERE "exchangeId" = :exchange
                     AND ("resId" = :res)
                     AND ("baseSymbolId" = :base AND "quoteSymbolId" = :quote) 
-                    AND ("ts" >= :start AND "ts" < :end)
+                    AND ("ts" >= :start AND "ts" <= :end)
                     GROUP BY "ts"
                     ORDER BY "ts"
                 )
@@ -733,7 +768,7 @@ export class SymbolService {
                 res,
                 base: base.id,
                 quote: quote.id,
-                start,
+                start: normalizedStart,
                 end,
             };
 

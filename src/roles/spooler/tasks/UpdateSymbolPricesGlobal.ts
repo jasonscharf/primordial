@@ -2,6 +2,7 @@ import ccxt from "ccxt";
 import { DateTime } from "luxon";
 import env from "../../common-backend/env";
 import { PriceDataRange, UpdateSymbolsState } from "../../common-backend/services/SymbolService";
+import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { SpoolerTaskHandler } from "../../common-backend/system/SpoolerTaskHandler";
 import { TradeSymbol } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
@@ -32,7 +33,7 @@ export const updateSymbolPricesGlobal: SpoolerTaskHandler<UpdateSymbolsState> = 
         filteredMarkets: 0,
         numSymbols: 0,
         newSymbols: [],
-    }; 
+    };
 
     // NOTE: In the future, this will support multiple exchanges. Assume a loop below.
     const exchange = env.PRIMO_DEFAULT_EXCHANGE;
@@ -159,7 +160,14 @@ export const updateSymbolPricesGlobal: SpoolerTaskHandler<UpdateSymbolsState> = 
         const { end, exchange, start, symbolPair } = op;
 
         log.debug(`[SYNC] UPDATE '${symbolPair}' from ${start.toISOString()} to ${end.toISOString()}`);
-        const update = await sym.updateSymbolPrices(exchange, symbolPair, res, start, end);
+        const params: PriceDataParameters = {
+            exchange,
+            res,
+            symbolPair,
+            from: start,
+            to: end,
+        };
+        const update = await sym.updateSymbolPrices(params);
 
         //log.debug(`[SYNC] Fetched ${update.length} prices for [${symbolPair}] at resolution ${res}`);
     }

@@ -21,6 +21,16 @@ describe(SymbolService.name, () => {
     const exchange = env.PRIMO_DEFAULT_EXCHANGE;
     const symbolPair = TEST_DEFAULT_PAIR;
     const res = TimeResolution.ONE_MINUTE;
+    const defaultPriceFetchParams: Partial<PriceDataParameters> = {
+        exchange,
+        symbolPair,
+        fetchDelay: 500,
+        res: TimeResolution.ONE_HOUR,
+        from: from("2021-11-01T00:00:00"),
+        to: from("2021-11-10T00:00:00"),
+    };
+
+    Object.freeze(defaultPriceFetchParams);
 
     let ctx: TestDataCtx = null;
     let sym: SymbolService = new SymbolService();
@@ -168,6 +178,47 @@ describe(SymbolService.name, () => {
             // TEST
         });
 
+
+        it("correctly handles daylight savings boundaries", async () => {
+            // TEST
+        });
+
+
+        // Specifically construct non-UTC Dates
+        const start = DateTime.fromISO("2021-11-01T00:00:00-08:00").toJSDate();
+        const end = DateTime.fromISO("2021-11-02T00:00:00-08:00").toJSDate();
+
+        assert.equal(start.toString(), "Mon Nov 01 2021 08:00:00 GMT+0000 (Coordinated Universal Time)");
+        assert.equal(end.toString(), "Tue Nov 02 2021 08:00:00 GMT+0000 (Coordinated Universal Time)");
+
+        const params: Partial<PriceDataParameters> = {
+            ...defaultPriceFetchParams,
+            from: start,
+            to: end,
+            symbolPair: TEST_DEFAULT_PAIR,
+        };
+
+        // Boundary-aligned inputs
+        testExchangeData(TimeResolution.ONE_HOUR, start, end, from("2021-11-01T08:00:00.000Z"), from("2021-11-02T07:00:00.000Z"));
+        testExchangeData(TimeResolution.TWO_HOURS, start, end, from("2021-11-01T08:00:00.000Z"), from("2021-11-02T06:00:00.000Z"));
+        testExchangeData(TimeResolution.FOUR_HOURS, start, end, from("2021-11-01T08:00:00.000Z"), from("2021-11-02T04:00:00.000Z"));
+        testExchangeData(TimeResolution.SIX_HOURS, start, end, from("2021-11-01T06:00:00.000Z"), from("2021-11-02T06:00:00.000Z"));
+        testExchangeData(TimeResolution.TWELVE_HOURS, start, end, from("2021-11-01T00:00:00.000Z"), from("2021-11-02T00:00:00.000Z"));
+
+        // Offset "from" inputs
+        // Half-interval start offset
+        testExchangeData(TimeResolution.ONE_HOUR, from("2021-11-01T00:30:00-08:00"), end, from("2021-11-01T08:00:00.000Z"), from("2021-11-02T07:00:00.000Z"));
+        testExchangeData(TimeResolution.TWO_HOURS, from("2021-11-01T01:00:00-08:00"), end, from("2021-11-01T08:00:00.000Z"), from("2021-11-02T06:00:00.000Z"));
+        testExchangeData(TimeResolution.FOUR_HOURS, from("2021-11-01T02:00:00-08:00"), end, from("2021-11-01T08:00:00.000Z"), from("2021-11-02T04:00:00.000Z"));
+        testExchangeData(TimeResolution.SIX_HOURS, from("2021-11-01T03:00:00-08:00"), end, from("2021-11-01T06:00:00.000Z"), from("2021-11-02T06:00:00.000Z"));
+        testExchangeData(TimeResolution.TWELVE_HOURS, from("2021-11-01T03:00:00-08:00"), end, from("2021-11-01T00:00:00.000Z"), from("2021-11-02T00:00:00.000Z"));
+
+        // TODO: Test offset end dates
+
+        it("matches exchange prices when using TSDB bucketing", async () => {
+            // TODO: Ensure 5min data rolled up from TSDB matches 5min data from Binance
+        });
+
         it("produces data that matches exchange data at 1m", async (ctx) => {
 
             // Skipped to avoid spamming Binance
@@ -201,7 +252,7 @@ describe(SymbolService.name, () => {
 
         it("correctly rolls up 1m data to 15m", async (ctx) => {
 
-            // Skipped to avoid spamming Binance
+            // Not using rollups
             ctx.skip();
 
             const start = from("2021-09-12T00:00:00");
@@ -209,7 +260,7 @@ describe(SymbolService.name, () => {
             const args: PriceDataParameters = {
                 exchange: env.PRIMO_DEFAULT_EXCHANGE,
                 res: TimeResolution.ONE_MINUTE,
-                symbolPair: "BTC/BUSD",
+                symbolPair: TEST_DEFAULT_PAIR,
                 from: start,
                 to: end,
                 fetchDelay: 0,
@@ -219,10 +270,9 @@ describe(SymbolService.name, () => {
             args.res = TimeResolution.FIFTEEN_MINUTES;
             const [, rawPrices15m] = await sym.fetchPriceDataFromExchange(args);
 
-            const rolledUpPrices = await sym.queryPricesForRange(args);
+            const rolledUpPrices = await sym.updateSymbolPrices(args);
 
             assert.equal(rolledUpPrices.length, rawPrices15m.length);
-
 
             for (let i = 0; i < rolledUpPrices.length; ++i) {
                 const a = rolledUpPrices[i];
@@ -234,6 +284,28 @@ describe(SymbolService.name, () => {
                 assert.equal(a.volume.toString(), b.volume.toString());
             }
         });
+
+
+        function testExchangeData(res: TimeResolution, start: Date, end: Date, expectedStart: Date, expectedEnd: Date) {
+            it(`returns the correct results for '${res}' starting ${start.toISOString()} ending ${end.toISOString()}`, async () => {
+                let appliedParams = { ...params, res };
+                const [exchangePricesRaw, exchangePrices] = await sym.fetchPriceDataFromExchange(appliedParams as PriceDataParameters);
+                await sym.getSymbolPriceData(appliedParams);
+                const primoPrices = await sym.queryPricesForRange(appliedParams);
+
+                assert.deepEqual(primoPrices, exchangePrices);
+
+                const [exFirst] = exchangePrices;
+                const [primoFirst] = primoPrices;
+                const [exLast] = exchangePrices.slice(-1);
+                const [primoLast] = exchangePrices.slice(-1);
+
+                assert.equal(exFirst.ts.toISOString(), expectedStart.toISOString(), `first exchange price @ ${res}`);
+                assert.equal(primoFirst.ts.toISOString(), exFirst.ts.toISOString(), `first primo price @ ${res}`);
+                assert.equal(exLast.ts.toISOString(), expectedEnd.toISOString(), `last exchange price @ ${res}`);
+                assert.equal(primoLast.ts.toISOString(), exLast.ts.toISOString(), `last primo price @ ${res}`);
+            });
+        }
 
         function testRollupCounts(res: TimeResolution, numExpected: number, offsetToCheck: number) {
             it(`produces the correct number of rolled up candles ${res}`, async () => {
@@ -270,17 +342,13 @@ describe(SymbolService.name, () => {
             });
         }
 
+        // Not currently using rollups.
+        /*
         testRollupCounts(TimeResolution.ONE_MINUTE, 60, 1);
         testRollupCounts(TimeResolution.FIVE_MINUTES, 12, 5);
         testRollupCounts(TimeResolution.FIFTEEN_MINUTES, 4, 15);
         testRollupCounts(TimeResolution.ONE_HOUR, 1, 60);
-
-        // TEST ... rollup longer than 1 hour
-
-
-        it("matches exchange prices when using TSDB bucketing", async () => {
-            // TODO: Ensure 5min data rolled up from TSDB matches 5min data from Binance
-        });
+        */
     });
 
     describe(sym.updateSymbolPrices.name, () => {
@@ -421,6 +489,7 @@ describe(SymbolService.name, () => {
             2,
             from("2000-01-01T01:00:00"));
 
+        // TODO: Why did these not fail with the multi-hour bug
         // 4h: less-than
         testTimeRangeAtRes(
             TimeResolution.FOUR_HOURS,
@@ -638,5 +707,3 @@ describe(SymbolService.name, () => {
         });
     }
 });
-
-
