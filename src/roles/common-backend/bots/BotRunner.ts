@@ -213,6 +213,11 @@ export class BotRunner {
             const localInstance = botFactory.create(botType) as BotImplementation;
 
 
+            // HACK: FIX default date issue on "to" where it defaults to Nov 15
+            if (ctx.instance.modeId === "test-forward") {
+                from = new Date();
+            }
+
             // Grab the prices + a run-in window of N prices before trading begins.
             // This is to support indicators with moving windows
             const intervalMs = millisecondsPerResInterval(args.res);

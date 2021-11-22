@@ -109,11 +109,14 @@ export class ResultsController extends ControllerBase {
             throw new PrimoSerializableError(`Could not find bot results for '${instanceName}'`, 404);
         }
 
+        // For fwd/live instances, run up to the latest tick (update)
+        const to = instance.modeId === BotMode.BACK_TEST ? run.to : instance.updated;
+
         // Compute indicators and signals for the run
         const runner = new BotRunner();
         const args: BacktestRequest = {
             from: run.from,
-            to: run.to,
+            to,
             genome: instance.currentGenome,
             budget: [],
             maxWagerPct: 0,
