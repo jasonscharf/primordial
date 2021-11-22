@@ -320,7 +320,7 @@ export class StrategyService {
                         ABS(
                             SUM(
                                 (o2.gross - ABS(orders.gross)) - ((ABS(orders.gross) * orders.fees) + (ABS(o2.gross) * o2.fees))
-                            )  / orders.capital
+                            )  / LAST(orders.capital, orders.opened)
                         ), 0) 
                      AS "totalProfitPct",
 
@@ -356,8 +356,7 @@ export class StrategyService {
                     bot_instances.updated,
                     duration,
                     bot_instances."stateJson",
-                    bot_runs."id",
-                    orders.capital -- BUG: Need to rethink capital.
+                    bot_runs."id"
 
                 ORDER BY
                     "totalProfitPct" DESC,
@@ -381,27 +380,27 @@ export class StrategyService {
 
             const { latestPrice: latestPriceRaw, prevPrice: prevPriceRaw } = state || {};
 
-            const latestPrice = BigNum(latestPriceRaw ?? "0");
             const prevPrice = BigNum(prevPriceRaw ?? "0");
+            const latestPrice = BigNum(latestPriceRaw ?? "0");
 
-            // Using the loose definition of drawdown here (dd from last buy, not last peak)
-            const drawdown = !isSelling
-                ? 0
-                : latestPrice.minus(prevPrice).round(2) // TEMP USDT
-                ;
-
-            const drawdownPct = (!isSelling || latestPrice.eq("0"))
+            const drawdownPct = latestPrice.eq("0")
                 ? 0
                 : BigNum("1").minus(prevPrice.div(latestPrice)).round(2).toNumber()
                 ;
 
+            // NOTE: This logic is duplicated in ResultService::getBotDescriptors
+            // TODO: Review/fix. Fees. See bug around "capital" in ADO
+            desc.drawdown = desc.currentCapital.mul(drawdownPct + "");
+            //desc.totalGross = desc.totalGross.add(desc.drawdown);
+            desc.totalProfit = desc.totalProfit.add(desc.drawdown);
 
-            desc.drawdown = desc.currentCapital.mul(drawdownPct);
-            desc.drawdownPct = drawdownPct;
-            desc.totalProfit = desc.totalProfit.add(desc.currentCapital.mul(drawdownPct));
-
-            // TODO: FIX. There's a bug in ADO for this. We are assuming uniform capital here.
-            desc.totalProfitPct = desc.totalProfitPct + drawdownPct;
+            if (desc.currentCapital.toString() === "0") {
+                desc.totalProfitPct = BigNum("0");
+            }
+            else {
+                // TODO: FIX. There's a bug in ADO for this. We are assuming uniform capital here.
+                desc.totalProfitPct = (desc.totalProfit.div(desc.currentCapital).round(4).toNumber());
+            }
         });
 
         return descriptors;

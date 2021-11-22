@@ -94,11 +94,9 @@ export class ResultsService {
             drawdown = (trailingOrder.capital ?? capitalInvested).mul(drawdownPct + "");
             totalGross = totalGross.add(drawdown);
             totalProfit = totalProfit.add(drawdown);
-            totalProfitPct = totalProfitPct + drawdownPct;
         }
 
-        // TODO: Review
-        const totalGrossPct = (totalGross.div(capitalInvested).round(4).toNumber());
+        totalProfitPct = (totalProfit.div(capitalInvested).round(4).toNumber());
 
         // TODO: Fix
         const buyAndHoldGrossPct = BigNum("1").minus(firstClose.div(lastClose)).round(3).toNumber();
