@@ -32,6 +32,9 @@ export interface GenotypeForkResponse extends ApiForkGenotypeResponse {
     mutationSet: MutationSet;
 }
 
+/**
+ * Manages genomes/genotypes, forking, and mutations.
+ */
 export class GenotypeService {
 
     /**

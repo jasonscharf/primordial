@@ -8,6 +8,7 @@ import "./system/database.test";
 import "./system/numbers.test";
 import "./system/time.test";
 import "./system/CommandService.test";
+import "./system/InstanceService.test";
 import "./system/ResultsService.test";
 import "./system/SpoolerService.test";
 import "./system/TimeSeriesCache.test";
