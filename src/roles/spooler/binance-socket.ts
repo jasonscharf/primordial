@@ -47,7 +47,11 @@ export async function connectToBinanceWebSocket() {
     }
 
     console.log(`Connecting to Binance WebSocket...`, symbolPairs);
-    client.ws.candles(symbolPairs.map(s => s.replace(/[\/_]/, "")), res, c => handleCandle(c.symbol, res, c));
+
+    // Don't connect during tests
+    if (!env.isTest()) {
+        client.ws.candles(symbolPairs.map(s => s.replace(/[\/_]/, "")), res, c => handleCandle(c.symbol, res, c));
+    }
 }
 
 export function disconnectBinanceWebSocket() {

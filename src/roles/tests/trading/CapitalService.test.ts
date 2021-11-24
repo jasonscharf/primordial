@@ -5,7 +5,7 @@ import { CapitalService } from "../../common-backend/services/CapitalService";
 import { Money, randomString } from "../../common/utils";
 import { Order, OrderState } from "../../common/models/markets/Order";
 import { Strategy } from "../../common/models/system/Strategy";
-import { TestDataCtx, getTestData, addNewBotDefAndInstance, makeTestOrder, clearTestData, TEST_DEFAULT_BUDGET, TEST_DEFAULT_QUOTE, TEST_DEFAULT_BASE } from "../utils/test-data";
+import { TestDataCtx, getTestData, addNewBotDefAndInstance, makeTestOrder, clearTestData } from "../utils/test-data";
 import { User } from "../../common/models";
 import { Workspace } from "../../common/models/system/Workspace";
 import { assert, describe, before, env, it } from "../includes";
@@ -14,6 +14,7 @@ import { beforeEach } from "intern/lib/interfaces/tdd";
 import { query } from "../../common-backend/database/utils";
 import { orders, strats, sym, users } from "../../common-backend/includes";
 import { DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT, tables } from "../../common-backend/constants";
+import { TEST_DEFAULT_BUDGET, TEST_DEFAULT_QUOTE } from "../constants";
 
 
 describe(CapitalService.name, () => {

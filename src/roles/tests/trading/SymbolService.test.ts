@@ -5,7 +5,7 @@ import { Money, sleep } from "../../common/utils";
 import { Price } from "../../common/models/markets/Price";
 import { PriceDataParameters } from "../../common/models/system/PriceDataParameters";
 import { SymbolService, PriceDataRange, DEFAULT_PRICE_DATA_PARAMETERS } from "../../common-backend/services/SymbolService";
-import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator, TEST_DEFAULT_QUOTE, TEST_DEFAULT_BASE, TEST_DEFAULT_PAIR } from "../utils/test-data";
+import { TestDataCtx, getTestData, createTestPrice, fillRangeWithData, sineGenerator, fill, getMissingRanges, generateTestPrices, increasingPriceGenerator } from "../utils/test-data";
 import { TradeSymbol, TradeSymbolType } from "../../common/models/markets/TradeSymbol";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { assert, describe, before, env, it } from "../includes";
@@ -13,6 +13,7 @@ import { assertRejects } from "../utils/async";
 import { db, dbm, tables, us } from "../../common-backend/includes";
 import { beforeEach } from "intern/lib/interfaces/tdd";
 import { from, millisecondsPerResInterval, normalizePriceTime } from "../../common/utils/time";
+import { TEST_DEFAULT_BASE, TEST_DEFAULT_PAIR, TEST_DEFAULT_QUOTE } from "../constants";
 
 
 describe(SymbolService.name, () => {

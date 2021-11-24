@@ -12,24 +12,15 @@ import { GenotypeForkArgs } from "../../common-backend/services/GenotypeService"
 import { MarketDataSpecimen } from "./data-specimens";
 import { Mutation } from "../../common/models/genetics/Mutation";
 import { MutationSet } from "../../common/models/genetics/MutationSet";
-import { MutationSetType } from "../../common/models/genetics/MutationSetType";
+import { TestingRunArgs } from "./types";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { buildBacktestingContext } from "../../common-backend/bots/BotContext";
 import { capital, genos, strats } from "../../common-backend/includes";
 import { randomName } from "../../common-backend/utils/names";
 import { DEFAULT_ALLOCATION_MAX_WAGER } from "../../common-backend/constants";
-import { TEST_DEFAULT_PAIR, getTestData, TEST_DEFAULT_BUDGET } from "./test-data";
+import { getTestData } from "./test-data";
 import * as specimens from "./data-specimens";
+import { DEFAULT_TEST_BACKTEST_ARGS, TEST_DEFAULT_PAIR } from "../constants";
 
-export interface TestingRunArgs {
-    genotype: string,
-    budget?: string,
-}
-
-export const DEFAULT_TEST_BACKTEST_ARGS: TestingRunArgs = {
-    genotype: "RSI-L=45|RSI-H=46",
-    budget: TEST_DEFAULT_BUDGET,
-};
 
 
 export async function backtest(specimen: MarketDataSpecimen, args: TestingRunArgs): Promise<BotRunReport> {
@@ -140,8 +131,6 @@ export async function testFork(args: TestForkArgs): Promise<TestForkResult> {
 
     return result;
 }
-
-
 
 const TEST_DEFAULT_BACK_TEST_SPECIMEN = specimens.random.btcUsdt1HourOctober2021;
 const TEST_DEFAULT_BACK_TEST_GENOTYPE = "HA";

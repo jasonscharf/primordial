@@ -31,10 +31,10 @@ import { measure } from "../../common/utils/perf";
 
 
 
-export const TEST_DEFAULT_NEW_BOT_DEF_PROPS: Partial<BotDefinition> = {
+export const DEFAULT_NEW_BOT_DEF_PROPS: Partial<BotDefinition> = {
 };
 
-export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
+export const DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
     runState: RunState.NEW,
     modeId: BotMode.BACK_TEST,
     exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
@@ -420,8 +420,8 @@ export class BotRunner {
             resId: res,
         };
 
-        const appliedDefProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_DEF_PROPS, defProps);
-        const appliedInstanceProps = Object.assign({}, TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS, instanceProps);
+        const appliedDefProps = Object.assign({}, DEFAULT_NEW_BOT_DEF_PROPS, defProps);
+        const appliedInstanceProps = Object.assign({}, DEFAULT_NEW_BOT_INSTANCE_PROPS, instanceProps);
 
         /*
         if (appliedDefProps.normalizedGenome) {

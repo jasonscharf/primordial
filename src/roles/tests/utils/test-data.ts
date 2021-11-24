@@ -20,12 +20,7 @@ import { randomName } from "../../common-backend/utils/names";
 import { randomString } from "../../common/utils";
 import { version } from "../../common/version";
 import { MarketDataSpecimen } from "./data-specimens";
-
-
-export const TEST_DEFAULT_BASE = "BTC";
-export const TEST_DEFAULT_QUOTE = "USDT";
-export const TEST_DEFAULT_PAIR = `${TEST_DEFAULT_BASE}/${TEST_DEFAULT_QUOTE}`;
-export const TEST_DEFAULT_BUDGET = `10000 ${TEST_DEFAULT_QUOTE}`;
+import { TEST_DEFAULT_BASE, TEST_DEFAULT_BUDGET, TEST_DEFAULT_NEW_BOT_DEF_PROPS, TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS, TEST_DEFAULT_PAIR, TEST_DEFAULT_QUOTE } from "../constants";
 
 
 export interface TestDataCtx {
@@ -35,21 +30,6 @@ export interface TestDataCtx {
     testSymbol1: TradeSymbol;
     testSymbol2: TradeSymbol;
 }
-
-export const TEST_DEFAULT_NEW_BOT_DEF_PROPS: Partial<BotDefinition> = {
-    description: "test",
-    genome: "BBBBO",
-    symbols: "ETH/BTC",
-    displayName: "test",
-    name: "test",
-};
-
-export const TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS: Partial<BotInstance> = {
-    runState: RunState.NEW,
-    modeId: BotMode.BACK_TEST,
-    exchangeId: env.PRIMO_DEFAULT_EXCHANGE,
-    currentGenome: "BBBBO",
-};
 
 
 export function makeTestOrder(props?: Partial<Order>) {
@@ -71,6 +51,9 @@ export function makeTestOrder(props?: Partial<Order>) {
     return Object.assign({}, DEFAULTS, props);
 }
 
+/**
+ * @deprecated
+ */
 export async function addNewBotDefAndInstance(budget = TEST_DEFAULT_BUDGET, start = false, defProps = TEST_DEFAULT_NEW_BOT_DEF_PROPS, instanceProps = TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS, trx: Knex.Transaction = null) {
     trx = trx || await db.transaction();
     try {
@@ -102,7 +85,7 @@ export async function addNewBotDefAndInstance(budget = TEST_DEFAULT_BUDGET, star
             appliedDefProps.workspaceId = workspaceId;
         }
 
-        const ledger = await capital.createAllocationForBot(strat.id, TEST_DEFAULT_BUDGET);
+        const ledger = await capital.createAllocationForBot(strat.id, budget);
         const { alloc } = ledger;
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
         const instance = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
