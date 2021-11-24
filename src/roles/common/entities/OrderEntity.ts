@@ -41,6 +41,7 @@ export class OrderEntity extends MutableEntity implements Order {
             this.typeId = row[prefix + "typeId"];
             this.opened = from(row[prefix + "opened"]);
             this.closed = from(row[prefix + "closed"]);
+            this.capital = BigNum(row[prefix + "capital"] ?? "0");
             this.quantity = BigNum(row[prefix + "quantity"] ?? "0");
             this.price = BigNum(row[prefix + "price"] ?? "0");
             this.gross = BigNum(row[prefix + "gross"] ?? "0");
@@ -65,6 +66,7 @@ export class OrderEntity extends MutableEntity implements Order {
             "typeId",
             "opened",
             "closed",
+            "capital",
             "quantity",
             "price",
             "gross",

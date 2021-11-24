@@ -25,8 +25,8 @@ export function AdvancedOrderTableLarge(props?: AdvancedOrderTableProps) {
     const maybeOrders = (orders.length === 0)
         ? (
             <TableRow>
-                <TableCell colSpan={7}>
-                <h1>No orders</h1>
+                <TableCell colSpan={6}>
+                <b>No orders yet</b>
                 </TableCell>
             </TableRow>
         )

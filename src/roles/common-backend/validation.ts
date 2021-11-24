@@ -38,18 +38,18 @@ export function orderDir(orderDirRaw: string | null, defaultOrderDir: QueryOrder
 }
 
 export function workspaceId(workspaceId: string) {
-    if (isNullOrUndefined(workspaceId) || (typeof workspaceId !== "string") || workspaceId.length < 32) {
+    if (isNullOrUndefined(workspaceId)) {
         throw new PrimoValidationError(`Missing or malformed workspace reference`, "workspaceId");
     }
-
+    isUuid(workspaceId, "workspaceId");
     return isUuid(workspaceId);
 }
 
 export function strategyId(strategyId: string): string {
-    if (isNullOrUndefined(strategyId) || (typeof strategyId !== "string") || strategyId.length < 32) {
+    if (isNullOrUndefined(strategyId)) {
         throw new PrimoValidationError(`Missing or malformed workspace reference`, "strategyId");
     }
-
+    isUuid(strategyId, "strategyId");
     return isUuid(strategyId);
 }
 

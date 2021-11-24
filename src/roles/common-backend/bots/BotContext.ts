@@ -1,5 +1,6 @@
 import { Knex } from "knex";
 import env from "../env";
+import { v4 as uuid } from "uuid";
 import { AllocationItem } from "../../common/models/capital/AllocationItem";
 import { AllocationTransaction } from "../../common/models/capital/AllocationTransaction";
 import { AllocationTransactionType } from "../../common/models/capital/AllocationTransactionType";
@@ -143,6 +144,8 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
             botRunId,
             stateId: OrderState.OPEN,
             opened: tick.ts,
+            created: tick.ts,
+            updated: tick.ts,
         };
 
         // Dummy, not-in-the-DB item shunt for BT
@@ -154,7 +157,7 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
 
         const { amount, quantity, stopLossPct, targetPrice } = computeOrderProps(ctx as BotContext<GeneticBotState>, genome, tick, order, item as AllocationItem, buy);
 
-        order.id = `FAKE.${randomString(16)}`;
+        order.id = uuid();
 
         const newFsmState = buy
             ? GeneticBotFsmState.WAITING_FOR_BUY_ORDER_CONF
@@ -178,15 +181,16 @@ export async function buildBacktestingContext(def: BotDefinition, record: BotIns
 
             // Link the sell back to the previous buy
             order.relatedOrderId = state.prevOrderId;
-
-            // TODO: Should really look up prev order (in-mem) and use that capital.
-            order.capital = BigNum("0");
+            order.capital = ctx.backtestingOrders[ctx.backtestingOrders.length - 1].capital;
 
             state.prevQuantity = null;
-            state.prevPrice = null;
             state.prevOrderId = null;
             state.stopLossPrice = null;
             state.targetPrice = null;
+
+            // We leave prevPrice around in backtest so the last "prevPrice" is held in the state
+            // and therefore shows up correctly, e.g. on the dash
+            //state.prevPrice = null;
         }
 
         const msg: OrderStatusUpdateMessage = {
@@ -270,8 +274,10 @@ export async function buildBotContext(def: BotDefinition, record: BotInstance, r
             }
             else {
                 // Link the sell back to previous buy
-                order.capital = BigNum("0");
                 order.relatedOrderId = state.prevOrderId;
+
+                // TODO: FIX: This is WRONG and temporary. The notion of "capital" needs to be re-thought
+                order.capital = amount.abs();
             }
 
             if (!backtestArgs) {
@@ -430,6 +436,10 @@ export function computeOrderProps(ctx: BotContext<GeneticBotState>, genome: Geno
     //  the fills and/or average price (or however fills are calculated per exchange).
     // This works for backtesting, but properly handling fees in live trading is another (scheduled) topic.
     order.fees = fees;
+
+    // Just using "maxBuyingPower" here because it's cleaner than (1000 instead of 999.99999999999..etc)
+    order.capital = maxBuyingPower;
+
     order.botRunId = ctx.runId;
     order.quantity = quantity;
     order.price = purchasePrice;
