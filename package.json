@@ -45,6 +45,7 @@
     "cli:debug:bot": "yarn -s cli:debug -- bot create --name foobaz --symbols ETH/BTC --genome \"RSIL=20\"",
     "primo": "docker exec -it primo_spooler_1 primo",
     "restart": "yarn dc restart",
+    "retest": "docker restart primo_tests_debug_1 && docker attach primo_tests_debug_1",
     "start": "yarn dc start",
     "stop": "yarn dc stop",
     "tail": "yarn logs -f",

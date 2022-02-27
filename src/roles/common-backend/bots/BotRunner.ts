@@ -348,8 +348,6 @@ export class BotRunner {
             to = DateTime.fromISO(to as string).toJSDate();
         }
 
-        const tr: Partial<BotRunReport> = {
-        };
 
         let instanceId: string = null;
         let run: BotRun = null;
@@ -367,51 +365,6 @@ export class BotRunner {
             genome: genomeStr,
             name,
         };
-
-
-        // Note: Properties here being assigned in specific order for presentaiton
-        tr.instanceId = "";
-        tr.runId = "";
-        tr.name = ""
-        tr.symbols = args.symbols;
-        tr.base = base;
-        tr.quote = quote;
-        tr.genome = genomeStr;
-        tr.from = from;
-        tr.to = to;
-        tr.finish = null;
-        tr.length = "";
-        tr.timeRes = null;
-        tr.numCandles = 0;
-        tr.firstOpen = null;
-        tr.firstClose = null;
-        tr.lastClose = null;
-        tr.capital = capitalInvested;
-        tr.balance = null;
-        tr.totalGross = null;
-        tr.totalGrossPct = 0;
-        tr.totalFees = Money("0");
-        tr.totalProfit = Money("0");
-        tr.totalProfitPct = 0;
-        tr.buyAndHoldGrossPct = 0;
-        tr.avgProfitPerDay = Money("0");
-        tr.avgProfitPctPerDay = 0;
-        tr.estProfitPerYearCompounded = Money("0");
-        tr.numOrders = 0;
-        tr.numTrades = 0;
-        tr.totalWins = 0;
-        tr.totalLosses = 0;
-
-        tr.avgWinRate = 0;
-        tr.sharpe = 0;
-        tr.sortino = 0;
-        tr.durationMs = 0;
-        tr.error = null;
-        tr.missingRanges = [];
-        tr.trailingOrder = null;
-        tr.indicators = {};
-        //tr.signals = [];
-        tr.orders = [];
 
         const instanceProps: Partial<BotInstance> = {
             build: version.full,
@@ -450,6 +403,8 @@ export class BotRunner {
         appliedDefProps.genome = genomeStr;
 
 
+        const report = results.createEmptyRunReport();
+
         const [budgetItem] = budget;
         const allocStr = `${budgetItem.quantity} ${budgetItem.symbol.id}`;
 
@@ -458,7 +413,7 @@ export class BotRunner {
 
         // Note: Only 1 item per allocation currently supported.
         capitalInvested = items[0].amount.mul(items[0].maxWagerPct.toString());
-        tr.capital = capitalInvested;
+        report.capital = capitalInvested;
 
         const def = await strats.addNewBotDefinition(strat.id, appliedDefProps, trx);
         const instanceRecord = await strats.createNewInstanceFromDef(def, appliedInstanceProps.resId, name, alloc.id, false, trx);
@@ -466,17 +421,17 @@ export class BotRunner {
         let allPrices: Price[] = [];
 
         const maxIntervals = genome.getGene<number>(names.GENETICS_C_TIME, names.GENETICS_C_TIME_G_MAX_INTERVALS).value;
-        tr.window = maxIntervals;
+        report.window = maxIntervals;
 
         const runPromise: Promise<BotRunReport> = new Promise(async (res, rej) => {
             try {
                 run = backtestRun;
-                tr.instanceId = instanceRecord.id;
-                tr.runId = run.id;
-                tr.name = instanceRecord.name;
+                report.instanceId = instanceRecord.id;
+                report.runId = run.id;
+                report.name = instanceRecord.name;
 
                 instanceId = instanceRecord.id;
-                tr.timeRes = instanceRecord.resId;
+                report.timeRes = instanceRecord.resId;
 
                 if (!ctx) {
                     ctx = await buildBacktestingContext(def, instanceRecord, run);
@@ -554,9 +509,10 @@ export class BotRunner {
                 const endLoadPrices = Date.now();
                 const loadPricesDuration = endLoadPrices - beginLoadPrices;
 
-                // TODO: PERF
-                tr.numCandles = allPrices.length - maxIntervals;
-                tr.missingRanges = missingRanges;
+                report.from = run.from;
+                report.to = run.to;
+                report.numCandles = allPrices.length - maxIntervals;
+                report.missingRanges = missingRanges;
 
                 // TODO: update prices earlier; perf metrics
 
@@ -589,11 +545,11 @@ export class BotRunner {
                     await strats.stopBotInstance(instanceId, null, trx);
                 }
 
-                return tr as BotRunReport;
+                return report as BotRunReport;
             }
             catch (err) {
                 log.error(`Error running backtest for '${name}'`, err);
-                tr.error = err;
+                report.error = err;
 
                 if (trx) {
                     await trx.rollback();
@@ -611,58 +567,42 @@ export class BotRunner {
                     orders = ctx.backtestingOrders as Order[];
                 }
 
-                // Extract trade pairs
-                const pairs = new Map<Order, Order>();
-                const ordersById = new Map<string, Order>();
-                const buys = orders.filter(o => o.typeId === (OrderType.LIMIT_BUY || o.typeId === OrderType.MARKET_BUY) && !o.relatedOrderId)
-                buys.forEach(buy => {
-                    pairs.set(buy, null);
-                    ordersById.set(buy.id, buy);
-                });
-
-                // Note: Not using typeId here due to a temporary bug where all orders are marked as buys
-                const sells = orders.filter(o => !isNullOrUndefined(o.relatedOrderId));
-                sells.forEach(sell => {
-                    const buyForSell = ordersById.get(sell.relatedOrderId);
-                    pairs.set(buyForSell, sell);
-                });
-
-                // TODO: Review... this should go away and the ending drawdown should be used.
-                // Disregard the last order if it's an open buy
+                // Record the trailing order for convenience
                 if (orders.length > 0 && orders[orders.length - 1].typeId === OrderType.LIMIT_BUY && !orders[orders.length - 1].relatedOrderId) {
-                    const [trailingOrder] = orders.splice(orders.length - 1);
-                    tr.trailingOrder = trailingOrder;
+                    const [trailingOrder] = orders.slice(orders.length - 1);
+                    report.trailingOrder = trailingOrder;
                 }
 
-                tr.orders = orders;
+                report.orders = orders;
 
                 const firstOpen = allPrices.length > 0 ? allPrices[maxIntervals].open : Money("0");
                 const firstClose = allPrices.length > 0 ? allPrices[maxIntervals].close : Money("0");
                 const lastClose = allPrices.length > 0 ? allPrices[allPrices.length - 1].close : Money("0");
 
-                tr.firstOpen = firstOpen;
-                tr.firstClose = firstClose;
-                tr.lastClose = lastClose;
+                report.firstOpen = firstOpen;
+                report.firstClose = firstClose;
+                report.lastClose = lastClose;
 
                 // Compute the trading results based on the orders and our report so far
-                const tradingResults = await results.computeTradingResults(instanceRecord, pairs, tr);
+                const pairs = results.mapTradePairs(orders);
+                const tradingResults = await results.computeTradingResults(instanceRecord, pairs, report);
 
                 // Mixin computed results
-                Object.assign(tr, tradingResults);
+                Object.assign(report, tradingResults);
 
                 const finish = Date.now();
                 const duration = finish - start;
-                tr.durationMs = duration;
-                tr.finish = new Date(finish);
+                report.durationMs = duration;
+                report.finish = new Date(finish);
                 log.info(`Done testing '${name}' in ${duration}ms`);
 
                 try {
-                    await results.addResultsForBotRun(tr.runId, tr as BotRunReport);
+                    await results.addResultsForBotRun(report.runId, report as BotRunReport);
                 }
                 catch (err) {
                     log.error(`An error occurred while saving test results`, err);
                 }
-                res(tr as BotRunReport);
+                res(report as BotRunReport);
             }
         });
 

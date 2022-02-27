@@ -19,7 +19,7 @@ export class UserService {
      * Returns the system user.
      * @returns
      */
-    async getSystemUser(knownSystemUserId: string = null): Promise<User> {
+    async getSystemUser(knownSystemUserId: string = null, trx: Knex.Transaction = null): Promise<User> {
         const designatedId = knownSystemUserId || env.PRIMO_SYSTEM_USER_ID;
         if (!isNullOrUndefined(designatedId)) {
             return query(queries.SYSTEM_GET_SYSTEM_USER, async db => {
@@ -28,7 +28,7 @@ export class UserService {
                     .limit(1)
                     ;
                 return UserEntity.fromRow(row);
-            });
+            }, trx);
         }
         else {
             if (env.isStagingOrProduction()) {
@@ -42,7 +42,7 @@ export class UserService {
                     .limit(1)
                     ;
                 return UserEntity.fromRow(row);
-            });
+            }, trx);
         }
     }
 

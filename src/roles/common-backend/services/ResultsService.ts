@@ -1,17 +1,17 @@
 import env from "../env";
 import { Knex } from "knex";
-import { BigNum } from "../utils";
+import { BigNum, isNullOrUndefined } from "../utils";
 import { BotInstance } from "../../common/models/bots/BotInstance";
 import { BotInstanceEntity } from "../../common/entities/BotInstanceEntity";
 import { BotResults } from "../../common/models/bots/BotResults";
 import { BotResultsEntity } from "../../common/entities/BotResultsEntity";
 import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { GeneticBotState } from "../bots/GeneticBot";
-import { Order } from "../../common/models/markets/Order";
+import { Order, OrderType } from "../../common/models/markets/Order";
 import { OrderEntity } from "../../common/entities/OrderEntity";
 import { Price } from "../../common/models/markets/Price";
 import { TimeResolution } from "../../common/models/markets/TimeResolution";
-import { capital, strats } from "../includes";
+import { capital, db, strats } from "../includes";
 import { human, millisecondsPerResInterval } from "../../common/utils/time";
 import { queries, tables } from "../constants";
 import { query, ref, refq } from "../database/utils";
@@ -40,6 +40,7 @@ export class ResultsService {
         const flattened: Order[] = [];
         let tradesWon = 0;
         let tradesLost = 0;
+        let totalCapital = BigNum("0");
         let totalGross = BigNum("0");
         let totalProfit = BigNum("0");
         let totalProfitPct = 0;
@@ -65,8 +66,9 @@ export class ResultsService {
             const tradeProfit = tradeGross.minus(tradeFees);
             totalFees = totalFees.add(tradeFees);
             totalProfit = totalProfit.add(tradeProfit);
-            totalProfitPct = totalProfitPct + (tradeProfit.div(buy.capital ?? "1000").round(11).toNumber()); // TEMP - remove 1000
+            totalProfitPct = totalProfitPct + (tradeProfit.div(buy.capital).round(11).toNumber()); // TEMP - remove 1000
             totalGross = totalGross.add(tradeGross);
+            totalCapital = totalCapital.add(buy.capital ?? buy.gross);
 
             if (tradeProfit.gte("0")) {
                 ++tradesWon;
@@ -91,18 +93,23 @@ export class ResultsService {
                 ;
 
             // TODO: Review/fix. Fees. See bug around "capital" in ADO
-            drawdown = (trailingOrder.capital ?? capitalInvested).mul(drawdownPct + "");
+            drawdown = (trailingOrder.capital).mul(drawdownPct + "");
             totalGross = totalGross.add(drawdown);
             totalProfit = totalProfit.add(drawdown);
         }
 
-        totalProfitPct = (totalProfit.div(capitalInvested).round(4).toNumber());
+        if (totalProfit.eq("0") || totalCapital.eq("0")) {
+            totalProfitPct = 0;
+        }
+        else {
+            totalProfitPct = (totalProfit.div(totalCapital).round(4).toNumber());
+        }
 
         // TODO: Fix
         const buyAndHoldGrossPct = BigNum("1").minus(firstClose.div(lastClose)).round(3).toNumber();
 
         // TODO: Factor in drawdown of trailing
-        const balance = capitalInvested.plus(totalProfit);
+        const balance = totalProfit;//capitalInvested.plus(totalProfit);
 
         const numOrders = flattened.length;
         const numTrades = pairs.size;
@@ -116,11 +123,6 @@ export class ResultsService {
         const rate = avgProfitPctPerDay * 365;
         const periods = 52;
         const roundTo = /USD/.test(quote) ? 2 : 4;
-        const estProfitPerYearCompounded = numOrders < 2
-            ? 0
-            : capital.calcCompoundingInterest(capitalInvested, rate, periods, 1).sub(capitalInvested).round(roundTo).toNumber()
-            ;
-
         const result: Partial<BotRunReport> = {
             balance,
             avgProfitPerDay,
@@ -373,7 +375,10 @@ export class ResultsService {
      * @param results 
      * @returns 
      */
-    async addResultsForBotRun(botRunId: string, results: BotRunReport): Promise<BotRunReport> {
+    async addResultsForBotRun(botRunId: string, results: BotRunReport, trx: Knex.Transaction = null): Promise<BotRunReport> {
+        const newTransaction = !trx;
+        trx = trx || await db.transaction();
+
         const { from, instanceId, to, symbols, runId } = results;
         if (runId !== botRunId) {
             throw new Error(`Mismatched bot run IDs`);
@@ -395,11 +400,93 @@ export class ResultsService {
             const [row] = <BotResults[]>await db(tables.Results)
                 .insert(props)
                 .returning("*")
+                .transacting(trx)
                 ;
 
             return BotResultsEntity.fromRow(row);
         });
 
-        return null;
+        if (newTransaction) {
+            await trx.commit();
+        }
+
+        return record.results;
+    }
+
+    /**
+     * Maps related orders into trade pairs, associating buys with sells.
+     * Buys with no matching sells yield nothing from the map.
+     * @param orders 
+     */
+    mapTradePairs(orders: Order[]): Map<Order, Order> {
+        // Extract trade pairs
+        const pairs = new Map<Order, Order>();
+        const ordersById = new Map<string, Order>();
+        const buys = orders.filter(o => o.typeId === (OrderType.LIMIT_BUY || o.typeId === OrderType.MARKET_BUY) && !o.relatedOrderId)
+        buys.forEach(buy => {
+            pairs.set(buy, null);
+            ordersById.set(buy.id, buy);
+        });
+
+        // Note: Not using typeId here due to a temporary bug where all orders are marked as buys
+        const sells = orders.filter(o => !isNullOrUndefined(o.relatedOrderId));
+        sells.forEach(sell => {
+            const buyForSell = ordersById.get(sell.relatedOrderId);
+            pairs.set(buyForSell, sell);
+        });
+
+        return pairs;
+    }
+
+    /**
+     * Creates an empty report stub for other facilities to populate.
+     * @returns 
+     */
+    createEmptyRunReport(): Partial<BotRunReport> {
+        const tr: Partial<BotRunReport> = {
+            instanceId: "",
+            runId: "",
+            name: "",
+            symbols: null,
+            base: null,
+            quote: null,
+            genome: null,
+            from: null,
+            to: null,
+            finish: null,
+            length: "",
+            timeRes: null,
+            numCandles: 0,
+            firstOpen: null,
+            firstClose: null,
+            lastClose: null,
+            capital: null,
+            balance: null,
+            totalGross: null,
+            totalGrossPct: 0,
+            totalFees: BigNum("0"),
+            totalProfit: BigNum("0"),
+            totalProfitPct: 0,
+            buyAndHoldGrossPct: 0,
+            avgProfitPerDay: BigNum("0"),
+            avgProfitPctPerDay: 0,
+            estProfitPerYearCompounded: BigNum("0"),
+            numOrders: 0,
+            numTrades: 0,
+            totalWins: 0,
+            totalLosses: 0,
+            avgWinRate: 0,
+            sharpe: 0,
+            sortino: 0,
+            durationMs: 0,
+            error: null,
+            missingRanges: [],
+            trailingOrder: null,
+            indicators: {},
+            signals: [],
+            orders: [],
+        };
+
+        return tr;
     }
 }

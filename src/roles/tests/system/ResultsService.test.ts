@@ -56,6 +56,9 @@ describe(ResultsService.name, () => {
     });
 
     describe(results.computeTradingResults.name, () => {
+        it("returns zero for summary fields when no orders exist", () => {
+            // TEST
+        });
         it("correctly summates results", async () => {
             // TEST
         });

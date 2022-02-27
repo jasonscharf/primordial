@@ -14,8 +14,6 @@ import { GeneticBotFsmState } from "../../common/models/bots/BotState";
 import { GeneticBotState } from "../bots/GeneticBot";
 import { GenotypeInstanceDescriptor } from "../../common/models/bots/GenotypeInstanceDescriptor";
 import { GenotypeInstanceDescriptorEntity } from "../../common/entities/GenotypeInstanceDescriptorEntity";
-import { Mutation } from "../../common/models/genetics/Mutation";
-import { MutationEntity } from "../../common/entities/MutationEntity";
 import { OrderEntity } from "../../common/entities/OrderEntity";
 import { PrimoUnknownName, PrimoValidationError } from "../../common/errors/errors";
 import { RunState } from "../../common/models/system/RunState";
@@ -24,7 +22,7 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { Workspace } from "../../common/models/system/Workspace";
 import { WorkspaceEntity } from "../../common/entities/WorkspaceEntity";
 import { botIdentifier } from "../bots/BotContext";
-import { constants, db, log } from "../includes";
+import { constants, db, log, strats } from "../includes";
 import { defaults, queries, tables } from "../constants";
 import { query, ref } from "../database/utils";
 import { shortDateAndTime, shortTime } from "../../common/utils/time";
@@ -296,7 +294,7 @@ export class StrategyService {
                     bot_instances."currentGenome" as genome,
                     bot_instances.created AS created,
                     bot_instances.updated AS updated,
-                    (NOW() - bot_runs.from) AS duration,
+                    (bot_instances.updated - bot_runs.from) AS duration,
                     bot_instances."stateJson",
                     bot_runs.id AS "runId",
                     bot_runs.from AS "from",
@@ -316,25 +314,23 @@ export class StrategyService {
                         , 4)
                     , 0) AS "totalProfit",
 
-                    COALESCE(
-                        ABS(
+                    -- NOTE: The "1000" here is just a temporary hack
+              
                             SUM(
                                 (o2.gross - ABS(orders.gross)) - ((ABS(orders.gross) * orders.fees) + (ABS(o2.gross) * o2.fees))
-                            )  / LAST(orders.capital, orders.opened)
-                        ), 0) 
+                            ) / COALESCE(NULLIF(LAST(orders.capital, orders.opened), 0), 1000)
+            
                      AS "totalProfitPct",
 
-                    COALESCE(
-                        LAST(orders.capital, orders.opened), 0
-                    ) AS "currentCapital",
+                    COALESCE(NULLIF(LAST(orders.capital, orders.opened), 0), 1000) AS "currentCapital",
 
-                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 3600))::int AS "durationHours",
-                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.created - bot_instances.updated)) / 86400))::int AS "durationDays"
+                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.updated - bot_instances.created)) / 3600))::int AS "durationHours",
+                    ROUND(ABS(EXTRACT(epoch FROM (bot_instances.updated - bot_instances.created)) / 86400))::int AS "durationDays"
                 
                 FROM bot_instances
                     JOIN bot_runs ON bot_runs."instanceId" = bot_instances.id
-                    LEFT JOIN orders ON (orders."botRunId" = bot_runs.id AND orders."stateId" = 'closed')
-                    LEFT JOIN orders o2 ON o2."relatedOrderId" = orders.id
+                    LEFT JOIN orders ON (orders."botRunId" = bot_runs.id AND orders."stateId" = 'closed' AND orders."typeId" = 'buy.limit')
+                    LEFT JOIN orders o2 ON (o2."relatedOrderId" = orders.id AND o2."typeId" = 'sell.limit')
 
                 WHERE
                     bot_instances."modeId" = :status AND
@@ -383,7 +379,7 @@ export class StrategyService {
             const prevPrice = BigNum(prevPriceRaw ?? "0");
             const latestPrice = BigNum(latestPriceRaw ?? "0");
 
-            const drawdownPct = latestPrice.eq("0")
+            const drawdownPct = (!isSelling || latestPrice.eq("0"))
                 ? 0
                 : BigNum("1").minus(prevPrice.div(latestPrice)).round(2).toNumber()
                 ;
@@ -619,8 +615,6 @@ export class StrategyService {
         // ... NOTE: As with stopped state, can still receive order updates events.
     }
 
-
-
     /**
      * Returns the bot that produced a particular order.
      * @param orderId 
@@ -713,6 +707,24 @@ export class StrategyService {
         }, trx);
 
         return updatedBotInstance;
+    }
+
+    /**
+     * Adds a new bot run record.
+     * @param run 
+     * @param trx 
+     */
+    async addNewBotRun(run: Partial<BotRun>, trx: Knex.Transaction = null): Promise<BotRun> {
+        const newRun = await query(queries.BOTS_RUNS_ADD, async db => {
+            const [row] = <BotRun[]>await db(tables.BotRuns)
+                .insert(run)
+                .returning("*")
+                ;
+
+            return BotRunEntity.fromRow(row);
+        }, trx);
+
+        return newRun;
     }
 
     /**
@@ -940,14 +952,7 @@ export class StrategyService {
                     return [instance, BotRunEntity.fromRow(newRunProps)];
                 }
 
-                const newRun = await query(queries.BOTS_RUNS_START, async db => {
-                    const [row] = <BotRun[]>await db(tables.BotRuns)
-                        .insert(newRunProps)
-                        .returning("*")
-                        ;
-
-                    return BotRunEntity.fromRow(row);
-                }, trx);
+                const newRun = await this.addNewBotRun(newRunProps, trx);
 
                 if (newTransaction) {
                     await trx.commit();
@@ -976,16 +981,7 @@ export class StrategyService {
 
                 // Just fetch the latest run
                 const savedInstance = await this.updateBotInstance(updatedProps, trx);
-                const latestRun = await query(queries.BOTS_RUNS_LATEST_GET, async db => {
-                    const [row] = <BotRun[]>await db(tables.BotRuns)
-                        .where(<Partial<BotRun>>{ instanceId })
-                        .orderBy("updated", "desc")
-                        .limit(1)
-                        .returning("*")
-                        ;
-
-                    return BotRunEntity.fromRow(row);
-                }, trx);
+                const latestRun = await strats.getLatestRunForInstance(instanceId, trx);
 
                 if (newTransaction) {
                     await trx.commit();

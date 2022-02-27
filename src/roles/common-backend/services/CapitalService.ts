@@ -259,6 +259,8 @@ export class CapitalService {
         const newTransaction = !trx;
         trx = trx || await db.transaction();
 
+        const appliedOptions = Object.assign({}, DEFAULT_ALLOC_OPTIONS, options);
+
         try {
             const amounts = await this.parseAssetAmounts(allocStr);
 
@@ -268,7 +270,7 @@ export class CapitalService {
             const res = await query(queries.ALLOCS_CREATE_TEST_ALLOC, async db => {
                 const newAllocProps: Partial<Allocation> = {
                     strategyId,
-                    live: options.live === true,
+                    live: appliedOptions.live === true,
                     maxDrawdownPct: DEFAULT_ALLOCATION_DRAWDOWN_MAX_PCT,
                     displayName: `Bot allocation`,
                 };
@@ -277,6 +279,7 @@ export class CapitalService {
                 const [newAllocRow] = <Allocation[]>await db(tables.Allocations)
                     .insert(newAllocProps)
                     .returning("*")
+                    .transacting(trx)
                     ;
 
                 alloc = AllocationEntity.fromRow(newAllocRow);
@@ -295,6 +298,7 @@ export class CapitalService {
                     const [newAllocItemRow] = <AllocationItem[]>await db(tables.AllocationItems)
                         .insert(newAllocItemProps)
                         .returning("*")
+                        .transacting(trx)
                         ;
 
                     const item = AllocationItemEntity.fromRow(newAllocItemRow);
@@ -310,6 +314,7 @@ export class CapitalService {
                     const [newTransactionRow] = <AllocationTransaction[]>await db(tables.AllocationTransactions)
                         .insert(newTransactionProps)
                         .returning("*")
+                        .transacting(trx)
                         ;
 
                     const transaction = AllocationTransactionEntity.fromRow(newTransactionRow);
@@ -329,7 +334,9 @@ export class CapitalService {
             return ret;
         }
         catch (err) {
-            await trx.rollback();
+            if (newTransaction) {
+                await trx.rollback();
+            }
             throw err;
         }
     }

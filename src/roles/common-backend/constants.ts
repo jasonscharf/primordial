@@ -128,6 +128,7 @@ export const queries = {
     BOTS_INSTANCES_TO_INIT: "bots.instances.need-init",
     BOTS_INSTANCES_UPDATE: "bots.instances.update",
     BOTS_LIST: "bots.list",
+    BOTS_RUNS_ADD: "bots.runs.add",
     BOTS_RUNS_START: "bots.runs.start",
     BOTS_RUNS_LATEST_GET: "bots.runs.get-latest",
     BOTS_RUNS_LIST: "bots.runs.list",
