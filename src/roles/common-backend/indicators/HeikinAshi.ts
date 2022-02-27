@@ -120,7 +120,7 @@ export class HeikinAshiIndicator extends IndicatorChromosome {
     // to begin with during backtesting, and will be for each tick on forward testing.
     // A proper caching strategy for ticks still needs to be implemented.
     computedCandles: Partial<Price>[] = [];
-    latestTs: string = null;
+    latestTs: string = null; 
     latest: number;
 
     async computeBuySellSignal(ctx: BotContext<GeneticBotState>, tick: Price): Promise<number> {

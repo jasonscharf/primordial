@@ -91,7 +91,9 @@ export const InstanceOverviewItem: React.FC<InstanceOverviewItemProps> = props =
                             </Grid>
 
                             <Grid item sx={theme.utils.smallest}>
-                                <Amount neutral amount={instance.prevPrice} />&nbsp;
+                                <If exp={!!instance.prevPrice && !instance.prevPrice.eq("0")}>
+                                    <Amount neutral amount={instance.prevPrice} />&nbsp;
+                                </If>
                                 <Amount neutral amount={instance.latestPrice} />&nbsp;
                                 <Percent amount={drawdownPct} />
                             </Grid>

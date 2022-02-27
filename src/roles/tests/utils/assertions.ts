@@ -4,7 +4,28 @@ import { TimeResolution } from "../../common/models/markets/TimeResolution";
 import { num, NumLike } from "../../common/numbers";
 import { isNullOrUndefined } from "../../common/utils";
 import { assert, describe } from "../includes";
+import { InstanceSample } from "./instance-samples";
 
+
+export { assert }
+
+
+export function assertExpected(desc: GenotypeInstanceDescriptor, expected: Partial<GenotypeInstanceDescriptor>) {
+    const keys = Object.keys(expected);
+    for (const prop of keys) {
+        const actual = desc[prop];
+        const exp = expected[prop];
+
+        assert.equal(actual + "", exp + "", prop);
+    }
+}
+
+export async function assertSample(s: InstanceSample, d: GenotypeInstanceDescriptor, i: BotInstance = null) {
+    const { expected } = s;
+    if (expected && typeof expected === "function") {
+        await expected(d, i);
+    }
+}
 
 export function assertDescriptorMatchesInstance(desc: GenotypeInstanceDescriptor, bot: BotInstance) {
     assert.isNotNull(desc);
@@ -80,6 +101,12 @@ export function assertRealizedProfit(d: GenotypeInstanceDescriptor) {
     assertNumsGreater(d.avgProfitPctPerDay, 0, "avgProfitPctPerDay");
     assertNumsGreater(d.totalProfit, 0, "totalProfit");
     assertNumsGreater(d.totalProfitPct, 0, "totalProfitPct");
+}
+
+export function assertUnrealizedProfit(d: GenotypeInstanceDescriptor) {
+    assertNumsGreater(d.numOrders, 0);
+    assertNumsGreater(d.drawdown, 0);
+    assertNumsGreater(d.drawdownPct, 0);
 }
 
 export function assertNoRealizedLosses(d: GenotypeInstanceDescriptor) {

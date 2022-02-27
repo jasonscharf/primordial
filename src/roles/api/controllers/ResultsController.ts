@@ -96,13 +96,14 @@ export class ResultsController extends ControllerBase {
             const supplementals = await results.computeTradingResults(instance, pairs, report);
             Object.assign(report, supplementals);
 
+            /*
             const run = await strats.getLatestRunForInstance(instance.id);
             await query("fixup.results", async db => {
                 return db(tables.Results)
                     .where({ botRunId: run.id })
                     .update({ results: report })
                     ;
-            });
+            });*/
         }
 
         if (!report) {

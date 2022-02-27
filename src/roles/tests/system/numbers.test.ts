@@ -55,9 +55,8 @@ describe("numbers", () => {
         // Just a sanity - not going to overlap Big.js testing by testing all operators
         it("handles fractional addition correctly", async () => {
             const js = 0.1 + 0.2;
-            Number.MIN_VALUE
-            const expectedReality = "0.3";
             const expectedJs = "0.30000000000000004";
+            const expectedReality = "0.3";
 
             const [a, b] = ["0.1", "0.2"].map(v => BigNum(v));
             const big = a.plus(b);

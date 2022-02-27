@@ -4,19 +4,19 @@ import { assert, env } from "./includes";
 
 //import "./genetics/genetics.test"; /*
 
-import "./system/database.test";
-import "./system/numbers.test";
-import "./system/time.test";
+//import "./system/database.test";
+//import "./system/numbers.test";
+//import "./system/time.test";
 import "./system/CommandService.test";
 import "./system/InstanceService.test";
 import "./system/ResultsService.test";
-import "./system/SpoolerService.test";
+//import "./system/SpoolerService.test";
 import "./system/TimeSeriesCache.test";
 import "./system/UserService.test";
-import "./genetics/genetics.test";
-import "./trading/StrategyService.test";
-import "./trading/SymbolService.test";
-import "./trading/CapitalService.test";
+//import "./genetics/genetics.test";
+//import "./trading/StrategyService.test";
+//import "./trading/SymbolService.test";
+//import "./trading/CapitalService.test";
 import "./genetics/GenotypeService.test";
 
 //*/
@@ -43,5 +43,5 @@ intern.on("afterRun", () => {
     }
 
     // Note: Knex hangs the node process, so we manually exit here.
-    process.exit(hasErrors ? -1 : 0);
+    //process.exit(hasErrors ? -1 : 0);
 });

@@ -97,7 +97,6 @@ export const DEFAULT_GENETICS: { [key: string]: Chromosome } = Object.freeze({
         new Gene(names.GENETICS_C_RSI_G_BW, GeneticValueType.NUMBER, 1, "Weighting for RSI buy signal"),
         new Gene(names.GENETICS_C_RSI_G_SW, GeneticValueType.NUMBER, 1, "Weighting for RSI sell signal"),
         new Gene(names.GENETICS_C_RSI_G_OITP, GeneticValueType.NUMBER, 14, "Opt-in time period for RSI"),
-
     ]),
     [names.GENETICS_C_HEIKIN_ASHI]: new HeikinAshiIndicatorChromosome("HA", "Heikin-Ashi", "Signal based on HA colour", [
         new Gene<number>(names.GENETICS_C_HEIKIN_ASHI_G_INTERVAL_ELAPSED_PCT, GeneticValueType.NUMBER, 98, "Percentage of current interval to complete before producing enter/exit signals"),

@@ -1,5 +1,6 @@
 import { BotMode } from "../../common/models/system/Strategy";
 import { GeneticBotState } from "../../common-backend/bots/GeneticBot";
+import { GenotypeInstanceDescriptor } from "../../common/models/bots/GenotypeInstanceDescriptor";
 import { Order } from "../../common/models/markets/Order";
 import { RunState } from "../../common/models/system/RunState";
 
@@ -22,3 +23,5 @@ export interface AddTestInstanceArgs {
     orders?: Partial<Order>[];
     state?: Partial<GeneticBotState>;
 }
+
+

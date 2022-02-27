@@ -42,11 +42,9 @@ export const DEFAULT_QUERY_INSTANCE_ARGS: Partial<QueryInstancesArgs> = {
 
 
 /**
- * Handles creation, querying, and management of instances.
+ * Handles creation, querying, and management of running genotypes: instances.
  */
 export class InstanceService {
-
-    // TODO: Migrate rest of relevant StrategyService bits
 
     /**
      * Returns bot status descriptors for any active forward tests or live bots.

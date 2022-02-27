@@ -5,6 +5,7 @@ import { AllocationLedger } from "../../common-backend/services/CapitalService";
 import { BigNum, num } from "../../common/numbers";
 import { BotMode } from "../../common/models/system/Strategy";
 import { BotResults } from "../../common/models/bots/BotResults";
+import { BotRun } from "../../common/models/bots/BotRun";
 import { BotRunReport } from "../../common/models/bots/BotSummaryResults";
 import { BotType } from "../../common/models/bots/BotType";
 import { Order, OrderType } from "../../common/models/markets/Order";
@@ -17,11 +18,9 @@ import {
     TEST_DEFAULT_ADD_TEST_INSTANCE_ARGS,
     TEST_DEFAULT_NEW_BOT_DEF_PROPS,
     TEST_DEFAULT_NEW_BOT_INSTANCE_PROPS,
-    TEST_DEFAULT_ORDER_CAPITAL
+    TEST_DEFAULT_ORDER_CAPITAL,
 } from "../constants";
 import { makeTestOrder } from "./ordering";
-import { first } from "@react-financial-charts/core";
-import { BotRun } from "../../common/models/bots/BotRun";
 
 
 /**
