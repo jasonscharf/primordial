@@ -1,3 +1,5 @@
+> Note: This repo is a prototype and is no longer maintained.
+
 # README
 Algorithmic Trading Platform.
 
